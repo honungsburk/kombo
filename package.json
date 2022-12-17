@@ -1,0 +1,57 @@
+{
+  "name": "@honungsburk/kombo",
+  "version": "0.1.0",
+  "description": "Are you tired of complex regex? Do you want good error messages? Use kombo!",
+  "author": "Frank Hampus Weslien",
+  "license": "MIT",
+  "files": [
+    "dist/",
+    "README.md",
+    "semantics.md",
+    "comparison.md",
+    "package.json",
+    "package-lock.json",
+    "LICENCE",
+    "ORIGINAL-ELM-LICENCE"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "rm -fr dist/* && tsc -p tsconfig.build.esm.json && tsc -p tsconfig.build.cjs.json && ./fixup.bash",
+    "test": "ts-node-esm bin/Test.ts",
+    "typedoc": "typedoc src/index.ts"
+  },
+  "keywords": [
+    "parser",
+    "parser combinators",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@japa/expect": "^2.0.1",
+    "@japa/runner": "^2.2.2",
+    "@japa/spec-reporter": "^1.3.2",
+    "ts-node": "^10.9.1",
+    "typedoc": "^0.23.21",
+    "typescript": "^4.9.3"
+  },
+  "dependencies": {
+    "immutable": "^4.1.0",
+    "ts-results": "^3.3.0",
+    "tslib": "^2.4.1"
+  },
+  "main": "dist/cjs/index.js",
+  "module": "dist/mjs/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/mjs/index.js",
+      "require": "./dist/cjs/index.js"
+    },
+    "./Advanced": {
+      "import": "./dist/mjs/Advanced.js",
+      "require": "./dist/cjs/Advanced.js"
+    },
+    "./Simple": {
+      "import": "./dist/mjs/Simple.js",
+      "require": "./dist/cjs/Simple.js"
+    }
+  }
+}

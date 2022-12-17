@@ -1,0 +1,24 @@
+{
+  "name": "Combo",
+  "includeVersion": true,
+  "hideGenerator": true,
+  "out": "docs",
+  "readme": "README.md",
+  "tsconfig": "./tsconfig.json",
+  "cleanOutputDir": true,
+  "categorizeByGroup": false,
+  "categoryOrder": [
+    "Parsers",
+    "Primitives",
+    "Building Blocks",
+    "Mapping",
+    "Branches",
+    "Loops",
+    "Whitespace",
+    "Chompers",
+    "Indentation",
+    "Positions",
+    "Helpers",
+    "*"
+  ]
+}

@@ -1,0 +1,1275 @@
+// Imports
+import Immutable from "immutable";
+import { Err, Ok, Result } from "ts-results";
+import * as A from "./Advanced.js";
+
+// Exports
+export { Loop, Done, Unit } from "./Advanced.js";
+
+/**
+ * Regular expressions are quite confusing and difficult to use.
+ * This library provides a coherent alternative that handles more cases and produces clearer code.
+ *
+ * @remarks
+ * I created this library because I wanted a type safe parser combinator library
+ * like Haskell's {@link https://hackage.haskell.org/package/parsec parsec}.
+ *
+ * {@see} {@link https://en.wikipedia.org/wiki/Parser_combinator wikipedia}
+ *
+ * @namespace Index
+ * @packageDocumentation
+ */
+
+// PARSERS
+
+/**
+ * A `Parser` helps turn a `String` into nicely structured data. For example,
+ * we can [`run`](#run) the [`int`](#int) parser to turn `String` to `Int`:
+ *
+ * ```ts
+ *  run(int)("123456") => Ok 123456
+ *  run(int)("3.1415") => Err ...
+ * ```
+ *
+ * The cool thing is that you can combine `Parser` values to handle much more
+ * complex scenarios.
+ */
+export type Parser<A> = A.Parser<A, Problem>;
+
+// RUN
+
+/**
+ * Try a parser. Here are some examples using the [`keyword`](#keyword)
+ * parser:
+ * 
+ * ```ts
+ *   run(keyword("true"))("true")  => Ok ()
+ *   run(keyword("true"))("True")  => Err ...
+ *   run(keyword("true"))("false") => Err ...
+ *   run(keyword("true"))("true!") => Ok ()
+ * ````
+
+ * Notice the last case! A `Parser` will chomp as much as possible and not worry
+ * about the rest. Use the [`end`](#end) parser to ensure you made it to the end
+ * of the string!
+ */
+export const run =
+  <A>(parser: Parser<A>) =>
+  (src: string): Result<A, DeadEnd[]> => {
+    const res = A.run(parser)(src);
+    if (res.err) {
+      return new Err(
+        res.val.map((p) => ({ row: p.row, col: p.col, problem: p.problem }))
+      );
+    }
+
+    return res;
+  };
+
+// PROBLEMS
+
+/**
+ * A parser can run into situations where there is no way to make progress.
+ * When that happens, I record the `row` and `col` where you got stuck and the
+ * particular `problem` you ran into. That is a `DeadEnd`!
+ *
+ * **Note:** I count rows and columns like a text editor. The beginning is `row=1`
+ * and `col=1`. As I chomp characters, the `col` increments. When I reach a `\n`
+ * character, I increment the `row` and set `col=1`.
+ */
+export type DeadEnd = {
+  row: number;
+  col: number;
+  problem: Problem;
+};
+
+/**
+ * When you run into a `DeadEnd`, I record some information about why you
+ * got stuck. This data is useful for producing helpful error messages. This is
+ * how [`deadEndsToString`](#deadEndsToString) works!
+ *
+ * **Note:** If you feel limited by this type (i.e. having to represent custom
+ * problems as strings) I highly recommend switching to `Parser.Advanced`. It
+ * lets you define your own `Problem` type. It can also track "context" which
+ * can improve error messages a ton! This is how the Elm compiler produces
+ * relatively nice parse errors, and I am excited to see those techniques applied
+ * elsewhere!
+ */
+export type Problem =
+  | Expecting
+  | ExpectingBinary
+  | ExpectingHex
+  | ExpectingOctal
+  | ExpectingInt
+  | ExpectingFloat
+  | ExpectingNumber
+  | ExpectingVariable
+  | ExpectingSymbol
+  | ExpectingKeyword
+  | ExpectingEnd
+  | UnexpectedChar
+  | Generic
+  | BadRepeat;
+
+/**
+ * A very basic `toString` function for {@link Problem}. You probably want to
+ * implement your own!
+ *
+ * @param problem - the problem to transform into a string
+ * @return a string of the problem
+ */
+export function toString(problem: Problem): string {
+  if (isProblemWithStr(problem)) {
+    return `${problem.kind}: '${problem.str}'`;
+  } else {
+    return problem.kind;
+  }
+}
+
+/**
+ * returns true for any problem that has an extra `str` value.
+ */
+export function isProblemWithStr(
+  problem: any
+): problem is Expecting | ExpectingSymbol | ExpectingKeyword | Generic {
+  return (
+    isExpecting(problem) ||
+    isExpectingSymbol(problem) ||
+    isExpectingKeyword(problem) ||
+    isGeneric(problem)
+  );
+}
+
+// Expecting
+
+export type Expecting = {
+  readonly kind: "Expecting";
+  readonly str: string;
+};
+
+export const Expecting = (str: string): Expecting => ({
+  kind: "Expecting",
+  str: str,
+});
+
+export function isExpecting(x: any): x is Expecting {
+  return typeof x === "object" && x.kind === "Expecting";
+}
+
+// ExpectingBinary
+
+export type ExpectingBinary = {
+  readonly kind: "ExpectingBinary";
+};
+
+export const ExpectingBinary: ExpectingBinary = {
+  kind: "ExpectingBinary",
+};
+
+export function isExpectingBinary(x: any): x is ExpectingBinary {
+  return typeof x === "object" && x.kind === "ExpectingBinary";
+}
+
+// ExpectingOctal
+
+export type ExpectingOctal = {
+  readonly kind: "ExpectingOctal";
+};
+
+export const ExpectingOctal: ExpectingOctal = {
+  kind: "ExpectingOctal",
+};
+
+export function isExpectingOctal(x: any): x is ExpectingOctal {
+  return typeof x === "object" && x.kind === "ExpectingOctal";
+}
+
+// ExpectingHex
+
+export type ExpectingHex = {
+  readonly kind: "ExpectingHex";
+};
+
+export const ExpectingHex: ExpectingHex = {
+  kind: "ExpectingHex",
+};
+
+export function isExpectingHex(x: any): x is ExpectingHex {
+  return typeof x === "object" && x.kind === "ExpectingHex";
+}
+
+// ExpectingInt
+
+export type ExpectingInt = {
+  readonly kind: "ExpectingInt";
+};
+
+export const ExpectingInt: ExpectingInt = {
+  kind: "ExpectingInt",
+};
+
+export function isExpectingInt(x: any): x is ExpectingInt {
+  return typeof x === "object" && x.kind === "ExpectingInt";
+}
+
+// ExpectingFloat
+
+export type ExpectingFloat = {
+  readonly kind: "ExpectingFloat";
+};
+
+export const ExpectingFloat: ExpectingFloat = {
+  kind: "ExpectingFloat",
+};
+
+export function isExpectingFloat(x: any): x is ExpectingFloat {
+  return typeof x === "object" && x.kind === "ExpectingFloat";
+}
+
+// ExpectingBinary
+
+export type ExpectingNumber = {
+  readonly kind: "ExpectingNumber";
+};
+
+export const ExpectingNumber: ExpectingNumber = {
+  kind: "ExpectingNumber",
+};
+
+export function isExpectingNumber(x: any): x is ExpectingNumber {
+  return typeof x === "object" && x.kind === "ExpectingNumber";
+}
+
+// ExpectingVariable
+
+export type ExpectingVariable = {
+  readonly kind: "ExpectingVariable";
+};
+
+export const ExpectingVariable: ExpectingVariable = {
+  kind: "ExpectingVariable",
+};
+
+export function isExpectingVariable(x: any): x is ExpectingVariable {
+  return typeof x === "object" && x.kind === "ExpectingVariable";
+}
+
+// ExpectingSymbol
+
+export type ExpectingSymbol = {
+  readonly kind: "ExpectingSymbol";
+  readonly str: string;
+};
+
+export const ExpectingSymbol = (str: string): ExpectingSymbol => ({
+  kind: "ExpectingSymbol",
+  str: str,
+});
+
+export function isExpectingSymbol(x: any): x is ExpectingSymbol {
+  return typeof x === "object" && x.kind === "ExpectingSymbol";
+}
+
+// ExpectingKeyword
+
+export type ExpectingKeyword = {
+  readonly kind: "ExpectingKeyword";
+  readonly str: string;
+};
+
+export const ExpectingKeyword = (str: string): ExpectingKeyword => ({
+  kind: "ExpectingKeyword",
+  str: str,
+});
+
+export function isExpectingKeyword(x: any): x is ExpectingKeyword {
+  return typeof x === "object" && x.kind === "ExpectingKeyword";
+}
+
+// ExpectingEnd
+
+export type ExpectingEnd = {
+  readonly kind: "ExpectingEnd";
+};
+
+export const ExpectingEnd: ExpectingEnd = {
+  kind: "ExpectingEnd",
+};
+
+export function isExpectingEnd(x: any): x is ExpectingEnd {
+  return typeof x === "object" && x.kind === "ExpectingEnd";
+}
+
+// UnexpectedChar
+
+export type UnexpectedChar = {
+  readonly kind: "UnexpectedChar";
+};
+
+export const UnexpectedChar: UnexpectedChar = {
+  kind: "UnexpectedChar",
+};
+
+export function isUnexpectedChar(x: any): x is UnexpectedChar {
+  return typeof x === "object" && x.kind === "UnexpectedChar";
+}
+
+// Generic
+
+export type Generic = {
+  readonly kind: "Generic";
+  readonly str: string;
+};
+
+export const Generic = (str: string): Generic => ({
+  kind: "Generic",
+  str: str,
+});
+
+export function isGeneric(x: any): x is Generic {
+  return typeof x === "object" && x.kind === "Generic";
+}
+
+// BadRepeat
+
+export type BadRepeat = {
+  readonly kind: "BadRepeat";
+};
+
+export const BadRepeat: BadRepeat = {
+  kind: "BadRepeat",
+};
+
+export function isBadRepeat(x: any): x is BadRepeat {
+  return typeof x === "object" && x.kind === "BadRepeat";
+}
+
+// PRIMITIVES
+
+/**
+ * A parser that succeeds without chomping any characters.
+ *
+ * ```ts
+ *   run(succeed(90210    ))("mississippi") => Ok(90210)
+ *   run(succeed(3.141    ))("mississippi") => Ok(3.141)
+ *   run(succeed(true     ))("mississippi") => Ok(true)
+ *   run(succeed(undefined))("mississippi") => Ok(undefined)
+ * ```
+ *
+ * Seems weird on its own, but it is very useful in combination with other
+ * functions. The docs for [`(|=)`](#|=) and [`andThen`](#andThen) have some neat
+ * examples.
+ */
+export function succeed<A>(v: A): Parser<A> {
+  return A.succeed(v);
+}
+
+/**
+ * Indicate that a parser has reached a dead end. "Everything was going fine
+ * until I ran into this problem." Check out the [`andThen`](#andThen) docs to see
+ * an example usage.
+ *
+ * @param msg - The message to show when encountering this problem
+ * @returns a parser that always fails
+ */
+export function problem<A>(msg: string): Parser<A> {
+  return A.problem(Generic(msg));
+}
+
+// MAPPING
+
+/**
+ * This is a curried version of the {@link Parser.map | map} method on the Parser class.
+ */
+export const map =
+  <A, B>(fn: (a: A) => B) =>
+  (parser: Parser<A>): Parser<B> => {
+    return A.map(fn)(parser);
+  };
+
+/**
+ *
+ * Combine the results from two different parsers.
+ *
+ * @example
+ * The {@link keep} function is defined using {@link map2}.
+ *
+ * ```ts
+ * const keep = map2((fn: (a: A) => B, arg: A) => fn(arg))
+ * ```
+ *
+ * @param fn - the function to combine the results from the two parsers
+ * @param parserA - The first parser
+ * @param parserA - The second parser
+ * @returns a new parser that applies the function to the result of the two parsers
+ */
+export const map2 =
+  <A, B, C>(fn: (a: A, b: B) => C) =>
+  (parserA: Parser<A>) =>
+  (parserB: Parser<B>): Parser<C> => {
+    return A.map2(fn)(parserA)(parserB);
+  };
+
+/**
+ * This is a curried version of the {@link Parser.apply | keep} method on the Parser class.
+ */
+export const keep =
+  <A, B>(parseFunc: Parser<(a: A) => B>) =>
+  (parseArg: Parser<A>): Parser<B> => {
+    return A.apply(parseFunc)(parseArg);
+  };
+
+/**
+ * Like {@link skip2nd } but skips the first argument instead of the second.
+ */
+export const skip1st =
+  (first: Parser<unknown>) =>
+  <KEEP>(second: Parser<KEEP>): Parser<KEEP> => {
+    return A.skip1st(first)(second);
+  };
+
+/**
+ * A curried version of the {@link Parser.skip } method on the Parser class.
+ *
+ * @See {@link skip1sß } for a function that skips it's first argument.
+ */
+export const skip2nd =
+  <KEEP>(keepParser: Parser<KEEP>) =>
+  (ignoreParser: Parser<unknown>): Parser<KEEP> => {
+    return A.skip2nd(keepParser)(ignoreParser);
+  };
+
+// AND THEN
+
+/**
+ * A curried version of the {@link Parser.andThen | andThen } method on the Parser class.
+ */
+export const andThen =
+  <A, B>(fn: (a: A) => Parser<B>) =>
+  (p: Parser<A>): Parser<B> => {
+    return A.andThen(fn)(p);
+  };
+
+// LAZY
+
+/**
+  Helper to define recursive parsers. Say we want a parser for simple
+  boolean expressions:
+ 
+  ```ts
+      true
+      false
+      (true || false)
+      (true || (true || false))
+  ```
+ 
+  Notice that a boolean expression might contain *other* boolean expressions.
+  That means we will want to define our parser in terms of itself:
+ 
+  ```ts
+      type MyBoolean = typeof MyTrue | typeof MyFalse | MyOr;
+
+      const MyTrue = {
+        kind: "MyTrue",
+      } as const;
+
+      const MyFalse = {
+        kind: "MyFalse",
+      } as const;
+
+      type MyOr = {
+        readonly kind: "MyOr";
+        readonly l: MyBoolean;
+        readonly r: MyBoolean;
+      };
+
+      const MyOr =
+        (l: MyBoolean) =>
+        (r: MyBoolean): MyOr => ({
+          kind: "MyOr",
+          l,
+          r,
+        });
+
+      const boolean: P.Parser<MyBoolean> = P.oneOf<MyBoolean>(
+        P.succeed(MyTrue).skip(P.keyword("true")),
+        P.succeed(MyFalse).skip(P.keyword("false")),
+        P.succeed(MyOr)
+          .skip(P.symbol("("))
+          .skip(P.spaces)
+          .apply(P.lazy(() => boolean))
+          .skip(spaces)
+          .skip(symbol("||"))
+          .skip(spaces)
+          .apply(P.lazy(() => boolean))
+          .skip(P.spaces)
+          .skip(P.symbol(")"))
+      );
+  ```
+ 
+  **Notice that `boolean` uses `boolean` in its definition!** In Typescript, you can
+  only define a value in terms of itself it is behind a function call. So
+  `lazy` helps us define these self-referential parsers. (`andThen` can be used
+  for this as well!)
+ 
+  @param thunk - the lazy function
+  @returns a lazy executing parser
+ */
+export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
+  return A.lazy(thunk);
+};
+
+// ONE OF
+
+//
+// More advanced typechecking.
+//
+
+/**
+ * If you are parsing JSON, the values can be strings, floats, booleans,
+ * arrays, objects, or null. You need a way to pick `oneOf` them! Here is a
+ * sample of what that code might look like:
+ *
+ * @example
+ * ```ts
+ * type Json =
+ *    | ReturnType<typeof JNumber>
+ *    | ReturnType<typeof JBoolean>
+ *    | typeof JNull;
+ *
+ * const JNumber = (n: number) =>
+ *  ({
+ *     kind: "JNumber",
+ *     value: n,
+ *   } as const);
+ *
+ * const JBoolean = (b: boolean) =>
+ *   ({
+ *     kind: "JBoolean",
+ *     value: b,
+ *   } as const);
+ *
+ * const JNull = {
+ *   kind: "JNull",
+ * } as const;
+ *
+ * const json: Parser<Json> = P.oneOf(
+ *   P.float.map(JNumber),
+ *   P.keyword("true").map(() => JBoolean(true)),
+ *   P.keyword("false").map(() => JBoolean(false)),
+ *   P.keyword("null").map(() => JNull)
+ * );
+ * ```
+ *
+ * @category oneOf
+ */
+export function oneOf<A>(one: Parser<A>): Parser<A>;
+
+export function oneOf<A, B>(one: Parser<A>, two: Parser<B>): Parser<A | B>;
+
+export function oneOf<A, B, C>(
+  one: Parser<A>,
+  two: Parser<B>,
+  three: Parser<C>
+): Parser<A | B | C>;
+
+export function oneOf<A, B, C, D>(
+  one: Parser<A>,
+  two: Parser<B>,
+  three: Parser<C>,
+  four: Parser<D>
+): Parser<A | B | C | D>;
+
+export function oneOf<A, B, C, D, E>(
+  one: Parser<A>,
+  two: Parser<B>,
+  three: Parser<C>,
+  four: Parser<D>,
+  five: Parser<E>
+): Parser<A | B | C | D | E>;
+
+export function oneOf<A>(...parsers: Parser<A>[]): Parser<A> {
+  return oneOfMany(...parsers);
+}
+
+/**
+ * Just like {@link oneOf} but when you have more then 5 parsers.
+ *
+ * The type inference is a bit worse on this function. In most cases you
+ * will have to specify the type parameter yourself.
+ *
+ * @example
+ * ```ts
+ * const json: Parser<Json> = P.oneOfMany<Json>(
+ *   P.float.map(JNumber),
+ *   P.keyword("true").map(() => JBoolean(true)),
+ *   P.keyword("false").map(() => JBoolean(false)),
+ *   P.keyword("null").map(() => JNull)
+ * ```
+ *
+ * @category oneOf
+ */
+export const oneOfMany = <A>(...parsers: Parser<A>[]): Parser<A> => {
+  return A.oneOfMany(...parsers);
+};
+
+// LOOP
+
+// We want to hide Advanced module for novices.
+export type Step<STATE, A> = A.Step<STATE, A>;
+
+/**  
+A parser that can loop indefinitely. This can be helpful when parsing
+repeated structures, like a bunch of statements:
+
+```ts
+    // Note that we are useing a mutable list here. Dangerous but OK in this scenario.
+    const statementsHelp = (stmts: Stmt[]): P.Parser<P.Step<Stmt[], Stmt[]>> => {
+      return P.oneOf(
+        P.succeed((stmt) => {
+          stmts.push(stmt);
+          return new P.Loop(stmts);
+        })
+          .apply(statement)
+          .skip(P.spaces)
+          .skip(P.symbol(";"))
+          .skip(P.spaces),
+        P.succeed(P.Unit).map(() => new P.Done(stmts))
+      );
+    };
+
+    const statements: P.Parser<Stmt[]> = P.loop([])(statementsHelp);
+```
+
+Notice that the statements are tracked in reverse as we `Loop`, and we reorder
+them only once we are `Done`. This is a very common pattern with `loop`!
+
+Check out [`examples/DoubleQuoteString.elm`](https://github.com/elm/parser/blob/master/examples/DoubleQuoteString.elm)
+for another example.
+
+**IMPORTANT NOTE:** Parsers like `succeed(Unit)` and `chompWhile(isAlpha)` can
+succeed without consuming any characters. So in some cases you may want to use
+{@link getOffset} to ensure that each step actually consumed characters.
+Otherwise you could end up in an infinite loop!
+
+**Note:** Anything you can write with `loop`, you can also write as a parser
+that chomps some characters `andThen` calls itself with new arguments. The
+problem with calling `andThen` recursively is that it grows the stack, so you
+cannot do it indefinitely. So `loop` allow us to write more efficient parsers. 
+Of course you could also use the looping constructs built into js/ts itself.
+
+Link: {@link https://en.wikipedia.org/wiki/Finite-state_machine Finite State Machine }
+
+@param state - keeps track of the state in the loop
+@param fn - On each looping returns a new parser.
+@return a parser that loops
+*/
+export const loop =
+  <STATE>(state: STATE) =>
+  <A>(fn: (s: STATE) => Parser<Step<STATE, A>>): Parser<A> => {
+    return A.loop(state)(fn);
+  };
+
+// BACKTRACKABLE
+
+/**
+It is quite tricky to use `backtrackable` well! It can be very useful, but
+also can degrade performance and error message quality.
+
+Read {@link https://github.com/honungsburk/kombo/blob/master/semantics.md this document }
+to learn how `oneOf`, `backtrackable`, and `commit` work and interact with
+each other. It is subtle and important!
+
+@param parser - the parser you want to make backtrackable
+@return a parser that backtracks
+ */
+export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
+  return A.backtrackable(parser);
+};
+/**  
+`commit` is almost always paired with `backtrackable` in some way, and it
+is tricky to use well.
+
+Read {@link https://github.com/honungsburk/kombo/blob/master/semantics.md this document}
+to learn how `oneOf`, `backtrackable`, and `commit` work and interact with
+each other. It is subtle and important!
+
+@param value - the value to commit
+ */
+export const commit = <A>(value: A): Parser<A> => {
+  return A.commit(value);
+};
+
+// SYMBOL
+
+/**
+ * Parse symbols like `(` and `,`.
+ *
+ * ```ts
+ *   run (symbol "[") "[" == Ok ()
+ *   run (symbol "[") "4" == Err ... (ExpectingSymbol "[") ...
+ * ```
+ *
+ * **Note:** This is good for stuff like brackets and semicolons, but it probably
+ * should not be used for binary operators like `+` and `-` because you can find
+ * yourself in weird situations. For example, is `3--4` a typo? Or is it `3 - -4`?
+ * I have had better luck with `chompWhile isSymbol` and sorting out which
+ * operator it is afterwards.
+ */
+export const symbol = (str: string): Parser<A.Unit> => {
+  return A.symbol(A.Token(str, ExpectingSymbol(str)));
+};
+
+// TOKEN
+
+/**
+Parse exactly the given string, without any regard to what comes next.
+
+A potential pitfall when parsing keywords is getting tricked by variables that
+start with a keyword, like `let` in `letters` or `import` in `important`. This
+is especially likely if you have a whitespace parser that can consume zero
+charcters. So the {@link keyword} parser is defined with `token` and a
+trick to peek ahead a bit: 
+
+```ts 
+TODO
+```
+
+This definition is specially designed so that (1) if you really see `let` you
+commit to that path and (2) if you see `letters` instead you can backtrack and
+try other options. If I had just put a `backtrackable` around the whole thing
+you would not get (1) anymore.
+
+@param token - the token to look for
+@returns a parser for your token
+ */
+export const token = (token: string): Parser<A.Unit> => {
+  return A.token(toToken(token));
+};
+
+// HELPER
+function toToken(str: string): A.Token<Problem> {
+  return { value: str, problem: Expecting(str) };
+}
+
+// KEYWORD
+
+/**
+ * Parse keywords like `let`, `case`, and `type`.
+ *
+ * ```ts
+ *   run(keyword("let"))("let")     => Ok()
+ *   run(keyword("let"))("var")     => Err ... (ExpectingKeyword("let")) ...
+ *   run(keyword("let"))("letters") => Err ... (ExpectingKeyword("let")) ...
+ * ```
+ *
+ * **Note:** Notice the third case there! `keyword` actually looks ahead one
+ * character to make sure it is not a letter, number, or underscore. The goal is
+ * to help with parsers like this:
+ *
+ * ```ts
+ *  succeed(x => x)
+ *    .skip(keyword("let"))
+ *    .skip(spaces)
+ *    .apply(elmVar)
+ *    .skip(spaces)
+ *    .skip(symbol("="))
+ * ```
+ *
+ * The trouble is that `spaces` may chomp zero characters (to handle expressions
+ * like `[1,2]` and `[ 1 , 2 ]`) and in this case, it would mean `letters` could
+ * be parsed as `let ters` and then wonder where the equals sign is! Check out the
+ * {@link token} docs if you need to customize this!
+ *
+ * @param keyword - the keyword like "let", "const", etc
+ * @return a parser for that keyword
+ */
+export const keyword = (kwd: string): Parser<A.Unit> => {
+  return A.keyword(A.Token(kwd, ExpectingKeyword(kwd)));
+};
+
+// NUMBERS
+
+/**
+Parse integers.
+
+@remarks
+
+@example Behavior
+
+By default it only parsers non-negative integers
+
+```ts
+    run(int("1"))    => Ok(1)
+    run(int("1234")) => Ok(1234)
+    run(int("-789")) => Err( ...)
+    run(int("0123")) => Err( ...)
+    run(int("1.34")) => Err( ...)
+    run(int("1e31")) => Err( ...)
+    run(int("123a")) => Err( ...)
+    run(int("0x1A")) => Err( ...)
+```
+
+If you want to handle a leading `+` or `-` you should do it with a custom
+parser like this:
+
+```ts
+    const myInt: Parser<number> = oneOf(
+      succeed((n: number) => n * -1)
+        .skip(symbol("-"))
+        .apply(int),
+      int
+    );
+```
+
+**Note:** If you want a parser for both `Int` and `Float` literals, check out
+{@link number} below. It will be faster than using `oneOf` to combining
+`int` and `float` yourself.
+
+ */
+export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
+
+/**
+ * Parse floats.
+ *
+ * @remarks
+ *
+ * @example
+ * ```ts
+ *   run(float("123"))       => Ok(123)
+ *   run(float("3.1415"))    => Ok(3.1415)
+ *   run(float("0.1234"))    => Ok(0.1234)
+ *   run(float(".1234"))     => Ok(0.1234)
+ *   run(float("1e-42"))     => Ok(1e-42)
+ *   run(float("6.022e23"))  => Ok(6.022e23)
+ *   run(float("6.022E23"))  => Ok(6.022e23)
+ *   run(float("6.022e+23")) => Ok(6.022e23)
+ * ```
+ *
+ * If you want to disable literals like `.123` (like in Elm) you could write
+ * something like this:
+ * ```ts
+ *   elmFloat : Parser Float
+ *   elmFloat =
+ *     oneOf
+ *       [ symbol "."
+ *           |. problem "floating point numbers must start with a digit, like 0.25"
+ *       , float
+ *       ]
+ * ```
+ *
+ * **Note:** If you want a parser for both `Int` and `Float` literals, check out
+ * {@link number} below. It will be faster than using `oneOf` to combining
+ * `int` and `float` yourself.
+ */
+export const float: Parser<number> = A.float(ExpectingFloat)(ExpectingFloat);
+
+// Helper
+function toResult<V, W>(value: V | undefined, def: W): Result<V, W> {
+  return value !== undefined ? Ok(value) : Err(def);
+}
+
+/**
+ * Parse a bunch of different kinds of numbers without backtracking.
+ *
+ * @remarks
+ *
+ * @example Elm
+ *
+ * A parser for Elm would need to handle integers, floats, and hexadecimal like this:
+ *
+ * ```ts
+ *     type Number = IntE | FloatE;
+ *
+ *     class IntE {
+ *       constructor(public readonly value: number) {}
+ *     }
+ *
+ *     class FloatE {
+ *       constructor(public readonly value: number) {}
+ *     }
+ *     const elmNumber: P.Parser<Number> = P.number({
+ *       int: (n) => new IntE(n),
+ *       hex: (n) => new IntE(n), // 0x001A is allowed
+ *       float: (n) => new FloatE(n),
+ *     });
+ * ```
+ *
+ * @example Float
+ *
+ * If you wanted to implement the [`float`](#float) parser, it would be like this:
+ * ```ts
+ *     const float: Parser<number> =
+ *         number({
+ *           int: (n) => n,
+ *           float: (n) => n
+ *         });
+ * ```
+ *
+ * Notice that it actually is processing `int` results! This is because `123`
+ * looks like an integer to me, but maybe it looks like a float to you. If you had
+ * `int : undefiend`, floats would need a decimal like `1.0` in every case. If you
+ * like explicitness, that may actually be preferable!
+ *
+ * **Note:** This function does not check for weird trailing characters in the
+ * current implementation, so parsing `123abc` can succeed up to `123` and then
+ * move on. This is helpful for people who want to parse things like `40px` or
+ * `3m`, but it requires a bit of extra code to rule out trailing characters in
+ * other cases.
+ *
+ * @param args - map different numbers to different values
+ * @returns a parser for numbers
+ */
+export const number = <A>(args: {
+  int?: (n: number) => A;
+  hex?: (n: number) => A;
+  binary?: (n: number) => A;
+  octal?: (n: number) => A;
+  float?: (n: number) => A;
+}): Parser<A> => {
+  return A.number<A, Problem>({
+    int: toResult(args.int, ExpectingInt),
+    hex: toResult(args.int, ExpectingHex),
+    octal: toResult(args.int, ExpectingOctal),
+    binary: toResult(args.int, ExpectingBinary),
+    float: toResult(args.int, ExpectingFloat),
+    invalid: ExpectingNumber,
+    expecting: ExpectingNumber,
+  });
+};
+
+// END
+
+/**
+Check if you have reached the end of the string you are parsing.
+
+@remarks
+ 
+@example Just An Int
+
+```ts
+    const justAnInt: Parser<number> =
+      succeed((n: number) => n)
+        .apply(int)
+        .skip(end)
+
+    // run(justAnInt("90210")) => Ok(90210)
+    // run(justAnInt("1 + 2")) => Err(...)
+    // run(int("1 + 2")) .     => Ok(1)
+```
+
+Parsers can succeed without parsing the whole string. Ending your parser
+with `end` guarantees that you have successfully parsed the whole string.
+ */
+export const end: Parser<A.Unit> = A.end(ExpectingEnd);
+
+// CHOMPED STRINGS
+
+/**
+Sometimes parsers like `int` or `variable` cannot do exactly what you
+need. The "chomping" family of functions is meant for that case!
+
+@remarks
+Maybe you need to parse {@link https://www.w3schools.com/php/php_variables.asp valid PHP variables} 
+like `$x` and `$txt`:
+
+```ts 
+    const php: P.Parser<string> = P.getChompedString(
+      P.succeed(P.Unit)
+        .skip(P.chompIf((c: string) => c === "$"))
+        .skip(P.chompIf((c: string) => Helpers.isAlphaNum(c) || c === "_"))
+        .skip(P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c === "_"))
+    );
+```
+The idea is that you create a bunch of chompers that validate the underlying
+characters. Then `getChompedString` extracts the underlying `String` efficiently.
+
+**Note:** Maybe it is helpful to see how you can use {@link getOffset}
+and {@link getSource} to implement this function:
+
+```ts 
+    const getChompedString = (parser: P.Parser<any>) => {
+      return P.succeed(
+        (from: number) => (to: number) => (str: string) => str.slice(from, to)
+      )
+        .apply(P.getOffset())
+        .skip(parser)
+        .apply(P.getOffset())
+        .apply(P.getSource());
+    };
+```
+
+@param parser 
+@returns 
+ */
+export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
+  return A.getChompedString(parser);
+};
+
+/**
+This works just like {@link Simple!getChompedString} but gives
+a bit more flexibility. For example, maybe you want to parse Elm doc comments
+and get (1) the full comment and (2) all of the names listed in the docs.
+
+@example Example Implementation
+
+You could implement `mapChompedString` like this:
+
+```ts
+    const mapChompedString =
+      <A, B>(fn: (s: string, v: A) => B) =>
+      (parser: P.Parser<A>): P.Parser<B> => {
+        return P.succeed(
+          (start: number) => (value: A) => (end: number) => (src: string) =>
+            fn(src.slice(start, end), value)
+        )
+          .apply(P.getOffset)
+          .apply(parser)
+          .apply(P.getOffset)
+          .apply(P.getSource);
+  };
+```
+
+@param fn 
+@returns 
+ */
+export const mapChompedString =
+  <A, B>(fn: (s: string, v: A) => B) =>
+  (parser: Parser<A>): Parser<B> => {
+    return A.mapChompedString(fn)(parser);
+  };
+// CHOMP IF
+
+/**
+Chomp one character if it passes the test.
+@remarks
+
+@example
+```ts
+    const chompUpper: P.Parser<P.Unit> =
+      P.chompIf(Helpers.isUpper)
+```
+
+So this can chomp a character like `T` and produces a `()` value.
+
+@param isGood - if a character should be chomped
+@returns a new parser
+ */
+export const chompIf = (isGood: (char: string) => boolean): Parser<A.Unit> => {
+  return A.chompIf(isGood)(UnexpectedChar);
+};
+
+// CHOMP WHILE
+
+/**
+Chomp zero or more characters if they pass the test. 
+
+@remarks
+
+@example
+This is commonly useful for chomping whitespace or variable names:
+
+```ts 
+    const whitespace: P.Parser<P.Unit> = P.chompWhile(
+      (c: string) => c == " " || c == "\t" || c == "\n" || c == "\r"
+    );
+
+    const elmVar: P.Parser<string> = P.getChompedString(
+      P.succeed(P.Unit).skip(
+        P.chompIf(Helpers.isLower).skip(
+          P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c == "_")
+        )
+      )
+    );
+```
+
+**Note:** a `chompWhile` parser always succeeds! This can lead to tricky
+situations, especially if you define your whitespace with it. In that case,
+you could accidentally interpret `letx` as the keyword `let` followed by
+"spaces" followed by the variable `x`. This is why the `keyword` and `number`
+parsers peek ahead, making sure they are not followed by anything unexpected.
+
+@param isGood 
+@returns a new parser
+ */
+export const chompWhile = (
+  isGood: (char: string) => boolean
+): Parser<A.Unit> => {
+  return A.chompWhile(isGood);
+};
+
+// CHOMP UNTIL
+
+/**
+Chomp until you see a certain string. 
+
+@remarks
+
+@example Multi-line comments
+You could define haskell-style multi-line comments like this:
+
+```ts 
+  const comment: P.Parser<P.Unit> =
+    P.symbol("{-")
+      .skip(P.chompUntil("-}"))
+```
+
+I recommend using {@link multiComment} for this particular scenario
+though. It can be trickier than it looks!
+
+@param str - the string in must see to stop chomping
+@returns a new parser
+ */
+export const chompUntil = (str: string): Parser<A.Unit> => {
+  return A.chompUntil(toToken(str));
+};
+
+//CHOMP UNTIL END OR
+
+/**
+Chomp until you see a certain string or until you run out of characters to
+chomp! 
+
+@remarks
+
+@example Single-line Comment
+You could define single-line comments like this:
+
+```ts 
+    const singleLineComment: P.Parser<P.Unit> = 
+      P.symbol("--")
+        .skip(P.chompUntilEndOr("\n"));
+```
+
+A file may end with a single-line comment, so the file can end before you see
+a newline. Tricky!
+
+I recommend just using {@link lineComment} for this particular
+scenario.
+
+@param str - the string in must see to stop chomping
+@returns a new parser
+ */
+export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
+  return A.chompUntilEndOr(str);
+};
+
+// INDENTATION
+
+/** 
+Some languages are indentation sensitive. Python cares about tabs. Elm
+cares about spaces sometimes. `withIndent` and `getIndent` allow you to manage
+"indentation state" yourself, however is necessary in your scenario.
+*/
+export const withIndent =
+  (n: number) =>
+  <A>(parser: Parser<A>): Parser<A> => {
+    return A.withIndent(n)(parser);
+  };
+
+/**
+When someone said `withIndent` earlier, what number did they put in there?
+
+- `getIndent()` results in `0`, the default value
+- `withInden(4)(getIndent())` results in `4`
+
+So you are just asking about things you said earlier. These numbers do not leak
+out of `withIndent`, so say we have:
+
+```ts 
+    succeed((a: number) => (b: number) => [a, b])
+      .apply(withIndent(4)(getIndent()))
+      .apply(getIndent());
+```
+
+@returns a parser containing the current level of indentation
+*/
+export const getIndent: Parser<number> = A.getIndent;
+
+// POSITION
+
+export const getPosition: Parser<[number, number]> = A.getPosition;
+
+export const getRow: Parser<number> = A.getRow;
+
+export const getCol: Parser<number> = A.getCol;
+
+export const getOffset: Parser<number> = A.getOffset;
+
+export const getSource: Parser<string> = A.getSource;
+
+// VARIABLES
+
+/** 
+Create a parser for variables. 
+
+@remarks
+
+@example
+
+```ts
+
+```
+
+@param args - configuration what is and isn't a variable
+@return a parser for variables
+ */
+export const variable = (args: {
+  start: (char: string) => boolean;
+  inner: (char: string) => boolean;
+  reserved: Set<string>;
+}): Parser<string> => {
+  return A.variable({
+    expecting: ExpectingVariable,
+    ...args,
+  });
+};
+
+// SEQUENCES
+
+export const sequence = <A>(args: {
+  start: string;
+  seperator: string;
+  end: string;
+  spaces: Parser<A.Unit>;
+  item: Parser<A>;
+  trailing: A.Trailing; // TODO: define a new trailing type in this file?
+}): Parser<Immutable.List<A>> => {
+  return A.sequence({
+    start: toToken(args.start),
+    separator: toToken(args.seperator),
+    end: toToken(args.end),
+    spaces: args.spaces,
+    item: args.item,
+    trailing: args.trailing,
+  });
+};
+
+// WHITESPACE
+
+/**
+ * Parse zero or more `' '`, `'\n'`, and `'\r'` characters.
+ * The implementation is pretty simple:
+ *
+ * ```ts
+ *     const spaces = chompWhile(c => c === ' ' || c === '\n' || c === '\r')
+ * ```
+ *
+ * So if you need something different (like tabs) just define an alternative with
+ * the necessary tweaks! Check out {@link lineComment} and
+ * {@link multiComment} for more complex situations.
+ */
+export const spaces: Parser<A.Unit> = A.spaces;
+
+// COMMENTS
+
+export const lineComment = (str: string): Parser<A.Unit> => {
+  return A.lineComment(toToken(str));
+};
+
+export const multiComment =
+  (open: string) =>
+  (close: string) =>
+  (nestable: A.Nestable): Parser<A.Unit> => {
+    return A.multiComment(toToken(open))(toToken(close))(nestable);
+  };
