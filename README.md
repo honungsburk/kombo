@@ -1,4 +1,4 @@
-# TS Parser
+# Kombo
 
 > **_NOTE:_** This is a port of Elm's [Parser Combinators library](https://package.elm-lang.org/packages/elm/parser/latest/Parser) to typescript. This includes large part of the documentation
 
