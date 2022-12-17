@@ -1,6 +1,6 @@
-# Kombo
-
 > **_NOTE:_** This is a port of Elm's [Parser Combinators library](https://package.elm-lang.org/packages/elm/parser/latest/Parser) to typescript. This includes large part of the documentation
+
+# Kombo
 
 Regular expressions are quite confusing and difficult to use.
 This library provides a coherent alternative that handles more cases and produces clearer code.
@@ -81,3 +81,11 @@ Once you get comfortable with the `Simple` module, you can switch over to `Advan
 This technique is used by the parser in the Elm compiler to give more helpful error messages.
 
 ## [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
+
+## Installation
+
+Works with CommonJS and ESM. Browser or node.
+
+```bash
+npm install @honungsburk/kombo
+```
