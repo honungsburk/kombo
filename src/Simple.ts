@@ -26,13 +26,14 @@ export { Loop, Done, Unit } from "./Advanced.js";
  * A `Parser` helps turn a `String` into nicely structured data. For example,
  * we can [`run`](#run) the [`int`](#int) parser to turn `String` to `Int`:
  *
- * ```ts
- *  run(int)("123456") => Ok 123456
- *  run(int)("3.1415") => Err ...
- * ```
+ *  ```ts
+ *   run(int)("123456") => Ok 123456
+ *   run(int)("3.1415") => Err ...
+ *  ```
  *
  * The cool thing is that you can combine `Parser` values to handle much more
  * complex scenarios.
+ * @category Parsers
  */
 export type Parser<A> = A.Parser<A, Problem>;
 
@@ -41,17 +42,19 @@ export type Parser<A> = A.Parser<A, Problem>;
 /**
  * Try a parser. Here are some examples using the [`keyword`](#keyword)
  * parser:
- * 
+ *
  * ```ts
  *   run(keyword("true"))("true")  => Ok ()
  *   run(keyword("true"))("True")  => Err ...
  *   run(keyword("true"))("false") => Err ...
  *   run(keyword("true"))("true!") => Ok ()
  * ````
-
+ *
  * Notice the last case! A `Parser` will chomp as much as possible and not worry
  * about the rest. Use the [`end`](#end) parser to ensure you made it to the end
  * of the string!
+ *
+ * @category Parsers
  */
 export const run =
   <A>(parser: Parser<A>) =>
@@ -76,6 +79,8 @@ export const run =
  * **Note:** I count rows and columns like a text editor. The beginning is `row=1`
  * and `col=1`. As I chomp characters, the `col` increments. When I reach a `\n`
  * character, I increment the `row` and set `col=1`.
+ *
+ * @category Errors
  */
 export type DeadEnd = {
   row: number;
@@ -94,6 +99,8 @@ export type DeadEnd = {
  * can improve error messages a ton! This is how the Elm compiler produces
  * relatively nice parse errors, and I am excited to see those techniques applied
  * elsewhere!
+ *
+ * @category Errors
  */
 export type Problem =
   | Expecting
@@ -117,8 +124,10 @@ export type Problem =
  *
  * @param problem - the problem to transform into a string
  * @return a string of the problem
+ *
+ * @category Errors
  */
-export function toString(problem: Problem): string {
+export function problemToString(problem: Problem): string {
   if (isProblemWithStr(problem)) {
     return `${problem.kind}: '${problem.str}'`;
   } else {
@@ -128,6 +137,8 @@ export function toString(problem: Problem): string {
 
 /**
  * returns true for any problem that has an extra `str` value.
+ *
+ * @category Errors
  */
 export function isProblemWithStr(
   problem: any
@@ -142,6 +153,9 @@ export function isProblemWithStr(
 
 // Expecting
 
+/**
+ * @category Errors
+ */
 export type Expecting = {
   readonly kind: "Expecting";
   readonly str: string;
@@ -359,6 +373,8 @@ export function isBadRepeat(x: any): x is BadRepeat {
  * Seems weird on its own, but it is very useful in combination with other
  * functions. The docs for [`(|=)`](#|=) and [`andThen`](#andThen) have some neat
  * examples.
+ *
+ * @category Primitives
  */
 export function succeed<A>(v: A): Parser<A> {
   return A.succeed(v);
@@ -371,6 +387,8 @@ export function succeed<A>(v: A): Parser<A> {
  *
  * @param msg - The message to show when encountering this problem
  * @returns a parser that always fails
+ *
+ * @category Primitives
  */
 export function problem<A>(msg: string): Parser<A> {
   return A.problem(Generic(msg));
@@ -380,6 +398,8 @@ export function problem<A>(msg: string): Parser<A> {
 
 /**
  * This is a curried version of the {@link Parser.map | map} method on the Parser class.
+ *
+ * @category Mapping
  */
 export const map =
   <A, B>(fn: (a: A) => B) =>
@@ -402,6 +422,8 @@ export const map =
  * @param parserA - The first parser
  * @param parserA - The second parser
  * @returns a new parser that applies the function to the result of the two parsers
+ *
+ * @category Mapping
  */
 export const map2 =
   <A, B, C>(fn: (a: A, b: B) => C) =>
@@ -411,9 +433,11 @@ export const map2 =
   };
 
 /**
- * This is a curried version of the {@link Parser.apply | keep} method on the Parser class.
+ * This is a curried version of the {@link Parser.apply | apply} method on the Parser class.
+ *
+ * @category Mapping
  */
-export const keep =
+export const apply =
   <A, B>(parseFunc: Parser<(a: A) => B>) =>
   (parseArg: Parser<A>): Parser<B> => {
     return A.apply(parseFunc)(parseArg);
@@ -421,6 +445,10 @@ export const keep =
 
 /**
  * Like {@link skip2nd } but skips the first argument instead of the second.
+ *
+ * @See {@link skip2nd } for a function that skips it's second argument.
+ *
+ * @category Mapping
  */
 export const skip1st =
   (first: Parser<unknown>) =>
@@ -431,7 +459,9 @@ export const skip1st =
 /**
  * A curried version of the {@link Parser.skip } method on the Parser class.
  *
- * @See {@link skip1sß } for a function that skips it's first argument.
+ * @See {@link skip1st } for a function that skips it's first argument.
+ *
+ * @category Mapping
  */
 export const skip2nd =
   <KEEP>(keepParser: Parser<KEEP>) =>
@@ -443,6 +473,8 @@ export const skip2nd =
 
 /**
  * A curried version of the {@link Parser.andThen | andThen } method on the Parser class.
+ *
+ * @category Mapping
  */
 export const andThen =
   <A, B>(fn: (a: A) => Parser<B>) =>
@@ -514,6 +546,8 @@ export const andThen =
  
   @param thunk - the lazy function
   @returns a lazy executing parser
+
+  @category Building Blocks
  */
 export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
   return A.lazy(thunk);
@@ -561,7 +595,7 @@ export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
  * );
  * ```
  *
- * @category oneOf
+ * @category Branches
  */
 export function oneOf<A>(one: Parser<A>): Parser<A>;
 
@@ -607,7 +641,7 @@ export function oneOf<A>(...parsers: Parser<A>[]): Parser<A> {
  *   P.keyword("null").map(() => JNull)
  * ```
  *
- * @category oneOf
+ * @category Branches
  */
 export const oneOfMany = <A>(...parsers: Parser<A>[]): Parser<A> => {
   return A.oneOfMany(...parsers);
@@ -615,7 +649,9 @@ export const oneOfMany = <A>(...parsers: Parser<A>[]): Parser<A> => {
 
 // LOOP
 
-// We want to hide Advanced module for novices.
+/**
+ * @category Loop (All)
+ */
 export type Step<STATE, A> = A.Step<STATE, A>;
 
 /**  
@@ -663,6 +699,9 @@ Link: {@link https://en.wikipedia.org/wiki/Finite-state_machine Finite State Mac
 @param state - keeps track of the state in the loop
 @param fn - On each looping returns a new parser.
 @return a parser that loops
+
+@category Loops
+@category Loop (All)
 */
 export const loop =
   <STATE>(state: STATE) =>
@@ -682,6 +721,8 @@ each other. It is subtle and important!
 
 @param parser - the parser you want to make backtrackable
 @return a parser that backtracks
+
+@category Branches
  */
 export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
   return A.backtrackable(parser);
@@ -695,6 +736,8 @@ to learn how `oneOf`, `backtrackable`, and `commit` work and interact with
 each other. It is subtle and important!
 
 @param value - the value to commit
+
+@category Branches
  */
 export const commit = <A>(value: A): Parser<A> => {
   return A.commit(value);
@@ -715,6 +758,8 @@ export const commit = <A>(value: A): Parser<A> => {
  * yourself in weird situations. For example, is `3--4` a typo? Or is it `3 - -4`?
  * I have had better luck with `chompWhile isSymbol` and sorting out which
  * operator it is afterwards.
+ *
+ * @category Building Blocks
  */
 export const symbol = (str: string): Parser<A.Unit> => {
   return A.symbol(A.Token(str, ExpectingSymbol(str)));
@@ -742,6 +787,8 @@ you would not get (1) anymore.
 
 @param token - the token to look for
 @returns a parser for your token
+
+@category Building Blocks
  */
 export const token = (token: string): Parser<A.Unit> => {
   return A.token(toToken(token));
@@ -783,6 +830,8 @@ function toToken(str: string): A.Token<Problem> {
  *
  * @param keyword - the keyword like "let", "const", etc
  * @return a parser for that keyword
+ *
+ * @category Building Blocks
  */
 export const keyword = (kwd: string): Parser<A.Unit> => {
   return A.keyword(A.Token(kwd, ExpectingKeyword(kwd)));
@@ -826,6 +875,7 @@ parser like this:
 {@link number} below. It will be faster than using `oneOf` to combining
 `int` and `float` yourself.
 
+@category Building Blocks
  */
 export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
 
@@ -861,6 +911,8 @@ export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
  * **Note:** If you want a parser for both `Int` and `Float` literals, check out
  * {@link number} below. It will be faster than using `oneOf` to combining
  * `int` and `float` yourself.
+ *
+ * @category Building Blocks
  */
 export const float: Parser<number> = A.float(ExpectingFloat)(ExpectingFloat);
 
@@ -919,6 +971,8 @@ function toResult<V, W>(value: V | undefined, def: W): Result<V, W> {
  *
  * @param args - map different numbers to different values
  * @returns a parser for numbers
+ *
+ * @category Building Blocks
  */
 export const number = <A>(args: {
   int?: (n: number) => A;
@@ -941,97 +995,99 @@ export const number = <A>(args: {
 // END
 
 /**
-Check if you have reached the end of the string you are parsing.
-
-@remarks
- 
-@example Just An Int
-
-```ts
-    const justAnInt: Parser<number> =
-      succeed((n: number) => n)
-        .apply(int)
-        .skip(end)
-
-    // run(justAnInt("90210")) => Ok(90210)
-    // run(justAnInt("1 + 2")) => Err(...)
-    // run(int("1 + 2")) .     => Ok(1)
-```
-
-Parsers can succeed without parsing the whole string. Ending your parser
-with `end` guarantees that you have successfully parsed the whole string.
+ * Check if you have reached the end of the string you are parsing.
+ *
+ * @remarks
+ *
+ * @example Just An Int
+ *
+ * ```ts
+ *     const justAnInt: Parser<number> =
+ *       succeed((n: number) => n)
+ *         .apply(int)
+ *         .skip(end)
+ *
+ *     // run(justAnInt("90210")) => Ok(90210)
+ *     // run(justAnInt("1 + 2")) => Err(...)
+ *     // run(int("1 + 2")) .     => Ok(1)
+ * ```
+ *
+ * Parsers can succeed without parsing the whole string. Ending your parser
+ * with `end` guarantees that you have successfully parsed the whole string.
+ *
+ * @category Building Blocks
  */
 export const end: Parser<A.Unit> = A.end(ExpectingEnd);
 
 // CHOMPED STRINGS
 
 /**
-Sometimes parsers like `int` or `variable` cannot do exactly what you
-need. The "chomping" family of functions is meant for that case!
-
-@remarks
-Maybe you need to parse {@link https://www.w3schools.com/php/php_variables.asp valid PHP variables} 
-like `$x` and `$txt`:
-
-```ts 
-    const php: P.Parser<string> = P.getChompedString(
-      P.succeed(P.Unit)
-        .skip(P.chompIf((c: string) => c === "$"))
-        .skip(P.chompIf((c: string) => Helpers.isAlphaNum(c) || c === "_"))
-        .skip(P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c === "_"))
-    );
-```
-The idea is that you create a bunch of chompers that validate the underlying
-characters. Then `getChompedString` extracts the underlying `String` efficiently.
-
-**Note:** Maybe it is helpful to see how you can use {@link getOffset}
-and {@link getSource} to implement this function:
-
-```ts 
-    const getChompedString = (parser: P.Parser<any>) => {
-      return P.succeed(
-        (from: number) => (to: number) => (str: string) => str.slice(from, to)
-      )
-        .apply(P.getOffset())
-        .skip(parser)
-        .apply(P.getOffset())
-        .apply(P.getSource());
-    };
-```
-
-@param parser 
-@returns 
+ * Sometimes parsers like `int` or `variable` cannot do exactly what you
+ * need. The "chomping" family of functions is meant for that case!
+ *
+ * @remarks
+ * Maybe you need to parse {@link https://www.w3schools.com/php/php_variables.asp valid PHP variables}
+ * like `$x` and `$txt`:
+ *
+ * ```ts
+ *     const php: P.Parser<string> = P.getChompedString(
+ *       P.succeed(P.Unit)
+ *         .skip(P.chompIf((c: string) => c === "$"))
+ *         .skip(P.chompIf((c: string) => Helpers.isAlphaNum(c) || c === "_"))
+ *         .skip(P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c === "_"))
+ *     );
+ * ```
+ * The idea is that you create a bunch of chompers that validate the underlying
+ * characters. Then `getChompedString` extracts the underlying `String` efficiently.
+ *
+ * **Note:** Maybe it is helpful to see how you can use {@link getOffset}
+ * and {@link getSource} to implement this function:
+ *
+ * ```ts
+ *     const getChompedString = (parser: P.Parser<any>) => {
+ *       return P.succeed(
+ *         (from: number) => (to: number) => (str: string) => str.slice(from, to)
+ *       )
+ *         .apply(P.getOffset())
+ *         .skip(parser)
+ *         .apply(P.getOffset())
+ *         .apply(P.getSource());
+ *     };
+ * ```
+ *
+ *
+ * @category Chompers
  */
 export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
   return A.getChompedString(parser);
 };
 
 /**
-This works just like {@link Simple!getChompedString} but gives
-a bit more flexibility. For example, maybe you want to parse Elm doc comments
-and get (1) the full comment and (2) all of the names listed in the docs.
-
-@example Example Implementation
-
-You could implement `mapChompedString` like this:
-
-```ts
-    const mapChompedString =
-      <A, B>(fn: (s: string, v: A) => B) =>
-      (parser: P.Parser<A>): P.Parser<B> => {
-        return P.succeed(
-          (start: number) => (value: A) => (end: number) => (src: string) =>
-            fn(src.slice(start, end), value)
-        )
-          .apply(P.getOffset)
-          .apply(parser)
-          .apply(P.getOffset)
-          .apply(P.getSource);
-  };
-```
-
-@param fn 
-@returns 
+ * This works just like {@link Simple!getChompedString} but gives
+ * a bit more flexibility. For example, maybe you want to parse Elm doc comments
+ * and get (1) the full comment and (2) all of the names listed in the docs.
+ *
+ * @example Example Implementation
+ *
+ * You could implement `mapChompedString` like this:
+ *
+ * ```ts
+ *     const mapChompedString =
+ *       <A, B>(fn: (s: string, v: A) => B) =>
+ *       (parser: P.Parser<A>): P.Parser<B> => {
+ *         return P.succeed(
+ *           (start: number) => (value: A) => (end: number) => (src: string) =>
+ *             fn(src.slice(start, end), value)
+ *         )
+ *           .apply(P.getOffset)
+ *           .apply(parser)
+ *           .apply(P.getOffset)
+ *           .apply(P.getSource);
+ *   };
+ * ```
+ *
+ *
+ * @category Chompers
  */
 export const mapChompedString =
   <A, B>(fn: (s: string, v: A) => B) =>
@@ -1041,19 +1097,21 @@ export const mapChompedString =
 // CHOMP IF
 
 /**
-Chomp one character if it passes the test.
-@remarks
-
-@example
-```ts
-    const chompUpper: P.Parser<P.Unit> =
-      P.chompIf(Helpers.isUpper)
-```
-
-So this can chomp a character like `T` and produces a `()` value.
-
-@param isGood - if a character should be chomped
-@returns a new parser
+ * Chomp one character if it passes the test.
+ * @remarks
+ *
+ * @example
+ * ```ts
+ *    const chompUpper: P.Parser<P.Unit> =
+ *      P.chompIf(Helpers.isUpper)
+ * ```
+ *
+ * So this can chomp a character like `T` and produces a `()` value.
+ *
+ * @param isGood - if a character should be chomped
+ * @returns a new parser
+ *
+ * @category Chompers
  */
 export const chompIf = (isGood: (char: string) => boolean): Parser<A.Unit> => {
   return A.chompIf(isGood)(UnexpectedChar);
@@ -1062,35 +1120,34 @@ export const chompIf = (isGood: (char: string) => boolean): Parser<A.Unit> => {
 // CHOMP WHILE
 
 /**
-Chomp zero or more characters if they pass the test. 
-
-@remarks
-
-@example
-This is commonly useful for chomping whitespace or variable names:
-
-```ts 
-    const whitespace: P.Parser<P.Unit> = P.chompWhile(
-      (c: string) => c == " " || c == "\t" || c == "\n" || c == "\r"
-    );
-
-    const elmVar: P.Parser<string> = P.getChompedString(
-      P.succeed(P.Unit).skip(
-        P.chompIf(Helpers.isLower).skip(
-          P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c == "_")
-        )
-      )
-    );
-```
-
-**Note:** a `chompWhile` parser always succeeds! This can lead to tricky
-situations, especially if you define your whitespace with it. In that case,
-you could accidentally interpret `letx` as the keyword `let` followed by
-"spaces" followed by the variable `x`. This is why the `keyword` and `number`
-parsers peek ahead, making sure they are not followed by anything unexpected.
-
-@param isGood 
-@returns a new parser
+ * Chomp zero or more characters if they pass the test.
+ *
+ * @remarks
+ *
+ * @example
+ * This is commonly useful for chomping whitespace or variable names:
+ *
+ * ```ts
+ *     const whitespace: P.Parser<P.Unit> = P.chompWhile(
+ *       (c: string) => c == " " || c == "\t" || c == "\n" || c == "\r"
+ *     );
+ *
+ *     const elmVar: P.Parser<string> = P.getChompedString(
+ *       P.succeed(P.Unit).skip(
+ *         P.chompIf(Helpers.isLower).skip(
+ *           P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c == "_")
+ *         )
+ *       )
+ *     );
+ * ```
+ *
+ * **Note:** a `chompWhile` parser always succeeds! This can lead to tricky
+ * situations, especially if you define your whitespace with it. In that case,
+ * you could accidentally interpret `letx` as the keyword `let` followed by
+ * "spaces" followed by the variable `x`. This is why the `keyword` and `number`
+ * parsers peek ahead, making sure they are not followed by anything unexpected.
+ *
+ * @category Chompers
  */
 export const chompWhile = (
   isGood: (char: string) => boolean
@@ -1101,24 +1158,23 @@ export const chompWhile = (
 // CHOMP UNTIL
 
 /**
-Chomp until you see a certain string. 
-
-@remarks
-
-@example Multi-line comments
-You could define haskell-style multi-line comments like this:
-
-```ts 
-  const comment: P.Parser<P.Unit> =
-    P.symbol("{-")
-      .skip(P.chompUntil("-}"))
-```
-
-I recommend using {@link multiComment} for this particular scenario
-though. It can be trickier than it looks!
-
-@param str - the string in must see to stop chomping
-@returns a new parser
+ * Chomp until you see a certain string.
+ *
+ * @remarks
+ *
+ * @example Multi-line comments
+ * You could define haskell-style multi-line comments like this:
+ *
+ * ```ts
+ *   const comment: P.Parser<P.Unit> =
+ *     P.symbol("{-")
+ *       .skip(P.chompUntil("-}"))
+ * ```
+ *
+ * I recommend using {@link multiComment} for this particular scenario
+ * though. It can be trickier than it looks!
+ *
+ * @category Chompers
  */
 export const chompUntil = (str: string): Parser<A.Unit> => {
   return A.chompUntil(toToken(str));
@@ -1127,28 +1183,27 @@ export const chompUntil = (str: string): Parser<A.Unit> => {
 //CHOMP UNTIL END OR
 
 /**
-Chomp until you see a certain string or until you run out of characters to
-chomp! 
-
-@remarks
-
-@example Single-line Comment
-You could define single-line comments like this:
-
-```ts 
-    const singleLineComment: P.Parser<P.Unit> = 
-      P.symbol("--")
-        .skip(P.chompUntilEndOr("\n"));
-```
-
-A file may end with a single-line comment, so the file can end before you see
-a newline. Tricky!
-
-I recommend just using {@link lineComment} for this particular
-scenario.
-
-@param str - the string in must see to stop chomping
-@returns a new parser
+ * Chomp until you see a certain string or until you run out of characters to
+ * chomp!
+ *
+ * @remarks
+ *
+ * @example Single-line Comment
+ * You could define single-line comments like this:
+ *
+ * ```ts
+ *     const singleLineComment: P.Parser<P.Unit> =
+ *       P.symbol("--")
+ *         .skip(P.chompUntilEndOr("\n"));
+ * ```
+ *
+ * A file may end with a single-line comment, so the file can end before you see
+ * a newline. Tricky!
+ *
+ * I recommend just using {@link lineComment} for this particular
+ * scenario.
+ *
+ * @category Chompers
  */
 export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
   return A.chompUntilEndOr(str);
@@ -1156,11 +1211,13 @@ export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
 
 // INDENTATION
 
-/** 
-Some languages are indentation sensitive. Python cares about tabs. Elm
-cares about spaces sometimes. `withIndent` and `getIndent` allow you to manage
-"indentation state" yourself, however is necessary in your scenario.
-*/
+/**
+ * Some languages are indentation sensitive. Python cares about tabs. Elm
+ * cares about spaces sometimes. `withIndent` and `getIndent` allow you to manage
+ * "indentation state" yourself, however is necessary in your scenario.
+ *
+ * @category Indentation
+ */
 export const withIndent =
   (n: number) =>
   <A>(parser: Parser<A>): Parser<A> => {
@@ -1168,51 +1225,65 @@ export const withIndent =
   };
 
 /**
-When someone said `withIndent` earlier, what number did they put in there?
-
-- `getIndent()` results in `0`, the default value
-- `withInden(4)(getIndent())` results in `4`
-
-So you are just asking about things you said earlier. These numbers do not leak
-out of `withIndent`, so say we have:
-
-```ts 
-    succeed((a: number) => (b: number) => [a, b])
-      .apply(withIndent(4)(getIndent()))
-      .apply(getIndent());
-```
-
-@returns a parser containing the current level of indentation
-*/
+ * When someone said `withIndent` earlier, what number did they put in there?
+ *
+ * - `getIndent()` results in `0`, the default value
+ * - `withInden(4)(getIndent())` results in `4`
+ *
+ * So you are just asking about things you said earlier. These numbers do not leak
+ * out of `withIndent`, so say we have:
+ *
+ * ```ts
+ *     succeed((a: number) => (b: number) => [a, b])
+ *       .apply(withIndent(4)(getIndent()))
+ *       .apply(getIndent());
+ * ```
+ *
+ * @category Indentation
+ */
 export const getIndent: Parser<number> = A.getIndent;
 
 // POSITION
 
+/**
+ * @category Positions
+ */
 export const getPosition: Parser<[number, number]> = A.getPosition;
 
+/**
+ * @category Positions
+ */
 export const getRow: Parser<number> = A.getRow;
 
+/**
+ * @category Positions
+ */
 export const getCol: Parser<number> = A.getCol;
 
+/**
+ * @category Positions
+ */
 export const getOffset: Parser<number> = A.getOffset;
 
+/**
+ * @category Positions
+ */
 export const getSource: Parser<string> = A.getSource;
 
 // VARIABLES
 
-/** 
-Create a parser for variables. 
-
-@remarks
-
-@example
-
-```ts
-
-```
-
-@param args - configuration what is and isn't a variable
-@return a parser for variables
+/**
+ * Create a parser for variables.
+ *
+ * @remarks
+ *
+ * @example
+ *
+ * ```ts
+ *
+ * ```
+ *
+ * @category Building Blocks
  */
 export const variable = (args: {
   start: (char: string) => boolean;
@@ -1227,6 +1298,10 @@ export const variable = (args: {
 
 // SEQUENCES
 
+/**
+ *
+ * @category Loops
+ */
 export const sequence = <A>(args: {
   start: string;
   seperator: string;
@@ -1258,15 +1333,25 @@ export const sequence = <A>(args: {
  * So if you need something different (like tabs) just define an alternative with
  * the necessary tweaks! Check out {@link lineComment} and
  * {@link multiComment} for more complex situations.
+ *
+ * @category Whitespace
  */
 export const spaces: Parser<A.Unit> = A.spaces;
 
 // COMMENTS
 
+/**
+ *
+ * @category Whitespace
+ */
 export const lineComment = (str: string): Parser<A.Unit> => {
   return A.lineComment(toToken(str));
 };
 
+/**
+ *
+ * @category Whitespace
+ */
 export const multiComment =
   (open: string) =>
   (close: string) =>
