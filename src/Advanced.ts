@@ -258,7 +258,7 @@ function isBad<PROBLEM>(x: PStep<any, PROBLEM>): x is Bad<PROBLEM> {
 /**
  * Returns the argument of the function or a type error
  *
- * @category Helpers
+ * @category Types
  */
 export type ArgumentTypesP<F> = F extends (arg: infer A) => any
   ? A
@@ -267,7 +267,7 @@ export type ArgumentTypesP<F> = F extends (arg: infer A) => any
 /**
  * Returns the return type or reports a type error
  *
- * @category Helpers
+ * @category Types
  */
 export type ReturnTypeP<F> = F extends (arg: any) => any
   ? ReturnType<F>
@@ -991,7 +991,7 @@ export const commit = <A>(a: A): Parser<A, never> => {
  *
  * @see {@link Unit:var | The Unit constant}
  *
- * @category Helpers
+ * @category Types
  */
 export type Unit = false;
 
@@ -1000,7 +1000,7 @@ export type Unit = false;
  *
  * @see {@link Unit:type | The Unit type}
  *
- * @category Helpers
+ * @category Types
  */
 export const Unit: Unit = false;
 

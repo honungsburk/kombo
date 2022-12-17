@@ -48,7 +48,7 @@ export type Parser<A> = A.Parser<A, Problem>;
  *   run(keyword("true"))("True")  => Err ...
  *   run(keyword("true"))("false") => Err ...
  *   run(keyword("true"))("true!") => Ok ()
- * ````
+ * ```
  *
  * Notice the last case! A `Parser` will chomp as much as possible and not worry
  * about the rest. Use the [`end`](#end) parser to ensure you made it to the end
@@ -100,6 +100,7 @@ export type DeadEnd = {
  * relatively nice parse errors, and I am excited to see those techniques applied
  * elsewhere!
  *
+ * @category Problem (All)
  * @category Errors
  */
 export type Problem =
@@ -125,6 +126,7 @@ export type Problem =
  * @param problem - the problem to transform into a string
  * @return a string of the problem
  *
+ * @category Problem (All)
  * @category Errors
  */
 export function problemToString(problem: Problem): string {
@@ -138,6 +140,7 @@ export function problemToString(problem: Problem): string {
 /**
  * returns true for any problem that has an extra `str` value.
  *
+ * @category Problem (All)
  * @category Errors
  */
 export function isProblemWithStr(
@@ -154,206 +157,332 @@ export function isProblemWithStr(
 // Expecting
 
 /**
- * @category Errors
+ * @category Problem (All)
  */
 export type Expecting = {
   readonly kind: "Expecting";
   readonly str: string;
 };
 
+/**
+ * @category Problem (All)
+ */
 export const Expecting = (str: string): Expecting => ({
   kind: "Expecting",
   str: str,
 });
 
+/**
+ * @category Problem (All)
+ */
 export function isExpecting(x: any): x is Expecting {
   return typeof x === "object" && x.kind === "Expecting";
 }
 
 // ExpectingBinary
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingBinary = {
   readonly kind: "ExpectingBinary";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingBinary: ExpectingBinary = {
   kind: "ExpectingBinary",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingBinary(x: any): x is ExpectingBinary {
   return typeof x === "object" && x.kind === "ExpectingBinary";
 }
 
 // ExpectingOctal
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingOctal = {
   readonly kind: "ExpectingOctal";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingOctal: ExpectingOctal = {
   kind: "ExpectingOctal",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingOctal(x: any): x is ExpectingOctal {
   return typeof x === "object" && x.kind === "ExpectingOctal";
 }
 
 // ExpectingHex
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingHex = {
   readonly kind: "ExpectingHex";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingHex: ExpectingHex = {
   kind: "ExpectingHex",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingHex(x: any): x is ExpectingHex {
   return typeof x === "object" && x.kind === "ExpectingHex";
 }
 
 // ExpectingInt
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingInt = {
   readonly kind: "ExpectingInt";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingInt: ExpectingInt = {
   kind: "ExpectingInt",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingInt(x: any): x is ExpectingInt {
   return typeof x === "object" && x.kind === "ExpectingInt";
 }
 
 // ExpectingFloat
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingFloat = {
   readonly kind: "ExpectingFloat";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingFloat: ExpectingFloat = {
   kind: "ExpectingFloat",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingFloat(x: any): x is ExpectingFloat {
   return typeof x === "object" && x.kind === "ExpectingFloat";
 }
 
 // ExpectingBinary
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingNumber = {
   readonly kind: "ExpectingNumber";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingNumber: ExpectingNumber = {
   kind: "ExpectingNumber",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingNumber(x: any): x is ExpectingNumber {
   return typeof x === "object" && x.kind === "ExpectingNumber";
 }
 
 // ExpectingVariable
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingVariable = {
   readonly kind: "ExpectingVariable";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingVariable: ExpectingVariable = {
   kind: "ExpectingVariable",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingVariable(x: any): x is ExpectingVariable {
   return typeof x === "object" && x.kind === "ExpectingVariable";
 }
 
 // ExpectingSymbol
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingSymbol = {
   readonly kind: "ExpectingSymbol";
   readonly str: string;
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingSymbol = (str: string): ExpectingSymbol => ({
   kind: "ExpectingSymbol",
   str: str,
 });
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingSymbol(x: any): x is ExpectingSymbol {
   return typeof x === "object" && x.kind === "ExpectingSymbol";
 }
 
 // ExpectingKeyword
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingKeyword = {
   readonly kind: "ExpectingKeyword";
   readonly str: string;
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingKeyword = (str: string): ExpectingKeyword => ({
   kind: "ExpectingKeyword",
   str: str,
 });
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingKeyword(x: any): x is ExpectingKeyword {
   return typeof x === "object" && x.kind === "ExpectingKeyword";
 }
 
 // ExpectingEnd
 
+/**
+ * @category Problem (All)
+ */
 export type ExpectingEnd = {
   readonly kind: "ExpectingEnd";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const ExpectingEnd: ExpectingEnd = {
   kind: "ExpectingEnd",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isExpectingEnd(x: any): x is ExpectingEnd {
   return typeof x === "object" && x.kind === "ExpectingEnd";
 }
 
 // UnexpectedChar
 
+/**
+ * @category Problem (All)
+ */
 export type UnexpectedChar = {
   readonly kind: "UnexpectedChar";
 };
 
+/**
+ * @category Problem (All)
+ */
 export const UnexpectedChar: UnexpectedChar = {
   kind: "UnexpectedChar",
 };
 
+/**
+ * @category Problem (All)
+ */
 export function isUnexpectedChar(x: any): x is UnexpectedChar {
   return typeof x === "object" && x.kind === "UnexpectedChar";
 }
 
 // Generic
 
+/**
+ * @category Problem (All)
+ */
 export type Generic = {
   readonly kind: "Generic";
   readonly str: string;
 };
 
+/**
+ * @category Problem (All)
+ */
 export const Generic = (str: string): Generic => ({
   kind: "Generic",
   str: str,
 });
 
+/**
+ * @category Problem (All)
+ */
 export function isGeneric(x: any): x is Generic {
   return typeof x === "object" && x.kind === "Generic";
 }
 
 // BadRepeat
 
+/**
+ * @category BadRepeat
+ * @category Problem (All)
+ */
 export type BadRepeat = {
   readonly kind: "BadRepeat";
 };
 
+/**
+ * @category BadRepeat
+ * @category Problem (All)
+ */
 export const BadRepeat: BadRepeat = {
   kind: "BadRepeat",
 };
 
+/**
+ * @category BadRepeat
+ * @category Problem (All)
+ */
 export function isBadRepeat(x: any): x is BadRepeat {
   return typeof x === "object" && x.kind === "BadRepeat";
 }
@@ -840,42 +969,42 @@ export const keyword = (kwd: string): Parser<A.Unit> => {
 // NUMBERS
 
 /**
-Parse integers.
-
-@remarks
-
-@example Behavior
-
-By default it only parsers non-negative integers
-
-```ts
-    run(int("1"))    => Ok(1)
-    run(int("1234")) => Ok(1234)
-    run(int("-789")) => Err( ...)
-    run(int("0123")) => Err( ...)
-    run(int("1.34")) => Err( ...)
-    run(int("1e31")) => Err( ...)
-    run(int("123a")) => Err( ...)
-    run(int("0x1A")) => Err( ...)
-```
-
-If you want to handle a leading `+` or `-` you should do it with a custom
-parser like this:
-
-```ts
-    const myInt: Parser<number> = oneOf(
-      succeed((n: number) => n * -1)
-        .skip(symbol("-"))
-        .apply(int),
-      int
-    );
-```
-
-**Note:** If you want a parser for both `Int` and `Float` literals, check out
-{@link number} below. It will be faster than using `oneOf` to combining
-`int` and `float` yourself.
-
-@category Building Blocks
+ * Parse integers.
+ *
+ * @remarks
+ *
+ * @example Behavior
+ *
+ * By default it only parsers non-negative integers
+ *
+ * ```ts
+ *     run(int("1"))    => Ok(1)
+ *     run(int("1234")) => Ok(1234)
+ *     run(int("-789")) => Err( ...)
+ *     run(int("0123")) => Err( ...)
+ *     run(int("1.34")) => Err( ...)
+ *     run(int("1e31")) => Err( ...)
+ *     run(int("123a")) => Err( ...)
+ *     run(int("0x1A")) => Err( ...)
+ * ```
+ *
+ * If you want to handle a leading `+` or `-` you should do it with a custom
+ * parser like this:
+ *
+ * ```ts
+ *     const myInt: Parser<number> = oneOf(
+ *       succeed((n: number) => n * -1)
+ *         .skip(symbol("-"))
+ *         .apply(int),
+ *       int
+ *     );
+ * ```
+ *
+ * **Note:** If you want a parser for both `Int` and `Float` literals, check out
+ * {@link number} below. It will be faster than using `oneOf` to combining
+ * `int` and `float` yourself.
+ *
+ * @category Building Blocks
  */
 export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
 
