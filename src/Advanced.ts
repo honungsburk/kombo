@@ -1,7 +1,6 @@
 // TODO: remove and replace with dependency injection instead.
 import * as Results from "ts-results";
 import * as Helpers from "./Helpers.js";
-import { Err, Ok, Result } from "ts-results";
 import * as immutable from "immutable";
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1144,11 +1143,11 @@ export const int =
   <PROBLEM>(expecting: PROBLEM) =>
   (invalid: PROBLEM): Parser<number, PROBLEM> => {
     return number({
-      int: Ok((id: number) => id),
-      hex: Err(invalid),
-      octal: Err(invalid),
-      binary: Err(invalid),
-      float: Err(invalid),
+      int: Results.Ok((id: number) => id),
+      hex: Results.Err(invalid),
+      octal: Results.Err(invalid),
+      binary: Results.Err(invalid),
+      float: Results.Err(invalid),
       invalid: invalid,
       expecting: expecting,
     });
@@ -1180,11 +1179,11 @@ export const float =
   <PROBLEM>(expecting: PROBLEM) =>
   (invalid: PROBLEM): Parser<number, PROBLEM> => {
     return number({
-      int: Ok((id: number) => id),
-      hex: Err(invalid),
-      octal: Err(invalid),
-      binary: Err(invalid),
-      float: Ok((id: number) => id),
+      int: Results.Ok((id: number) => id),
+      hex: Results.Err(invalid),
+      octal: Results.Err(invalid),
+      binary: Results.Err(invalid),
+      float: Results.Ok((id: number) => id),
       invalid: invalid,
       expecting: expecting,
     });
@@ -1200,11 +1199,11 @@ export const float =
  * @category Building Blocks
  */
 export function number<A, PROBLEM>(args: {
-  int: Result<(n: number) => A, PROBLEM>;
-  hex: Result<(n: number) => A, PROBLEM>;
-  octal: Result<(n: number) => A, PROBLEM>;
-  binary: Result<(n: number) => A, PROBLEM>;
-  float: Result<(n: number) => A, PROBLEM>;
+  int: Results.Result<(n: number) => A, PROBLEM>;
+  hex: Results.Result<(n: number) => A, PROBLEM>;
+  octal: Results.Result<(n: number) => A, PROBLEM>;
+  binary: Results.Result<(n: number) => A, PROBLEM>;
+  float: Results.Result<(n: number) => A, PROBLEM>;
   invalid: PROBLEM;
   expecting: PROBLEM;
 }): Parser<A, PROBLEM> {
@@ -1271,7 +1270,7 @@ export function number<A, PROBLEM>(args: {
 
 function finalizeInt<A, PROBLEM>(
   invalid: PROBLEM,
-  handler: Result<(n: number) => A, PROBLEM>,
+  handler: Results.Result<(n: number) => A, PROBLEM>,
   startOffset: number,
   [endOffset, n]: [number, number],
   s: State
@@ -1301,8 +1300,8 @@ function bumpOffset(newOffset: number, s: State): State {
 function finalizeFloat<A, PROBLEM>(
   invalid: PROBLEM,
   expecting: PROBLEM,
-  intSettings: Result<(n: number) => A, PROBLEM>,
-  floatSettings: Result<(n: number) => A, PROBLEM>,
+  intSettings: Results.Result<(n: number) => A, PROBLEM>,
+  floatSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatPair: [number, number],
   s: State
 ): PStep<A, PROBLEM> {
