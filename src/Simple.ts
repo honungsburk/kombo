@@ -614,69 +614,69 @@ export const andThen =
 // LAZY
 
 /**
-  Helper to define recursive parsers. Say we want a parser for simple
-  boolean expressions:
- 
-  ```ts
-      true
-      false
-      (true || false)
-      (true || (true || false))
-  ```
- 
-  Notice that a boolean expression might contain *other* boolean expressions.
-  That means we will want to define our parser in terms of itself:
- 
-  ```ts
-      type MyBoolean = typeof MyTrue | typeof MyFalse | MyOr;
-
-      const MyTrue = {
-        kind: "MyTrue",
-      } as const;
-
-      const MyFalse = {
-        kind: "MyFalse",
-      } as const;
-
-      type MyOr = {
-        readonly kind: "MyOr";
-        readonly l: MyBoolean;
-        readonly r: MyBoolean;
-      };
-
-      const MyOr =
-        (l: MyBoolean) =>
-        (r: MyBoolean): MyOr => ({
-          kind: "MyOr",
-          l,
-          r,
-        });
-
-      const boolean: P.Parser<MyBoolean> = P.oneOf<MyBoolean>(
-        P.succeed(MyTrue).skip(P.keyword("true")),
-        P.succeed(MyFalse).skip(P.keyword("false")),
-        P.succeed(MyOr)
-          .skip(P.symbol("("))
-          .skip(P.spaces)
-          .apply(P.lazy(() => boolean))
-          .skip(spaces)
-          .skip(symbol("||"))
-          .skip(spaces)
-          .apply(P.lazy(() => boolean))
-          .skip(P.spaces)
-          .skip(P.symbol(")"))
-      );
-  ```
- 
-  **Notice that `boolean` uses `boolean` in its definition!** In Typescript, you can
-  only define a value in terms of itself it is behind a function call. So
-  `lazy` helps us define these self-referential parsers. (`andThen` can be used
-  for this as well!)
- 
-  @param thunk - the lazy function
-  @returns a lazy executing parser
-
-  @category Building Blocks
+ *   Helper to define recursive parsers. Say we want a parser for simple
+ *   boolean expressions:
+ *
+ *   ```ts
+ *       true
+ *       false
+ *       (true || false)
+ *       (true || (true || false))
+ *   ```
+ *
+ *   Notice that a boolean expression might contain *other* boolean expressions.
+ *   That means we will want to define our parser in terms of itself:
+ *
+ *   ```ts
+ *       type MyBoolean = typeof MyTrue | typeof MyFalse | MyOr;
+ *
+ *       const MyTrue = {
+ *         kind: "MyTrue",
+ *       } as const;
+ *
+ *       const MyFalse = {
+ *         kind: "MyFalse",
+ *       } as const;
+ *
+ *       type MyOr = {
+ *         readonly kind: "MyOr";
+ *         readonly l: MyBoolean;
+ *         readonly r: MyBoolean;
+ *       };
+ *
+ *       const MyOr =
+ *         (l: MyBoolean) =>
+ *         (r: MyBoolean): MyOr => ({
+ *           kind: "MyOr",
+ *           l,
+ *           r,
+ *         });
+ *
+ *       const boolean: P.Parser<MyBoolean> = P.oneOf<MyBoolean>(
+ *         P.succeed(MyTrue).skip(P.keyword("true")),
+ *         P.succeed(MyFalse).skip(P.keyword("false")),
+ *         P.succeed(MyOr)
+ *           .skip(P.symbol("("))
+ *           .skip(P.spaces)
+ *           .apply(P.lazy(() => boolean))
+ *           .skip(spaces)
+ *           .skip(symbol("||"))
+ *           .skip(spaces)
+ *           .apply(P.lazy(() => boolean))
+ *           .skip(P.spaces)
+ *           .skip(P.symbol(")"))
+ *       );
+ *  ```
+ *
+ *  **Notice that `boolean` uses `boolean` in its definition!** In Typescript, you can
+ *  only define a value in terms of itself it is behind a function call. So
+ *  `lazy` helps us define these self-referential parsers. (`andThen` can be used
+ *  for this as well!)
+ *
+ *  @param thunk - the lazy function
+ *  @returns a lazy executing parser
+ *
+ *  @category Helpers
  */
 export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
   return A.lazy(thunk);

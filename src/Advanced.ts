@@ -258,7 +258,7 @@ function isBad<PROBLEM>(x: PStep<any, PROBLEM>): x is Bad<PROBLEM> {
 /**
  * Returns the argument of the function or a type error
  *
- * @category Types
+ * @category Helper Types
  */
 export type ArgumentTypesP<F> = F extends (arg: infer A) => any
   ? A
@@ -267,7 +267,7 @@ export type ArgumentTypesP<F> = F extends (arg: infer A) => any
 /**
  * Returns the return type or reports a type error
  *
- * @category Types
+ * @category Helper Types
  */
 export type ReturnTypeP<F> = F extends (arg: any) => any
   ? ReturnType<F>
@@ -336,6 +336,8 @@ export interface Parser<A, PROBLEM> {
    *
    * @param fn - the function to apply to the result
    * @returns a new parser with a transformed result
+   *
+   * @category Mapping
    */
   map<B>(fn: (v: A) => B): Parser<B, PROBLEM>;
 
@@ -375,6 +377,8 @@ export interface Parser<A, PROBLEM> {
    *
    * @param fn - a function that returns a new parser
    * @returns a new parser where the nested parsers have been flatten
+   * 
+   * @category Mapping
    */
   andThen<B, PROBLEM2>(
     fn: (v: A) => Parser<B, PROBLEM2>
@@ -385,6 +389,8 @@ export interface Parser<A, PROBLEM> {
    *
    * @remarks
    * The infix version of {@link skip2nd}
+   *
+   * @category Mapping
    */
   skip<PROBLEM2>(
     other: Parser<unknown, PROBLEM2>
@@ -396,7 +402,7 @@ export interface Parser<A, PROBLEM> {
    * @example
    * Just a shorthand for `yourParser.andThen(() => ...)`
    *
-   *
+   * @category Mapping
    */
   keep<B, PROBLEM2>(other: Parser<B, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2>;
 
@@ -429,6 +435,8 @@ export interface Parser<A, PROBLEM> {
    *
    * @param parser - the parser who's value we will keep
    * @returns a new parser with the result applied to the curried function
+   *
+   * @category Mapping
    */
   apply<PROBLEM2>(
     parser: Parser<ArgumentTypesP<A>, PROBLEM2>
@@ -438,6 +446,8 @@ export interface Parser<A, PROBLEM> {
    * Just like {@link Simple!oneOf} but only between *two* different parsers
    *
    * **NOTE:** The left side is checked first!
+   *
+   * @category Branches
    */
   or<B, PROBLEM2>(
     other: Parser<B, PROBLEM2>
@@ -445,59 +455,77 @@ export interface Parser<A, PROBLEM> {
 
   /**
    * Just like {@link Simple!run}
+   *
+   * @category Parsers
    */
   run(src: string): Results.Result<A, DeadEnd<PROBLEM>[]>;
 
   /**
    * Just like {@link Simple!backtrackable}
+   *
+   * @category Branches
    */
   backtrackable(): Parser<A, PROBLEM>;
 
   /**
    * Just like {@link Simple!getChompedString}
+   *
+   * @category Chompers
    */
   getChompedString(): Parser<string, PROBLEM>;
 
   /**
    * Just like {@link Simple!mapChompedString}
+   *
+   * @category Chompers
    */
   mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, PROBLEM>;
 
   /**
    * Just like {@link Simple!getIndent}
+   *
+   * @category Indentation
    */
   getIndent(): Parser<number, PROBLEM>;
 
   /**
    * Just like {@link Simple!withIndent}
+   *
+   * @category Indentation
    */
   withIndent(newIndent: number): Parser<A, PROBLEM>;
 
   /**
    *  Just like {@link Simple!getPosition}
    *
+   * @category Positions
    */
   getPosition(): Parser<[number, number], PROBLEM>;
 
   /**
    * Just like {@link Simple!getRow}
    *
+   * @category Positions
    */
   getRow(): Parser<number, PROBLEM>;
 
   /**
    * Just like {@link Simple!getCol}
+   * @category Positions
    */
   getCol(): Parser<number, PROBLEM>;
 
   /**
    * Just like {@link Simple!getOffset}
    *
+   * @category Positions
    */
   getOffset(): Parser<number, PROBLEM>;
 
   /**
    * Just like {@link Simple!getSource}
+   *
+   * @category Positions
    */
   getSource(): Parser<string, PROBLEM>;
 }
@@ -748,7 +776,7 @@ export const andThen =
 /**
  * Just like {@link Simple!lazy}
  *
- * @category Building Blocks
+ * @category Helpers
  */
 export const lazy = <A, PROBLEM>(
   thunk: () => Parser<A, PROBLEM>
@@ -991,7 +1019,7 @@ export const commit = <A>(a: A): Parser<A, never> => {
  *
  * @see {@link Unit:var | The Unit constant}
  *
- * @category Types
+ * @category Helper Types
  */
 export type Unit = false;
 
@@ -1000,7 +1028,7 @@ export type Unit = false;
  *
  * @see {@link Unit:type | The Unit type}
  *
- * @category Types
+ * @category Helper Types
  */
 export const Unit: Unit = false;
 

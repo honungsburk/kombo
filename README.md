@@ -89,3 +89,9 @@ Works with CommonJS and ESM. Browser or node.
 ```bash
 npm install @honungsburk/kombo
 ```
+
+## FAQ
+
+### Why did you name this library _Kombo_?
+
+This is a parser _combinator_ library, and the Swedish word for _combo_ is , you guessed it, _kombo_.
