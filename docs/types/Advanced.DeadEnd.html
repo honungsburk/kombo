@@ -16,17 +16,16 @@
 <li><a href="../modules/Advanced.html">Advanced</a></li>
 <li><a href="Advanced.DeadEnd.html">DeadEnd</a></li></ul>
 <h1>Type alias DeadEnd&lt;PROBLEM&gt;</h1></div>
-<div class="tsd-signature">Dead<wbr/>End<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span><br/><span>    </span>col<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>contextStack<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">immutable.Stack</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">{ </span><br/><span>        </span>col<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span>        </span>context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">; </span><br/><span>        </span>row<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span>    </span><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>problem<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>row<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span></div>
+<div class="tsd-signature">Dead<wbr/>End<span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">{ </span><br/><span>    </span>col<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>contextStack<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">immutable.Stack</span><span class="tsd-signature-symbol">&lt;</span><a href="Advanced.Located.html" class="tsd-signature-type" data-tsd-kind="Type alias">Located</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>problem<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>row<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span></div>
 <div class="tsd-comment tsd-typography"><p>When we reach a deadend we return all the information you need to create great
-error messages.</p>
+error message.</p>
 
-<h3>Remarks</h3><p>Say you are parsing a function named <code>viewHealthData</code> that contains a list.
+<h3>Example</h3><p>Say you are parsing a function named <code>viewHealthData</code> that contains a list.
 You might get a <code>DeadEnd</code> like this:</p>
-
-<h3>Example</h3><pre><code class="language-ts"><span class="hl-1">{ </span><span class="hl-9">row</span><span class="hl-1"> : </span><span class="hl-8">18</span><br/><span class="hl-1">, </span><span class="hl-9">col</span><span class="hl-1"> : </span><span class="hl-8">22</span><br/><span class="hl-1">, </span><span class="hl-9">problem</span><span class="hl-1"> : </span><span class="hl-2">UnexpectedComma</span><br/><span class="hl-1">, </span><span class="hl-9">contextStack</span><span class="hl-1"> :</span><br/><span class="hl-1">    [ { </span><span class="hl-2">row :</span><span class="hl-1"> </span><span class="hl-8">14</span><br/><span class="hl-1">      , </span><span class="hl-2">col :</span><span class="hl-1"> </span><span class="hl-8">1</span><br/><span class="hl-1">      , </span><span class="hl-2">context :</span><span class="hl-1"> </span><span class="hl-7">definition</span><span class="hl-1">(</span><span class="hl-3">&quot;viewHealthData&quot;</span><span class="hl-1">)</span><br/><span class="hl-1">     }</span><br/><span class="hl-1">    , { </span><span class="hl-2">row :</span><span class="hl-1"> </span><span class="hl-8">15</span><br/><span class="hl-1">      , </span><span class="hl-2">col :</span><span class="hl-1"> </span><span class="hl-8">4</span><br/><span class="hl-1">      , </span><span class="hl-2">context :</span><span class="hl-1"> </span><span class="hl-2">list</span><br/><span class="hl-1">      }</span><br/><span class="hl-1">    ]</span><br/><span class="hl-1">}</span>
+<pre><code class="language-ts"><span class="hl-1">{ </span><span class="hl-9">row</span><span class="hl-1"> : </span><span class="hl-8">18</span><br/><span class="hl-1">, </span><span class="hl-9">col</span><span class="hl-1"> : </span><span class="hl-8">22</span><br/><span class="hl-1">, </span><span class="hl-9">problem</span><span class="hl-1"> : </span><span class="hl-3">&quot;UnexpectedComma&quot;</span><br/><span class="hl-1">, </span><span class="hl-9">contextStack</span><span class="hl-1"> :</span><br/><span class="hl-1">    [ { </span><span class="hl-2">row :</span><span class="hl-1"> </span><span class="hl-8">14</span><br/><span class="hl-1">      , </span><span class="hl-2">col :</span><span class="hl-1"> </span><span class="hl-8">1</span><br/><span class="hl-1">      , </span><span class="hl-2">context :</span><span class="hl-1"> </span><span class="hl-3">&quot;ViewHealthData&quot;</span><br/><span class="hl-1">     }</span><br/><span class="hl-1">    , { </span><span class="hl-2">row :</span><span class="hl-1"> </span><span class="hl-8">15</span><br/><span class="hl-1">      , </span><span class="hl-2">col :</span><span class="hl-1"> </span><span class="hl-8">4</span><br/><span class="hl-1">      , </span><span class="hl-2">context :</span><span class="hl-1"> </span><span class="hl-3">&quot;List&quot;</span><br/><span class="hl-1">      }</span><br/><span class="hl-1">    ]</span><br/><span class="hl-1">}</span>
 </code></pre>
 <p>We have a ton of information here! So in the error message, we can say that “I
-ran into an issue when parsing a list in the definition of <code>viewHealthData</code>. It
+ran into an issue when parsing a <code>list</code> in the definition of <code>viewHealthData</code>. It
 looks like there is an extra comma.” Or maybe something even better!</p>
 <p>Furthermore, many parsers just put a mark where the problem manifested. By
 tracking the <code>row</code> and <code>col</code> of the context, we can show a much larger region
@@ -37,28 +36,29 @@ here.” Otherwise you can get very confusing error messages on a missing <code>
 and <code>col=1</code>. The <code>col</code> increments as characters are chomped. When a <code>\n</code> is chomped,
 <code>row</code> is incremented and <code>col</code> starts over again at <code>1</code>.</p>
 
-<h3>Type Param</h3><p>Extra information about the problem</p>
+<h3>See</h3><ul>
+<li><a href="Advanced.Located.html">Located</a></li>
+<li>Deadend!function</li>
+</ul>
 </div>
 <section class="tsd-panel tsd-type-parameters">
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameters">
 <li>
-<h4>PROBLEM</h4>
-<div class="tsd-comment tsd-typography"><p>What caused the parser to fail</p>
-</div></li></ul></section>
+<h4>PROBLEM</h4></li></ul></section>
 <div class="tsd-type-declaration">
 <h4>Type declaration</h4>
 <ul class="tsd-parameters">
 <li class="tsd-parameter">
 <h5>col<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li>
 <li class="tsd-parameter">
-<h5>context<wbr/>Stack<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">immutable.Stack</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">{ </span><br/><span>    </span>col<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">; </span><br/><span>    </span>row<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">; </span><br/><span class="tsd-signature-symbol">}</span><span class="tsd-signature-symbol">&gt;</span></h5></li>
+<h5>context<wbr/>Stack<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">immutable.Stack</span><span class="tsd-signature-symbol">&lt;</span><a href="Advanced.Located.html" class="tsd-signature-type" data-tsd-kind="Type alias">Located</a><span class="tsd-signature-symbol">&gt;</span></h5></li>
 <li class="tsd-parameter">
 <h5>problem<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span></h5></li>
 <li class="tsd-parameter">
 <h5>row<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span></h5></li></ul></div><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/db58cbb/src/Advanced.ts#L92">Advanced.ts:92</a></li></ul></aside></div>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L106">Advanced.ts:106</a></li></ul></aside></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
@@ -81,16 +81,18 @@ and <code>col=1</code>. The <code>col</code> increments as characters are chompe
 <li class="current"><a href="../modules.html">Kombo -<wbr/> v0.1.0</a>
 <ul>
 <li class="current tsd-kind-namespace"><a href="../modules/Advanced.html">Advanced</a></li>
+<li class="tsd-kind-namespace"><a href="../modules/Helpers.html">Helpers</a></li>
 <li class="tsd-kind-namespace"><a href="../modules/Simple.html">Simple</a></li></ul></li></ul></div></details></nav>
 <nav class="tsd-navigation secondary menu-sticky">
 <ul>
 <li class="tsd-kind-interface tsd-parent-kind-namespace"><a href="../interfaces/Advanced.Parser.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="var(--color-ts-interface)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6" id="icon-256-path"></rect><path d="M9.51 16V15.016H11.298V8.224H9.51V7.24H14.19V8.224H12.402V15.016H14.19V16H9.51Z" fill="var(--color-text)" id="icon-256-text"></path></svg>Parser</a></li>
-<li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.ArgumentTypesP.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="var(--color-ts)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6" id="icon-4194304-path"></rect><path d="M11.31 16V8.224H8.91V7.24H14.79V8.224H12.39V16H11.31Z" fill="var(--color-text)" id="icon-4194304-text"></path></svg>Argument<wbr/>TypesP</a></li>
-<li class="current tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.DeadEnd.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Dead<wbr/>End</a></li>
+<li class="current tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.DeadEnd.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><rect fill="var(--color-icon-background)" stroke="var(--color-ts)" stroke-width="1.5" x="1" y="1" width="22" height="22" rx="6" id="icon-4194304-path"></rect><path d="M11.31 16V8.224H8.91V7.24H14.79V8.224H12.39V16H11.31Z" fill="var(--color-text)" id="icon-4194304-text"></path></svg>Dead<wbr/>End</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Done.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Done</a></li>
+<li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.GetArgumentType.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Get<wbr/>Argument<wbr/>Type</a></li>
+<li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.GetReturnType.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Get<wbr/>Return<wbr/>Type</a></li>
+<li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Located.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Located</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Loop.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Loop</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Nestable.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Nestable</a></li>
-<li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.ReturnTypeP.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Return<wbr/>TypeP</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Step.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Step</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Token.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Token</a></li>
 <li class="tsd-kind-type-alias tsd-parent-kind-namespace"><a href="Advanced.Trailing.html" class="tsd-index-link"><svg class="tsd-kind-icon" width="24" height="24" viewBox="0 0 24 24"><use href="#icon-4194304-path"></use><use href="#icon-4194304-text"></use></svg>Trailing</a></li>

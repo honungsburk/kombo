@@ -6,6 +6,9 @@
   "readme": "README.md",
   "tsconfig": "./tsconfig.json",
   "cleanOutputDir": true,
+  "sidebarLinks": {
+    "github": "https://github.com/honungsburk/kombo"
+  },
   "categorizeByGroup": false,
   "categoryOrder": [
     "Parsers",

@@ -1,6 +1,6 @@
 import { Expect } from "@japa/expect";
 import { test, Group } from "@japa/runner";
-import * as Results from "ts-results";
+import * as Results from "ts-results-es";
 import * as P from "./Advanced.js";
 import * as Helpers from "./Helpers.js";
 import Immutable from "immutable";

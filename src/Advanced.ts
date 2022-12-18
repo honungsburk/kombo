@@ -1,5 +1,5 @@
 // TODO: remove and replace with dependency injection instead.
-import * as Results from "ts-results";
+import * as Results from "ts-results-es";
 import * as Helpers from "./Helpers.js";
 import * as immutable from "immutable";
 
@@ -10,11 +10,26 @@ import * as immutable from "immutable";
 // Located
 
 /**
- * No parser ever uses the `CTX` it is only used as a return value in our parser.
- * A parser never knows what context they are in, infact they can't even look it up, so
- * it is safe for us to create unions between CTX and CTX as seen in {@link map2}.
+ * The location and context of an error.
+ *
+ * @remarks
+ * It was not possible to make the `context` typed and still have good type
+ * inference, therefore I've set it to `unknown`. See {@link inContext } for a
+ * more detailed explentation.
+ *
+ * **Note:** Rows and columns are counted like a text editor. The beginning is `row=1`
+ * and `col=1`. The `col` increments as characters are chomped. When a `\n` is chomped,
+ * `row` is incremented and `col` starts over again at `1`.
+ *
+ * @see
+ *
+ * - {@link DeadEnd}
+ * - {@link run}
+ * - {@link inContext}
+ *
+ * @category Parsers
  */
-type Located = {
+export type Located = {
   row: number;
   col: number;
   context: unknown;
@@ -31,7 +46,7 @@ type Located = {
  */
 type State = {
   src: string;
-  offset: number; //in BYTES
+  offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
   indent: number;
   context: immutable.Stack<Located>;
   row: number; //in newlines
@@ -42,33 +57,32 @@ type State = {
 
 /**
  * When we reach a deadend we return all the information you need to create great
- * error messages.
+ * error message.
  *
- * @remarks
+ * @example
  *
  * Say you are parsing a function named `viewHealthData` that contains a list.
  * You might get a `DeadEnd` like this:
  *
- * @example
  * ```ts
  * { row : 18
  * , col : 22
- * , problem : UnexpectedComma
+ * , problem : "UnexpectedComma"
  * , contextStack :
  *     [ { row : 14
  *       , col : 1
- *       , context : definition("viewHealthData")
+ *       , context : "ViewHealthData"
  *      }
  *     , { row : 15
  *       , col : 4
- *       , context : list
+ *       , context : "List"
  *       }
  *     ]
  * }
  * ```
  *
  * We have a ton of information here! So in the error message, we can say that “I
- * ran into an issue when parsing a list in the definition of `viewHealthData`. It
+ * ran into an issue when parsing a `list` in the definition of `viewHealthData`. It
  * looks like there is an extra comma.” Or maybe something even better!
  *
  * Furthermore, many parsers just put a mark where the problem manifested. By
@@ -81,9 +95,10 @@ type State = {
  * and `col=1`. The `col` increments as characters are chomped. When a `\n` is chomped,
  * `row` is incremented and `col` starts over again at `1`.
  *
+ * @see
  *
- * @typeParam CTX - Extra information about the problem
- * @typeParam PROBLEM - What caused the parser to fail
+ * - {@link Located}
+ * - {@link Deadend!function}
  *
  * @category Parsers
  * @category DeadEnd (All)
@@ -92,17 +107,19 @@ export type DeadEnd<PROBLEM> = {
   row: number;
   col: number;
   problem: PROBLEM;
-  contextStack: immutable.Stack<{ row: number; col: number; context: unknown }>;
+  contextStack: immutable.Stack<Located>;
 };
 
 /**
+ * A function to create a `DeadEnd`
+ *
  * @category DeadEnd (All)
  */
 export function Deadend<PROBLEM>(
   row: number,
   col: number,
   problem: PROBLEM,
-  contextStack: immutable.Stack<{ row: number; col: number; context: unknown }>
+  contextStack: immutable.Stack<Located>
 ): DeadEnd<PROBLEM> {
   return {
     row,
@@ -255,54 +272,69 @@ function isBad<PROBLEM>(x: PStep<any, PROBLEM>): x is Bad<PROBLEM> {
 }
 
 /**
- * Returns the argument of the function or a type error
+ * If the type is a function, returns the argument of the function, otherwise it
+ * returns a type error
+ *
+ * @remarks
+ * Used to provide proper typing for {@link Parser.apply}.
+ *
+ * @see
+ * - {@link Parser.apply}
+ * - {@link GetReturnType}
  *
  * @category Helper Types
  */
-export type ArgumentTypesP<F> = F extends (arg: infer A) => any
+export type GetArgumentType<Function> = Function extends (arg: infer A) => any
   ? A
   : "Error: The left hand side must be function";
 
 /**
- * Returns the return type or reports a type error
+ * If the type is a function, returns the return type of the function, otherwise it
+ * returns a type error
+ *
+ * @remarks
+ * Used to provide proper typing for {@link Parser.apply}.
+ *
+ * @see
+ * - {@link Parser.apply}
+ * - {@link GetArgumentType}
  *
  * @category Helper Types
  */
-export type ReturnTypeP<F> = F extends (arg: any) => any
-  ? ReturnType<F>
+export type GetReturnType<Function> = Function extends (arg: any) => any
+  ? ReturnType<Function>
   : "Error: The left hand side must be a function";
 
 /**
- * Pick what ever option is not never. Fail if both are not never.
+ * An advanced Parser gives two ways to improve your error messages:
  *
- * @example
+ * - `problem` — Instead of all errors being a `string`, you can create a custom type like type `type Problem = BadIndent | BadKeyword ` and track problems much more precisely.
+ * - `context` — Error messages can be further improved when precise problems are paired with information about where you ran into trouble. By tracking the context, instead of saying “I found a bad keyword” you can say “I found a bad keyword when parsing a list” and give folks a better idea of what the parser thinks it is doing.
  *
- * If `A` and `B`are distinct types then:
+ * I recommend starting with the simpler {@link Simple | Parser} module, and when you feel
+ * comfortable and want better error messages, you can create a type alias like this:
  *
  * ```ts
- * type IsNever     = Unify<never, never> // => never
- * type IsA<A>      = Unify<A, never>     // => A
- * type IsB<B>      = Unify<never, B>     // => B
- * type Error<A, B> = Unify<A, B>         // => "Error: ..."
+ * import * as Advanced from "@honungsburk/kombo/Advanced"
+ *
+ * type Context = {kind: "Definition", value: string } | { kind: "List" } | {kind : "Record" }
+ *
+ * type Problem = {kind: "BadIndent" } | {kind: "BadKeyword", value: string}
+ *
+ * type MyParser<A> = Advanced.Parser<A, Problem>
  * ```
  *
- */
-type Unify<A, B> = A extends never
-  ? B
-  : B extends never
-  ? A
-  : "Could not unify";
-
-/**
- * A parser: a function from a string into structured object(s).
- *
  * @remarks
- * You can think of this class as a simple wrapper around the function
- * `TODO`
  *
- * @typeParam A   - When the parser succeeds it returns a value
+ * Note that `context` isn't typed. I could not figure out how to both have it
+ * typed and get good type inference.
+ *
+ * @privateRemarks
+ * To be able to provide infix notation I've wrapped the underlying parser
+ * function in a class.
+ *
+ * @typeParam A       - Success Value
  * @typeParam PROBLEM - When the parser fails it returns a problem
- * @typeParam CTX     - Extra information about any problem that occured
  *
  * @category Parsers
  */
@@ -311,14 +343,15 @@ export interface Parser<A, PROBLEM> {
    * **WARNING:** Do not use directly, it is used by the library
    *
    * @private
+   * @internal
    */
   exec: (s: State) => PStep<A, PROBLEM>;
 
   /**
-   * Transform the result of a parser. Maybe you have a value that is
-   * an integer or `null`:
+   * Transform the result of a parser.
    *
    * @example
+   * Maybe you have a value that is an integer or `null`:
    *
    * ```ts
    * const nullOrInt: Parser<number | undefined> = oneOf(
@@ -332,8 +365,12 @@ export interface Parser<A, PROBLEM> {
    * // run(nullOrInt)("zero") ==> Err ...
    * ```
    *
+   * @see
+   * - The infix version of {@link Simple!map}
    *
-   * @param fn - the function to apply to the result
+   * @typeParam B - The new, transformed value of the parser.
+   *
+   * @param {function} fn - the function to apply to the result
    * @returns a new parser with a transformed result
    *
    * @category Mapping
@@ -342,41 +379,46 @@ export interface Parser<A, PROBLEM> {
 
   /**
    *
-   * 
+   *
    * Parse one thing `andThen` parse another thing. This is useful when you want
-   * to check on what you just parsed. For example, maybe you want U.S. zip codes
+   * to check on what you just parsed.
+   *
+   * @example
+   * Maybe you want U.S. zip codes
    * and `int` is not suitable because it does not allow leading zeros. You could
    * say:
    *
-   * 
-   * TODO: Rewrite to typescript
-   * 
-   * ```elm
-   *  zipCode : Parser String
-   *  zipCode =
-   *    getChompedString (chompWhile Char.isDigit)
-   *      |> andThen checkZipCode
-   * 
-   *  checkZipCode : String -> Parser String
-   *  checkZipCode code =
-   *    if String.length code == 5 then
-   *      succeed code
-   *    else
-   *     problem "a U.S. zip code has exactly 5 digits"
+   * ```ts
+   * const checkZipCode = (code: string): Parser<string> => {
+   *   if (code.length === 5) {
+   *     return succeed(code);
+   *   } else {
+   *     return problem("a U.S. zip code has exactly 5 digits");
+   *   }
+   * };
+   *
+   * const zipCode: Parser<string> = chompWhile(Helpers.isDigit)
+   *   .getChompedString()
+   *   .andThen(checkZipCode);
+   *
    *```
-
+   *
    * First we chomp digits `andThen` we check if it is a valid U.S. zip code. We
    * `succeed` if it has exactly five digits and report a `problem` if not.
    *
-   * Check out [`examples/DoubleQuoteString.elm`](https://github.com/elm/parser/blob/master/examples/DoubleQuoteString.elm)
-   * for another example, this time using `andThen` to verify unicode code points.
    *
    * **Note:** If you are using `andThen` recursively and blowing the stack, check
    * out the {@link loop} function to limit stack usage.
    *
+   * @see
+   * - The infix version of {@link Simple!andThen}
+   *
+   * @typeParam B         - The new value.
+   * @typeParam PROBLEM2  - The second type of problem that can occur.
+   *
    * @param fn - a function that returns a new parser
-   * @returns a new parser where the nested parsers have been flatten
-   * 
+   * @returns a new parser where the state of the two parsers have been combined.
+   *
    * @category Mapping
    */
   andThen<B, PROBLEM2>(
@@ -384,10 +426,20 @@ export interface Parser<A, PROBLEM> {
   ): Parser<B, PROBLEM | PROBLEM2>;
 
   /**
-   * Skip the return value of the parser it is given.
+   * Skip the return value of the parser on the right hand side.
    *
-   * @remarks
-   * The infix version of {@link skip2nd}
+   * @example
+   *
+   * ```ts
+   *  const integer =
+   *    succeed(n => n)
+   *      .skip(spaces)
+   *      .apply(int)
+   *      .skip(spaces)
+   * ```
+   *
+   * @see
+   * - The infix version of {@link Simple!skip2nd}
    *
    * @category Mapping
    */
@@ -398,18 +450,27 @@ export interface Parser<A, PROBLEM> {
   /**
    * Keep the return value of the parser it is given, and ignore the previous value.
    *
-   * @example
+   * @remarks
    * Just a shorthand for `yourParser.andThen(() => ...)`
+   *
+   * @example
+   *
+   * Maybe you want to first skip some whitespace and then grab an int.
+   *
+   * ```ts
+   * const whitespaceThenInt: Parser<number> = spaces.keep(int)
+   * ```
    *
    * @category Mapping
    */
   keep<B, PROBLEM2>(other: Parser<B, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2>;
 
   /**
-   * **Apply** values in a parser pipeline. For example, we could say:
+   * Apply values to a function in a parser pipeline.
    *
-   * **NOTE:** You can only use `.apply(...)` on a parser that contains a
-   * function that is curried.
+   * @example
+   *
+   * If we want to parse some kind of `Point` type we could say:
    *
    * ```ts
    * type Point = {
@@ -421,6 +482,7 @@ export interface Parser<A, PROBLEM> {
    *    (x: number) =>
    *    (y: number): Point => ({ x, y });
    *
+   * // A parser pipeline
    * const point: Parser<Point> = succeed(createPoint)
    *    .skip(symbol("("))
    *    .skip(spaces)
@@ -432,19 +494,31 @@ export interface Parser<A, PROBLEM> {
    *    .skip(symbol(")"));
    * ```
    *
+   * **NOTE:** You can only use `.apply(...)` on a parser that contains a
+   * function that is *curried*.
+   *
+   * @see
+   *
+   * - Infix version of {@link apply}.
+   * - {@link https://en.wikipedia.org/wiki/Currying | Currying } as defined by wikipedia
+   *
    * @param parser - the parser who's value we will keep
    * @returns a new parser with the result applied to the curried function
    *
    * @category Mapping
    */
   apply<PROBLEM2>(
-    parser: Parser<ArgumentTypesP<A>, PROBLEM2>
-  ): Parser<ReturnTypeP<A>, PROBLEM | PROBLEM2>;
+    parser: Parser<GetArgumentType<A>, PROBLEM2>
+  ): Parser<GetReturnType<A>, PROBLEM | PROBLEM2>;
 
   /**
-   * Just like {@link Simple!oneOf} but only between *two* different parsers
+   * Just like {@link Simple!oneOf | Simple.oneOf} but only between **two** parsers.
    *
+   * @remarks
    * **NOTE:** The left side is checked first!
+   *
+   * @see
+   * - {@link Simple!oneOf}
    *
    * @category Branches
    */
@@ -453,63 +527,66 @@ export interface Parser<A, PROBLEM> {
   ): Parser<A | B, PROBLEM | PROBLEM2>;
 
   /**
-   * Just like {@link Simple!run}
+   * Just like {@link Simple!run | Simple.run}
    *
    * @category Parsers
    */
   run(src: string): Results.Result<A, DeadEnd<PROBLEM>[]>;
 
   /**
-   * Just like {@link Simple!backtrackable}
+   * Just like {@link Simple!backtrackable | Simple.backtrackable}
    *
    * @category Branches
    */
   backtrackable(): Parser<A, PROBLEM>;
 
   /**
-   * Just like {@link Simple!getChompedString}
+   * Just like {@link Simple!getChompedString | Simple.getChompedString}
    *
    * @category Chompers
    */
   getChompedString(): Parser<string, PROBLEM>;
 
   /**
-   * Just like {@link Simple!mapChompedString}
+   * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
    *
    * @category Chompers
    */
   mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, PROBLEM>;
 
   /**
-   * Just like {@link Simple!getIndent}
+   * Just like {@link Simple!getIndent | Simple.getIndent}
+   *
+   * @example
+   * Writing `yourParser.getIndent()` is the same as `yourParser.keep(getIndent)`
    *
    * @category Indentation
    */
   getIndent(): Parser<number, PROBLEM>;
 
   /**
-   * Just like {@link Simple!withIndent}
+   * Just like {@link Simple!withIndent | Simple.withIndent}
    *
    * @category Indentation
    */
   withIndent(newIndent: number): Parser<A, PROBLEM>;
 
   /**
-   *  Just like {@link Simple!getPosition}
+   *  Just like {@link Simple!getPosition | Simple.getPosition}
    *
    * @category Positions
    */
   getPosition(): Parser<[number, number], PROBLEM>;
 
   /**
-   * Just like {@link Simple!getRow}
+   * Just like {@link Simple!getRow | Simple.getRow}
    *
    * @category Positions
    */
   getRow(): Parser<number, PROBLEM>;
 
   /**
-   * Just like {@link Simple!getCol}
+   * Just like {@link Simple!getCol  | Simple.getCol}
    * @category Positions
    */
   getCol(): Parser<number, PROBLEM>;
@@ -555,10 +632,10 @@ class ParserImpl<A, PROBLEM> implements Parser<A, PROBLEM> {
   }
 
   apply<PROBLEM2>(
-    parser: Parser<ArgumentTypesP<A>, PROBLEM2>
-  ): Parser<ReturnTypeP<A>, PROBLEM | PROBLEM2> {
+    parser: Parser<GetArgumentType<A>, PROBLEM2>
+  ): Parser<GetReturnType<A>, PROBLEM | PROBLEM2> {
     return apply(
-      this as Parser<(a: ArgumentTypesP<A>) => ReturnTypeP<A>, PROBLEM>
+      this as Parser<(a: GetArgumentType<A>) => GetReturnType<A>, PROBLEM>
     )(parser);
   }
 
@@ -612,9 +689,12 @@ class ParserImpl<A, PROBLEM> implements Parser<A, PROBLEM> {
 // Run
 
 /**
- * This works just like {@link Simple!run}.
+ * This works just like {@link Simple!run | Simple.run}.
  * The only difference is that when it fails, it has much more precise information
  * for each dead end.
+ *
+ * @see
+ * - {@link Parser.run} is the infix version of `run`
  *
  * @category Parsers
  */
@@ -641,7 +721,7 @@ export const run =
 
 /**
  *
- * Just like {@link Simple!succeed}
+ * Just like {@link Simple!succeed | Simple.succeed}
  *
  * @category Primitives
  */
@@ -651,7 +731,7 @@ export function succeed<A>(a: A): Parser<A, never> {
 
 /**
  *
- *  Just like {@link Simple!problem} except you provide a custom
+ *  Just like {@link Simple!problem | Simple.problem} except you provide a custom
  *  type for your problem.
  *
  * @category Primitives
@@ -663,7 +743,10 @@ export function problem<PROBLEM>(p: PROBLEM): Parser<never, PROBLEM> {
 // MAPPING
 
 /**
- * A curried version of the {@link Parser.map | map } method on the Parser class.
+ * Just like {@link Simple!map | Simple.map}.
+ *
+ * @see
+ * - {@link Parser.map} is the infix version of `map`
  *
  * @category Mapping
  */
@@ -681,7 +764,7 @@ export const map =
   };
 
 /**
- * Just like {@link Simple!map2}
+ * Just like {@link Simple!map2 | Simple.map2}
  *
  * @category Mapping
  */
@@ -709,7 +792,10 @@ export const map2 =
   };
 
 /**
- * A curried version of the {@link Parser.apply| apply} method on the Parser class.
+ * Just like {@link Simple!apply | Simple.apply}.
+ *
+ * @see
+ * - {@link Parser.apply} is the infix version of `apply`
  *
  * @category Mapping
  */
@@ -720,7 +806,11 @@ export const apply =
   };
 
 /**
- * Like {@link skip2nd | skip2nd } but skips the first argument instead of the second.
+ * Just like {@link Simple!skip1st}.
+ *
+ * @see
+ * - {@link Parser.keep } is the infix version of `skip1st`.
+ * - {@link skip2nd } is similar but skips the the second argument instead of the first.
  *
  * @category Mapping
  */
@@ -731,8 +821,11 @@ export const skip1st =
   };
 
 /**
- * A curried version of the {@link Parser.skip | skip } method on the Parser class.
- * See {@link skip1st | skip1st } for a function that skips it's first argument.
+ * Just like {@link Simple!skip2nd}.
+ *
+ * @see
+ * - {@link Parser.skip } is the infix version of `skip2nd`.
+ * - {@link skip1st } is similar but skips the the first argument instead of the second.
  *
  * @category Mapping
  */
@@ -747,7 +840,10 @@ export const skip2nd =
 // AND THEN
 
 /**
- * A curried version of the {@link Parser.andThen | andThen } method on the Parser class.
+ * Just like {@link Simple!andThen | Simple.andThen}.
+ *
+ * @see
+ * - {@link Parser.andThen } is the infix version of `andThen`.
  *
  * @category Mapping
  */
@@ -773,7 +869,7 @@ export const andThen =
 // LAZY
 
 /**
- * Just like {@link Simple!lazy}
+ * Just like {@link Simple!lazy | Simple.lazy}.
  *
  * @category Helpers
  */
@@ -788,7 +884,11 @@ export const lazy = <A, PROBLEM>(
 // ONE OF
 
 /**
- * Just like {@link Simple!oneOf}
+ * Just like {@link Simple!oneOf | Simple.oneOf}
+ *
+ * @see
+ * - {@link Parser.or | Parser.or} is the infix version of `oneOf`
+ * - {@link oneOfMany | Advanced.oneOfMany} for when you need to choose between more then 5 parsers.
  *
  * @category Branches
  */
@@ -841,7 +941,10 @@ export function oneOf<A, PROBLEM>(
 }
 
 /**
- * Just like {@link Simple!oneOfMany}
+ * Just like {@link Simple!oneOfMany | Simple.oneOfMany}
+ *
+ * @see
+ * - For better type inference checkout {@link oneOf | Advanced.oneOf}
  *
  * @category Branches
  */
@@ -872,13 +975,24 @@ function oneOfHelp<A, PROBLEM>(
 // LOOP
 
 /**
- * Just like {@link Simple!Step}
+ * Just like {@link Simple!Step | Simple.Step}
+ *
+ * @see
+ * - {@link Loop}
+ * - {@link Done}
  *
  * @category Loop (All)
  */
 export type Step<STATE, A> = Loop<STATE> | Done<A>;
 
 /**
+ * Just like {@link Simple!Loop | Simple.Loop}
+ *
+ * @see
+ * - {@link Step}
+ * - {@link Done}
+ * - {@link isLoop}
+ *
  * @category Loop (All)
  */
 export type Loop<STATE> = {
@@ -887,7 +1001,7 @@ export type Loop<STATE> = {
 };
 
 /**
- * When you want to continue your {@link Simple!loop}
+ * When you want to continue your {@link Simple!loop}.
  *
  * @param state - the state for the next iteration of the loop
  * @returns an indication to continue the loop
@@ -902,6 +1016,13 @@ export function Loop<STATE>(state: STATE): Loop<STATE> {
 }
 
 /**
+ * Just like {@link Simple!Done | Simple.Done}
+ *
+ * @see
+ * - {@link Step}
+ * - {@link Loop}
+ * - {@link isDone}
+ *
  * @category Loop (All)
  */
 export type Done<A> = {
@@ -910,7 +1031,7 @@ export type Done<A> = {
 };
 
 /**
- * When oyu want to complete your {@link loop}
+ * When you want to complete your {@link Simple!loop}.
  *
  * @param value - the return value
  * @returns a then end of a loop
@@ -925,6 +1046,11 @@ export function Done<A>(value: A): Done<A> {
 }
 
 /**
+ * Check that a step is a {@link Loop}
+ *
+ * @see
+ * - {@link Loop}
+ *
  * @category Loop (All)
  */
 export function isLoop<STATE>(x: Step<STATE, unknown>): x is Loop<STATE> {
@@ -932,6 +1058,11 @@ export function isLoop<STATE>(x: Step<STATE, unknown>): x is Loop<STATE> {
 }
 
 /**
+ * Check that a step is a {@link Done}
+ *
+ * @see
+ * - {@link Done}
+ *
  * @category Loop (All)
  */
 export function isDone<A>(x: Step<unknown, A>): x is Done<A> {
@@ -983,7 +1114,7 @@ const loopHelp = <STATE, A, PROBLEM>(
 // BACKTRACKABLE
 
 /**
- * Just like {@link Simple!backtrackable}
+ * Just like {@link Simple!backtrackable | Simple.backtrackable}
  *
  * @category Branches
  */
@@ -1001,7 +1132,7 @@ export const backtrackable = <A, PROBLEM>(
 };
 
 /**
- * Just like {@link Simple!commit}
+ * Just like {@link Simple!commit | Simple.commit}
  *
  * @category Branches
  */
@@ -1040,6 +1171,7 @@ export const Unit: Unit = false;
  * a `string` in the simpler module, you now use a `Token<Problem>` in the advanced
  * module:
  *
+ * @example
  * ```ts
  *  enum Problem {
  *   ExpectingComma,
@@ -1049,12 +1181,14 @@ export const Unit: Unit = false;
  * const comma = Token(",", Problem.ExpectingComma)
  *
  * const listEnd = Token("]", Problem.ExpectingListEnd)
- *
  * ```
  *
  * You can be creative with your custom type. Maybe you want a lot of detail.
  * Maybe you want looser categories. It is a custom type. Do what makes sense for
  * you!
+ *
+ * @see
+ * - {@link Token:function}
  *
  * @category Token (All)
  */
@@ -1064,6 +1198,10 @@ export type Token<PROBLEM> = {
 };
 
 /**
+ * Create a token.
+ *
+ * @see
+ * - {@link Token:type}
  *
  * @param value - the token we are trying to parse
  * @param problem - the error if we fail to parse the token
@@ -1082,8 +1220,12 @@ export function Token<PROBLEM>(
 }
 
 /**
- * Just like {@link Simple!token} except you provide a `Token`
+ * Just like {@link Simple!token | Simple.token} except you provide a {@link Token:type}
  * specifying your custom type of problems.
+ *
+ * @see
+ * - {@link Token:type | Token type}
+ * - {@link Token:function | Token function}
  *
  * @category Branches
  * @category Token (All)
@@ -1116,7 +1258,7 @@ export function token<PROBLEM>(token: Token<PROBLEM>): Parser<Unit, PROBLEM> {
 // Number
 
 /**
- * Just like {@link Simple!int} where you have to handle negation
+ * Just like {@link Simple!int | Simple.int} where you have to handle negation
  * yourself. The only difference is that you provide a two potential problems:
  *
  * ```ts
@@ -1143,8 +1285,8 @@ export const int =
   <PROBLEM>(expecting: PROBLEM) =>
   (invalid: PROBLEM): Parser<number, PROBLEM> => {
     return number({
-      int: Results.Ok((id: number) => id),
       hex: Results.Err(invalid),
+      int: Results.Ok((id: number) => id),
       octal: Results.Err(invalid),
       binary: Results.Err(invalid),
       float: Results.Err(invalid),
@@ -1154,7 +1296,7 @@ export const int =
   };
 
 /**
- * Just like {@link Simple!float} where you have to handle negation
+ * Just like {@link Simple!float | Simple.float} where you have to handle negation
  * yourself. The only difference is that you provide a two potential problems:
  *
  * ```ts
@@ -1190,11 +1332,13 @@ export const float =
   };
 
 /**
- * TODO: I think a better API would avoid the use of result here since it isn't strictly needed
- *
- * Just like {@link Simple!number} where you have to handle
+ * Just like {@link Simple!number | Simple.number} where you have to handle
  * negation yourself. The only difference is that you provide all the potential
  * problems.
+ *
+ * @See
+ * - {@link int}
+ * - {@link float}
  *
  * @category Building Blocks
  */
@@ -1382,7 +1526,7 @@ function consumeExp(offset: number, src: string): number {
 // END
 
 /**
- * Just like {@link Simple!end} except you provide the problem that
+ * Just like {@link Simple!end | Simple.end} except you provide the problem that
  * arises when the parser is not at the end of the input.
  *
  * @category Building Blocks
@@ -1400,7 +1544,10 @@ export const end = <PROBLEM>(problem: PROBLEM): Parser<Unit, PROBLEM> => {
 // CHOMPED STRINGS
 
 /**
- * Just like {@link Simple!getChompedString}
+ * Just like {@link Simple!getChompedString | Simple.getChompedString}
+ *
+ * @see
+ * - {@link mapChompedString}
  *
  * @category Chompers
  */
@@ -1411,7 +1558,10 @@ export const getChompedString = <A, PROBLEM>(
 };
 
 /**
- * Just like {@link Simple!mapChompedString}
+ * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
+ *
+ * @see
+ * - {@link getChompedString}
  *
  * @category Chompers
  */
@@ -1435,7 +1585,7 @@ export const mapChompedString =
 // CHOMP IF
 
 /**
- * Just like {@link Simple!chompIf} except you provide a problem
+ * Just like {@link Simple!chompIf | Simple.chompIf} except you provide a problem
  * in case a character cannot be chomped.
  *
  * @category Chompers
@@ -1472,7 +1622,7 @@ export const chompIf =
 // CHOMP WHILE
 
 /**
- * Just like {@link Simple!chompWhile}
+ * Just like {@link Simple!chompWhile | Simple.chompWhile}
  *
  * @category Chompers
  */
@@ -1523,7 +1673,7 @@ function chompWhileHelp(
 // CHOMP UNTIL
 
 /**
- * Just like {@link Simple!chompUntil} except you provide a
+ * Just like {@link Simple!chompUntil | Simple.chompUntil} except you provide a
  * `Token` in case you chomp all the way to the end of the input without finding
  * what you need.
  *
@@ -1556,7 +1706,7 @@ export const chompUntil = <PROBLEM>(
 };
 
 /**
- * Just like {@link Simple!chompUntilEndOr}
+ * Just like {@link Simple!chompUntilEndOr | Simple.chompUntilEndOr}
  *
  * @category Chompers
  */
@@ -1678,7 +1828,7 @@ function changeContext(
 // INDENTATION
 
 /**
- * Just like {@link Simple!getIndent}
+ * Just like {@link Simple!getIndent | Simple.getIndent}
  *
  * @category Indentation
  */
@@ -1687,7 +1837,7 @@ export const getIndent = new ParserImpl<number, never>(
 );
 
 /**
- * Just like {@link Simple!withIndent}
+ * Just like {@link Simple!withIndent | Simple.withIndent}
  *
  * @category Indentation
  */
@@ -1714,14 +1864,16 @@ function changeIndent(newIndent: number, { indent, ...rest }: State): State {
 // SYMBOL
 
 /**
- * TODO: Rewrite to tsdoc
  *
- * Just like {@link Simple!symbol}except you provide a `Token` to
+ * Just like {@link Simple!symbol | Simple.symbol} except you provide a `Token` to
  * clearly indicate your custom type of problems:
  *
  * ```ts
- * const comma: Parser<Context, Problem, > = symbol(Token("," ExpectingComma))
+ * const comma: Parser<Unit, Problem> = symbol(Token("," ExpectingComma))
  * ```
+ *
+ * @see
+ * - {@link token}
  *
  * @category Building Blocks
  */
@@ -1730,7 +1882,7 @@ export const symbol = token;
 // KEYWORD
 
 /**
- Just like {@link Simple!keyword} except you provide a `Token`
+ Just like {@link Simple!keyword | Simple.keyword} except you provide a `Token`
  to clearly indicate your custom type of problems:
 
  ```ts
@@ -1787,54 +1939,54 @@ export const keyword = <PROBLEM>(
 // POSITION
 
 /**
- *  Just like {@link Simple!getPosition}
+ *  Just like {@link Simple!getPosition | Simple.getPositions}
  *
  * @category Positions
  */
-export const getPosition = new ParserImpl(
+export const getPosition: Parser<[number, number], never> = new ParserImpl(
   (s: State): PStep<[number, number], never> => Good(false, [s.row, s.col], s)
 );
 
 /**
- * Just like {@link Simple!getRow}
+ * Just like {@link Simple!getRow | Simple.getRow}
  *
  * @category Positions
  */
-export const getRow = new ParserImpl(
+export const getRow: Parser<number, never> = new ParserImpl(
   (s: State): PStep<number, never> => Good(false, s.row, s)
 );
 
 /**
- * Just like {@link Simple!getCol}
+ * Just like {@link Simple!getCol | Simple.getCol}
  *
  * @category Positions
  */
-export const getCol = new ParserImpl(
+export const getCol: Parser<number, never> = new ParserImpl(
   (s: State): PStep<number, never> => Good(false, s.col, s)
 );
 
 /**
- * Just like {@link Simple!getOffset}
+ * Just like {@link Simple!getOffset | Simple.getOffset}
  *
  * @category Positions
  */
-export const getOffset = new ParserImpl(
+export const getOffset: Parser<number, never> = new ParserImpl(
   (s: State): PStep<number, never> => Good(false, s.offset, s)
 );
 
 /**
- * Just like {@link Simple!getSource}
+ * Just like {@link Simple!getSource | Simple.getSource}
  *
  * @category Positions
  */
-export const getSource = new ParserImpl(
+export const getSource: Parser<string, never> = new ParserImpl(
   (s: State): PStep<string, never> => Good(false, s.src, s)
 );
 
 // VARIABLES
 
 /**
- * Just like {@link Simple!variable} except you specify the
+ * Just like {@link Simple!variable | Simple.variable} except you specify the
  * problem yourself.
  *
  * @category Building Blocks
@@ -1919,7 +2071,7 @@ const varHelp = (
 // SEQUENCES
 
 /**
- * Just like {@link Simple!sequence} except with a `Token` for
+ * Just like {@link Simple!sequence | Simple.sequence} except with a `Token` for
  * the start, separator, and end. That way you can specify your custom type of
  * problem for when something is not found.
  *
@@ -2082,7 +2234,7 @@ const sequenceEndMandatory =
 // WHITESPACE
 
 /**
- * Just like {@link Simple!spaces}
+ * Just like {@link Simple!spaces | Simple.spaces}
  *
  * @category Whitespace
  */
@@ -2093,7 +2245,7 @@ export const spaces = new ParserImpl<Unit, never>((s: State) =>
 // LINE COMMENT
 
 /**
- * Just like {@link Simple!lineComment} except you provide a
+ * Just like {@link Simple!lineComment | Simple.lineComment} except you provide a
  * `Token` describing the starting symbol.
  *
  * @category Whitespace
@@ -2146,7 +2298,7 @@ export function isNotNestable(x: any): x is typeof Nestable.NotNestable {
 }
 
 /**
- * Just like {@link Simple!multiComment} except with a
+ * Just like {@link Simple!multiComment | Simple.multiComment} except with a
  * `Token` for the open and close symbols.
  *
  * @category Whitespace

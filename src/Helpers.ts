@@ -1,10 +1,16 @@
 // STRINGS
 
 /**
+ * Check if one string is a sub-string of another.
+ *
+ * @remarks
+ *
  * When making a fast parser, you want to avoid allocation as much as
  * possible. That means you never want to mess with the source string, only
  * keep track of an offset into that string.
  *
+ * @example
+ * Here is a simple example:
  * ```ts
  * isSubString("let", offset, row, col, "let x = 4 in x")
  *   // => [newOffset, newRow, newCol]
@@ -20,8 +26,7 @@
  * two words wide, so even if there are no newlines, `offset` and `col`
  * may not be equal.
  *
- * TODO: Is the above mention about 'UTF16 characters are
- * two words wide' applicable to the typescript version of the code? Investigate.
+ * @category Uses offset
  */
 export function isSubString(
   smallString: string,
@@ -64,6 +69,7 @@ export function isSubString(
  *   depending on whether the UTF16 character is one or two
  *   words wide.
  *
+ * @category Uses offset
  */
 export function isSubChar(
   predicate: (src: string) => boolean,
@@ -84,19 +90,21 @@ export function isSubChar(
 }
 
 /**
-
- Check if the character at the given offset has the given charcode.
-
- @example
- ```ts
-    isCharCode(1,  97, "aaa")             // => true
-    isCharCode(10, 97, "aaaaaaaaaaäaaaa") // => false
- ```
-
- @param code - the character code to check against
- @param offset - the offset into the string
- @param string - the source string
- @returns true if the caracter at the given offset has the given code, otherwise false
+ *
+ * Check if the character at the given offset has the given charcode.
+ *
+ * @example
+ * ```ts
+ *    isCharCode(1,  97, "aaa")             // => true
+ *    isCharCode(10, 97, "aaaaaaaaaaäaaaa") // => false
+ * ```
+ *
+ * @param code - the character code to check against
+ * @param offset - the offset into the string
+ * @param string - the source string
+ * @returns true if the caracter at the given offset has the given code, otherwise false
+ *
+ * @category Uses offset
  */
 export function isCharCode(
   code: number,
@@ -107,18 +115,19 @@ export function isCharCode(
 }
 
 /**
-
-Check that a string only consists of alphanumerical characters
- 
-```ts 
-    isAlphaNum("abcdefghijklmnopqrstuvxyz") => true
-    isAlphaNum("ABCDEFGHIJKLMNOPQRSTUVXYZ") => true
-    isAlphaNum("1234567890")                => true
-    isAlphaNum("=")                         => false
-```
-
-@param string - the string of characters
-@return true if it only contains alphanumerical characters.
+ * Check that a string only consists of alphanumeric characters.
+ *
+ * ```ts
+ *     isAlphaNum("abcdefghijklmnopqrstuvxyz") => true
+ *     isAlphaNum("ABCDEFGHIJKLMNOPQRSTUVXYZ") => true
+ *     isAlphaNum("1234567890")                => true
+ *     isAlphaNum("=")                         => false
+ * ```
+ *
+ * @param string - the string of characters
+ * @return true if it only contains alphanumeric characters.
+ *
+ * @category Is
  */
 export function isAlphaNum(string: string): boolean {
   // 48  => '0'
@@ -135,16 +144,40 @@ export function isAlphaNum(string: string): boolean {
 }
 
 /**
-Check that a string only consists of lower-case characters
- 
-```ts 
-    isLower("abcdefghijklmnopqrstuvxyz") => true
-    isLower("A")                         => false
-    isLower("abcdefghijKlmnopqrstuvxyz") => false
-```
+ * Check that a string only consists of digits.
+ *
+ * @example
+ * ```ts
+ *     isDigit("abcdefghijklmnopqrstuvxyz") // => false
+ *     isDigit("ABCDEFGHIJKLMNOPQRSTUVXYZ") // => false
+ *     isDigit("1234567890")                // => true
+ *     isDigit("=")                         // => false
+ * ```
+ *
+ * @category Is
+ *
+ * @param string - the string of characters
+ * @returns True if it only contains alphanumeric characters.
+ */
+export function isDigit(string: string): boolean {
+  // 48  => '0'
+  // 57  => '9'
+  return checkAllChars((c) => c >= 48 && c <= 57, string);
+}
 
-@param string - the string of characters
-@return true if it only contains alphanumerical characters.
+/**
+ * Check that a string only consists of lower-case characters
+ *
+ * ```ts
+ *     isLower("abcdefghijklmnopqrstuvxyz") // => true
+ *     isLower("A")                         // => false
+ *     isLower("abcdefghijKlmnopqrstuvxyz") // => false
+ * ```
+ *
+ * @param string - the string of characters
+ * @return true if it only contains alphanumeric characters.
+ *
+ * @category Is
  */
 export function isLower(string: string): boolean {
   // 97  => 'a'
@@ -153,17 +186,19 @@ export function isLower(string: string): boolean {
 }
 
 /**
-
-Check that a string only consists of uppercase characters
- 
-```ts 
-    isUpper("ABCDEFGHIJKLMNOPQRSTUVXYZ") => true
-    isUpper("ABCDEFGHIJKLmNOPQRSTUVXYZ") => false
-    isUpper("=")                         => false
-```
-
-@param string - the string of characters
-@return true if it only contains uppercase characters.
+ *
+ * Check that a string only consists of uppercase characters
+ *
+ * ```ts
+ *     isUpper("ABCDEFGHIJKLMNOPQRSTUVXYZ") // => true
+ *     isUpper("ABCDEFGHIJKLmNOPQRSTUVXYZ") // => false
+ *     isUpper("=")                         // => false
+ * ```
+ *
+ * @param string - the string of characters
+ * @return true if it only contains uppercase characters.
+ *
+ * @category Is
  */
 export function isUpper(string: string): boolean {
   // 65  => 'A'
@@ -200,6 +235,8 @@ function checkAllChars(
  * @param offset - the offset to start looking from
  * @param string - the source string
  * @returns the new offset after "removing" all base 10 numbers
+ *
+ * @category Numbers
  */
 export function chompBase10(offset: number, string: string): number {
   for (; offset < string.length; offset++) {
@@ -228,6 +265,8 @@ export function chompBase10(offset: number, string: string): number {
  * @param offset  - where in the string to start consuming
  * @param string  - the source string
  * @returns the new offset and the number it consumed converted to base 10
+ *
+ * @category Numbers
  */
 export function consumeBase(
   base: number,
@@ -256,6 +295,8 @@ export function consumeBase(
  * @param offset - where in the string to start consuming
  * @param string - the source string
  * @returns a new offset and the consumed number converted to base 10
+ *
+ * @category Numbers
  */
 export function consumeBase16(
   offset: number,
@@ -281,6 +322,7 @@ export function consumeBase16(
 /**
  * Find a substring after a given offset.
  *
+ * @example
  * ```ts
  * findSubString("42", 0, 1, 1, "Is 42 the answer?")
  *    // => [3, 1, 4]
@@ -290,8 +332,12 @@ export function consumeBase16(
  *    // => [8, 4, 3,]
  * ```
  *
- * Note that "🙉" is two bytes long in UTF-16.
+ * Note that "🙉" is two bytes long in UTF-16 and that offset is counted in bytes.
  *
+ * @remarks
+ * Returns offset, row, and column. In that order.
+ *
+ * @category Uses offset
  */
 export function findSubString(
   smallString: string,

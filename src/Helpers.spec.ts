@@ -111,6 +111,30 @@ helpersGroup("isAlphaNum", () => {
   });
 });
 
+// isDigit
+
+helpersGroup("isDigit", () => {
+  test("returns true on the empty string", ({ expect }) => {
+    expect(H.isDigit("")).toBeTruthy();
+  });
+
+  test("returns true a string with all digits", ({ expect }) => {
+    expect(H.isDigit("1234567890")).toBeTruthy();
+  });
+
+  test("returns false on non alphanum characters", ({ expect }) => {
+    expect(H.isDigit("a")).toBeFalsy();
+    expect(H.isDigit("Z")).toBeFalsy();
+    expect(H.isDigit("=")).toBeFalsy();
+  });
+
+  test("returns false on a mix of alpahanum and non alphanum characters", ({
+    expect,
+  }) => {
+    expect(H.isDigit("123=asd2")).toBeFalsy();
+  });
+});
+
 // isLower
 
 helpersGroup("isLower", () => {

@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "immutable": "^4.1.0",
-    "ts-results": "^3.3.0",
+    "ts-results-es": "^3.5.0",
     "tslib": "^2.4.1"
   },
   "main": "dist/cjs/index.js",
@@ -52,6 +52,10 @@
     "./Simple": {
       "import": "./dist/mjs/Simple.js",
       "require": "./dist/cjs/Simple.js"
+    },
+    "./Helpers": {
+      "import": "./dist/mjs/Helpers.js",
+      "require": "./dist/cjs/Helpers.js"
     }
   }
 }

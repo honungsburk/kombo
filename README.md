@@ -13,7 +13,7 @@ The particular goals of this library are:
 
 ## Parser Pipelines
 
-To parse a 2D point like `( 3, 4 )`, you might create a point parser like this:
+To parse a 2D point like `"( 3, 4 )"`, you might create a point parser like this:
 
 ```ts
 import {
@@ -80,7 +80,10 @@ Once you get comfortable with the `Simple` module, you can switch over to `Advan
 
 This technique is used by the parser in the Elm compiler to give more helpful error messages.
 
-## [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
+## Links
+
+- [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
+- [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
 
 ## Installation
 

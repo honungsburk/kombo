@@ -124,6 +124,41 @@ const json: P.Parser<Json> = P.oneOf(
   P.keyword("null").map(() => JNull)
 );
 
+// US Zip Code
+
+const checkZipCode = (code: string): P.Parser<string> => {
+  if (code.length === 5) {
+    return P.succeed(code);
+  } else {
+    return P.problem("a U.S. zip code has exactly 5 digits");
+  }
+};
+
+const zipCode: P.Parser<string> = P.chompWhile(Helpers.isDigit)
+  .getChompedString()
+  .andThen(checkZipCode);
+
+parserGroup("zipCode", "@zipCode-parser", () => {
+  test("Succeed on '12345'", ({ expect }) => {
+    expect(P.run(zipCode)("12345").val).toStrictEqual("12345");
+  });
+
+  test("Succeed on '00045'", ({ expect }) => {
+    expect(P.run(zipCode)("00045").val).toStrictEqual("00045");
+  });
+
+  test("Fail on '123456'", ({ expect }) => {
+    const res = P.run(zipCode)("123456");
+
+    expect(res.err).toBeTruthy();
+  });
+  test("Fail on '012345'", ({ expect }) => {
+    const res = P.run(zipCode)("012345");
+
+    expect(res.err).toBeTruthy();
+  });
+});
+
 // Token
 
 // const keyword = (kwd: string): P.Parser<P.Unit> {
