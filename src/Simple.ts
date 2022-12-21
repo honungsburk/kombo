@@ -855,9 +855,6 @@ export const andThen =
  *  `lazy` helps us define these self-referential parsers. (`andThen` can be used
  *  for this as well!)
  *
- *  @param thunk - the lazy function
- *  @returns a lazy executing parser
- *
  *  @category Helpers
  */
 export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
@@ -1033,9 +1030,6 @@ export const loop =
  * to learn how `oneOf`, `backtrackable`, and `commit` work and interact with
  * each other. It is subtle and important!
  *
- * @param parser - the parser you want to make backtrackable
- * @return a parser that backtracks
- *
  * @category Branches
  */
 export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
@@ -1049,7 +1043,6 @@ export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
  * to learn how `oneOf`, `backtrackable`, and `commit` work and interact with
  * each other. It is subtle and important!
  *
- * @param value - the value to commit
  *
  * @category Branches
  */
@@ -1118,9 +1111,6 @@ export const symbol = (str: string): Parser<A.Unit> => {
  * try other options. If I had just put a `backtrackable` around the whole thing
  * you would not get (1) anymore.
  *
- * @param token - the token to look for
- * @returns a parser for your token
- *
  * @category Building Blocks
  */
 export const token = (token: string): Parser<A.Unit> => {
@@ -1160,9 +1150,6 @@ function toToken(str: string): A.Token<Problem> {
  * like `[1,2]` and `[ 1 , 2 ]`) and in this case, it would mean `letters` could
  * be parsed as `let ters` and then wonder where the equals sign is! Check out the
  * {@link token} docs if you need to customize this!
- *
- * @param keyword - the keyword like "let", "const", etc
- * @return a parser for that keyword
  *
  * @category Building Blocks
  */
@@ -1301,8 +1288,6 @@ function toResult<V, W>(value: V | undefined, def: W): Results.Result<V, W> {
  * `3m`, but it requires a bit of extra code to rule out trailing characters in
  * other cases.
  *
- * @param args - map different numbers to different values
- * @returns a parser for numbers
  *
  * @category Building Blocks
  */
@@ -1440,8 +1425,6 @@ export const mapChompedString =
  *
  * So this can chomp a character like `T` and produces a `()` value.
  *
- * @param isGood - if a character should be chomped
- * @returns a new parser
  *
  * @category Chompers
  */

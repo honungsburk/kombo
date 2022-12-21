@@ -368,11 +368,6 @@ export interface Parser<A, PROBLEM> {
    * @see
    * - The infix version of {@link Simple!map}
    *
-   * @typeParam B - The new, transformed value of the parser.
-   *
-   * @param {function} fn - the function to apply to the result
-   * @returns a new parser with a transformed result
-   *
    * @category Mapping
    */
   map<B>(fn: (v: A) => B): Parser<B, PROBLEM>;
@@ -412,12 +407,6 @@ export interface Parser<A, PROBLEM> {
    *
    * @see
    * - The infix version of {@link Simple!andThen}
-   *
-   * @typeParam B         - The new value.
-   * @typeParam PROBLEM2  - The second type of problem that can occur.
-   *
-   * @param fn - a function that returns a new parser
-   * @returns a new parser where the state of the two parsers have been combined.
    *
    * @category Mapping
    */
@@ -501,9 +490,6 @@ export interface Parser<A, PROBLEM> {
    *
    * - Infix version of {@link apply}.
    * - {@link https://en.wikipedia.org/wiki/Currying | Currying } as defined by wikipedia
-   *
-   * @param parser - the parser who's value we will keep
-   * @returns a new parser with the result applied to the curried function
    *
    * @category Mapping
    */
@@ -1003,9 +989,6 @@ export type Loop<STATE> = {
 /**
  * When you want to continue your {@link Simple!loop}.
  *
- * @param state - the state for the next iteration of the loop
- * @returns an indication to continue the loop
- *
  * @category Loop (All)
  */
 export function Loop<STATE>(state: STATE): Loop<STATE> {
@@ -1032,9 +1015,6 @@ export type Done<A> = {
 
 /**
  * When you want to complete your {@link Simple!loop}.
- *
- * @param value - the return value
- * @returns a then end of a loop
  *
  * @category Loop (All)
  */
@@ -1202,10 +1182,6 @@ export type Token<PROBLEM> = {
  *
  * @see
  * - {@link Token:type}
- *
- * @param value - the token we are trying to parse
- * @param problem - the error if we fail to parse the token
- * @returns a Token
  *
  * @category Token (All)
  */
@@ -1478,8 +1454,6 @@ function finalizeFloat<A, PROBLEM>(
 /**
  * On a failure, returns negative index of problem.
  *
- * @param offset - the offset
- * @param src - the src string
  */
 function consumeDotAndExp(offset: number, src: string): number {
   // 0x2e => '.'
@@ -1493,8 +1467,6 @@ function consumeDotAndExp(offset: number, src: string): number {
 /**
  * On a failure, returns negative index of problem.
  *
- * @param offset - the offset
- * @param src - the src string
  */
 function consumeExp(offset: number, src: string): number {
   // 0x65 => 'e'
@@ -1882,20 +1854,17 @@ export const symbol = token;
 // KEYWORD
 
 /**
- Just like {@link Simple!keyword | Simple.keyword} except you provide a `Token`
- to clearly indicate your custom type of problems:
-
- ```ts
-      const myLet = keyword(Token("let", ExpectingLet))
- ```
-
- Note that this would fail to chomp `letter` because of the subsequent
- characters. Use `token` if you do not want that last letter check.
-
- @param token - the token you want to use as a keyword
- @return a parser for that keyword
-
- @category Building Blocks
+ * Just like {@link Simple!keyword | Simple.keyword} except you provide a `Token`
+ * to clearly indicate your custom type of problems:
+ *
+ * ```ts
+ *      const myLet = keyword(Token("let", ExpectingLet))
+ * ```
+ *
+ * Note that this would fail to chomp `letter` because of the subsequent
+ * characters. Use `token` if you do not want that last letter check.
+ *
+ * @category Building Blocks
  */
 export const keyword = <PROBLEM>(
   token: Token<PROBLEM>
@@ -2277,9 +2246,6 @@ export type Nestable = "Nestable" | "NotNestable";
 
 /**
  *
- * @param x - the value you want to check
- * @returns whether or not it is a Nestable
- *
  * @category Multiline Comment (All)
  */
 export function isNestable(x: any): x is typeof Nestable.Nestable {
@@ -2287,9 +2253,6 @@ export function isNestable(x: any): x is typeof Nestable.Nestable {
 }
 
 /**
- *
- * @param x - the value you want to check
- * @returns whether or not it is a NotNestable
  *
  * @category Multiline Comment (All)
  */

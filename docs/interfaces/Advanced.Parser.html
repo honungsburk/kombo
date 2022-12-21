@@ -107,7 +107,7 @@ typed and get good type inference.</p>
 <h5>src: <span class="tsd-signature-type">string</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Result</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">, </span><a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="../types/Advanced.DeadEnd.html" class="tsd-signature-type" data-tsd-kind="Type alias">DeadEnd</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L534">Advanced.ts:534</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L520">Advanced.ts:520</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Mapping</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="andThen" class="tsd-anchor"></a>
@@ -131,27 +131,19 @@ out the <a href="../functions/Advanced.loop-2.html">loop</a> function to limit s
 <h3>See</h3><ul>
 <li>The infix version of <a href="../functions/Simple.andThen.html">andThen</a></li>
 </ul>
-
-<h3>Returns</h3><p>a new parser where the state of the two parsers have been combined.</p>
 </div>
 <section class="tsd-panel tsd-type-parameters">
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameters">
 <li>
-<h4>B</h4>
-<div class="tsd-comment tsd-typography"><p>The new value.</p>
-</div></li>
+<h4>B</h4></li>
 <li>
-<h4>PROBLEM2</h4>
-<div class="tsd-comment tsd-typography"><p>The second type of problem that can occur.</p>
-</div></li></ul></section>
+<h4>PROBLEM2</h4></li></ul></section>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
 <h5>fn: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span></h5>
-<div class="tsd-comment tsd-typography"><p>a function that returns a new parser</p>
-</div>
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures tsd-kind-type-literal">
@@ -165,7 +157,7 @@ out the <a href="../functions/Advanced.loop-2.html">loop</a> function to limit s
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L424">Advanced.ts:424</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L413">Advanced.ts:413</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="apply" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>apply</span><a href="#apply" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -183,8 +175,6 @@ function that is <em>curried</em>.</p>
 <li>Infix version of <a href="../functions/Advanced.apply.html">apply</a>.</li>
 <li><a href="https://en.wikipedia.org/wiki/Currying">Currying</a> as defined by wikipedia</li>
 </ul>
-
-<h3>Returns</h3><p>a new parser with the result applied to the curried function</p>
 </div>
 <section class="tsd-panel tsd-type-parameters">
 <h4>Type Parameters</h4>
@@ -195,12 +185,10 @@ function that is <em>curried</em>.</p>
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
-<h5>parser: <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><a href="../types/Advanced.GetArgumentType.html" class="tsd-signature-type" data-tsd-kind="Type alias">GetArgumentType</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h5>
-<div class="tsd-comment tsd-typography"><p>the parser who&#39;s value we will keep</p>
-</div></li></ul></div>
+<h5>parser: <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><a href="../types/Advanced.GetArgumentType.html" class="tsd-signature-type" data-tsd-kind="Type alias">GetArgumentType</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><a href="../types/Advanced.GetReturnType.html" class="tsd-signature-type" data-tsd-kind="Type alias">GetReturnType</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L510">Advanced.ts:510</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L496">Advanced.ts:496</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="keep" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>keep</span><a href="#keep" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -228,7 +216,7 @@ function that is <em>curried</em>.</p>
 <h5>other: <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L466">Advanced.ts:466</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L455">Advanced.ts:455</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="map" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>map</span><a href="#map" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -243,23 +231,17 @@ function that is <em>curried</em>.</p>
 <h3>See</h3><ul>
 <li>The infix version of <a href="../functions/Simple.map.html">map</a></li>
 </ul>
-
-<h3>Returns</h3><p>a new parser with a transformed result</p>
 </div>
 <section class="tsd-panel tsd-type-parameters">
 <h4>Type Parameters</h4>
 <ul class="tsd-type-parameters">
 <li>
-<h4>B</h4>
-<div class="tsd-comment tsd-typography"><p>The new, transformed value of the parser.</p>
-</div></li></ul></section>
+<h4>B</h4></li></ul></section>
 <div class="tsd-parameters">
 <h4 class="tsd-parameters-title">Parameters</h4>
 <ul class="tsd-parameter-list">
 <li>
 <h5>fn: <span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">(</span>v<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol"> =&gt; </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">)</span></h5>
-<div class="tsd-comment tsd-typography"><p>the function to apply to the result</p>
-</div>
 <ul class="tsd-parameters">
 <li class="tsd-parameter-signature">
 <ul class="tsd-signatures tsd-kind-type-literal">
@@ -273,7 +255,7 @@ function that is <em>curried</em>.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L378">Advanced.ts:378</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L373">Advanced.ts:373</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="skip" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>skip</span><a href="#skip" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -300,7 +282,7 @@ function that is <em>curried</em>.</p>
 <h5>other: <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">unknown</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L446">Advanced.ts:446</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L435">Advanced.ts:435</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Branches</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="backtrackable" class="tsd-anchor"></a>
@@ -312,7 +294,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L541">Advanced.ts:541</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L527">Advanced.ts:527</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="or" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>or</span><a href="#or" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -340,7 +322,7 @@ function that is <em>curried</em>.</p>
 <h5>other: <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM2</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L525">Advanced.ts:525</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L511">Advanced.ts:511</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Chompers</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getChompedString" class="tsd-anchor"></a>
@@ -352,7 +334,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L548">Advanced.ts:548</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L534">Advanced.ts:534</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="mapChompedString" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>map<wbr/>Chomped<wbr/>String</span><a href="#mapChompedString" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -385,7 +367,7 @@ function that is <em>curried</em>.</p>
 <h4 class="tsd-returns-title">Returns <span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span></h4></li></ul></li></ul></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">B</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L555">Advanced.ts:555</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L541">Advanced.ts:541</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Indentation</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getIndent" class="tsd-anchor"></a>
@@ -399,7 +381,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L565">Advanced.ts:565</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L551">Advanced.ts:551</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="withIndent" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>with<wbr/>Indent</span><a href="#withIndent" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -414,7 +396,7 @@ function that is <em>curried</em>.</p>
 <h5>newIndent: <span class="tsd-signature-type">number</span></h5></li></ul></div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type" data-tsd-kind="Type parameter">A</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L572">Advanced.ts:572</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L558">Advanced.ts:558</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Positions</h2>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getCol" class="tsd-anchor"></a>
@@ -426,7 +408,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L592">Advanced.ts:592</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L578">Advanced.ts:578</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getOffset" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Offset</span><a href="#getOffset" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -436,7 +418,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L599">Advanced.ts:599</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L585">Advanced.ts:585</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getPosition" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Position</span><a href="#getPosition" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -446,7 +428,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L579">Advanced.ts:579</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L565">Advanced.ts:565</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getRow" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Row</span><a href="#getRow" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -456,7 +438,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L586">Advanced.ts:586</a></li></ul></aside></li></ul></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L572">Advanced.ts:572</a></li></ul></aside></li></ul></section>
 <section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-interface"><a id="getSource" class="tsd-anchor"></a>
 <h3 class="tsd-anchor-link"><span>get<wbr/>Source</span><a href="#getSource" aria-label="Permalink" class="tsd-anchor-icon"><svg class="icon icon-tabler icon-tabler-link" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><use href="#icon-anchor-a"></use><use href="#icon-anchor-b"></use><use href="#icon-anchor-c"></use></svg></a></h3>
 <ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface">
@@ -466,7 +448,7 @@ function that is <em>curried</em>.</p>
 </div>
 <h4 class="tsd-returns-title">Returns <a href="../modules/Advanced.html" class="tsd-signature-type" data-tsd-kind="Namespace">Advanced</a><span class="tsd-signature-symbol">.</span><a href="Advanced.Parser.html" class="tsd-signature-type" data-tsd-kind="Interface">Parser</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type" data-tsd-kind="Type parameter">PROBLEM</span><span class="tsd-signature-symbol">&gt;</span></h4><aside class="tsd-sources">
 <ul>
-<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L606">Advanced.ts:606</a></li></ul></aside></li></ul></section></section>
+<li>Defined in <a href="https://github.com/honungsburk/kombo/blob/0c88552/src/Advanced.ts#L592">Advanced.ts:592</a></li></ul></aside></li></ul></section></section>
 <section class="tsd-panel-group tsd-member-group tsd-kind-interface tsd-parent-kind-namespace">
 <h2>Other</h2>
 <section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-private"><a id="exec" class="tsd-anchor"></a>

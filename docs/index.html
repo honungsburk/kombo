@@ -47,7 +47,7 @@ This library provides a coherent alternative that handles more cases and produce
 </a>
 <p>To make fast parsers with precise error messages, all of the parsers in this package do not backtrack by default. Once you start going down a path, you keep going down it.</p>
 <p>This is nice in a string like <code>[ 1, 23zm5, 3 ]</code> where you want the error at the <code>z</code>. If we had backtracking by default, you might get the error on <code>[</code> instead. That is way less specific and harder to fix!</p>
-<p>So the defaults are nice, but sometimes the easiest way to write a parser is to look ahead a bit and see what is going to happen. It is definitely more costly to do this, but it can be handy if there is no other way. This is the role of <a href="https://example.com#backtrackable"><code>backtrackable</code></a> parsers. Check out the <a href="https://github.com/honungsburk/ts-parser/blob/master/semantics.md">semantics</a> page for more details!</p>
+<p>So the defaults are nice, but sometimes the easiest way to write a parser is to look ahead a bit and see what is going to happen. It is definitely more costly to do this, but it can be handy if there is no other way. This is the role of <a href="https://example.com#backtrackable"><code>backtrackable</code></a> parsers. Check out the <a href="https://github.com/honungsburk/kombo/blob/master/semantics.md">semantics</a> page for more details!</p>
 
 <a href="#tracking-context" id="tracking-context" style="color: inherit; text-decoration: none;">
   <h2>Tracking Context</h2>
@@ -68,6 +68,10 @@ This library provides a coherent alternative that handles more cases and produce
 <ul>
 <li><a href="https://github.com/honungsburk/kombo/blob/master/comparison.md">Comparison with Prior Work</a></li>
 <li><a href="https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/">Parse, don&#39;t validate</a></li>
+<li><a href="https://honungsburk.github.io/kombo">Kombo docs</a></li>
+<li><a href="https://github.com/honungsburk/kombo">github</a></li>
+<li><a href="https://github.com/honungsburk/kombo">npm</a></li>
+<li><a href="https://honungsburk.github.io/">personal website</a></li>
 </ul>
 
 <a href="#installation" id="installation" style="color: inherit; text-decoration: none;">
