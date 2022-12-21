@@ -4,7 +4,14 @@ import * as Results from "ts-results-es";
 import * as A from "./Advanced.js";
 
 // Exports
-export { Loop, Done, Unit } from "./Advanced.js";
+export {
+  Loop,
+  Done,
+  Unit,
+  Nestable,
+  isNotNestable,
+  isNestable,
+} from "./Advanced.js";
 
 // PARSERS
 
@@ -1439,26 +1446,144 @@ export const getIndent: Parser<number> = A.getIndent;
 // POSITION
 
 /**
+ * Code editors treat code like a grid, with rows and columns. The start is
+ * `row=1` and `col=1`. As you chomp characters, the col increments. When you
+ * run into a `\n` character, the `row` increments and `col` goes back to `1`.
+ *
+ * @example
+ * In the Elm compiler, they track the start and end position of every
+ * expression like this:
+ *
+ * ```ts
+ * type Located<A> = {
+ *  start: [number, number],
+ *  value: A,
+ *  end: [number, number]
+ * }
+ *
+ * const Located = <A>(start: [number, number]) => value: A) => (end: [number, number]): Located<A> => ({
+ *  start: start,
+ *  value: value,
+ *  end: end
+ * })
+ *
+ * const located = <A>(parser: Parser<A>): Parser<Located<A>> => {
+ *  return succeed(Located<A>)
+ *          .apply(getPosition)
+ *          .apply(parser)
+ *          .apply(getPosition)
+ * }
+ *
+ * ```
+ *
+ * So if there is a problem during type inference, they use this saved position
+ * information to underline the exact problem!
+ *
+ * **Note:** Tabs count as one character, so if you are parsing something
+ * like Python, I recommend sorting that out *after* parsing. So if I wanted
+ * the `^^^^` underline like in Elm, I would find the *row* in the source code
+ * and do something like this:
+ *
+ * ```ts
+ * function toUnderlineChar(
+ *   minCol: number,
+ *   maxCol: number,
+ *   col: number,
+ *   char: string
+ * ): string {
+ *   if (minCol <= col && col <= maxCol) {
+ *     return "^";
+ *   } else if (char === "\t") {
+ *     return "\t";
+ *   } else {
+ *     return " ";
+ *   }
+ * }
+ *
+ * function makeUnderline(row: string, minCol: number, maxCol: number): string {
+ *   const listOfChars: string[] = [...row];
+ *   const underline: string[] = listOfChars.map((char, index) =>
+ *     toUnderlineChar(minCol, maxCol, index, char)
+ *   );
+ *   return underline.join("");
+ * }
+ * ```
+ *
+ * So it would preserve any tabs from the source line. There are tons of other
+ * ways to do this though. The point is just that you handle the tabs after
+ * parsing but before anyone looks at the numbers in a context where tabs may
+ * equal 2, 4, or 8.
+ *
  * @category Positions
  */
 export const getPosition: Parser<[number, number]> = A.getPosition;
 
 /**
+ * This is a more efficient version of `getPosition.map(t => t[0])`. Maybe
+ * you just want to track the line number for some reason? This lets you do that.
+ *
+ * See {@link getPosition} for an explanation of rows and columns.
+ *
  * @category Positions
  */
 export const getRow: Parser<number> = A.getRow;
 
 /**
+ * This is a more efficient version of `getPosition.map(t => t[1])`. This can
+ * be useful in combination with {@link withIndent} and {@link getIndent}, like this:
+ *
+ * ```ts
+ * const checkIndent: P.Parser<P.Unit> = P.succeed(
+ *   (indent: number) => (column: number) => indent <= column
+ *  )
+ *   .apply(P.getIndent)
+ *   .apply(P.getCol)
+ *   .andThen((isIdented) => {
+ *     if (isIdented) {
+ *       return P.succeed(P.Unit);
+ *     } else {
+ *       return P.problem("expecting more spaces");
+ *     }
+ *   });
+ * ```
+ *
+ * So the `checkIndent` parser only succeeds when you are "deeper" than the
+ * current indent level.
+ *
  * @category Positions
  */
 export const getCol: Parser<number> = A.getCol;
 
 /**
+ * Editors think of code as a grid, but behind the scenes it is just a flat
+ * array of UTF-16 characters. `getOffset` tells you your index in that
+ * flat array. So if you chomp `"\n\n\n\n"` you are on row 5, column 1,
+ * and offset 4.
+ *
+ * **Note:** JavaScript uses a somewhat odd version of UTF-16 strings,
+ * so a single character may take two slots. So in JavaScript, `'abc'.length === 3``
+ * but `'🙈🙉🙊'.length === 6`. Try it out!
+ *
  * @category Positions
  */
 export const getOffset: Parser<number> = A.getOffset;
 
 /**
+ * Get the full string that is being parsed. You could use this to define
+ * `getChompedString` or `mapChompedString` if you wanted:
+ *
+ * ```ts
+ * const getChompedString = (parser: P.Parser<any>) => {
+ *   return P.succeed(
+ *     (from: number) => (to: number) => (str: string) => str.slice(from, to)
+ *   )
+ *     .apply(P.getOffset)
+ *     .skip(parser)
+ *     .apply(P.getOffset)
+ *     .apply(P.getSource);
+ * };
+ * ```
+ *
  * @category Positions
  */
 export const getSource: Parser<string> = A.getSource;
@@ -1534,6 +1659,25 @@ export const spaces: Parser<A.Unit> = A.spaces;
 // COMMENTS
 
 /**
+ * Parse single-line comments:
+ *
+ * ```ts
+ * const elm = lineComment("--");
+ *
+ * const js = lineComment("//");
+ *
+ * const python = lineComment("#");
+ * ```
+ *
+ * This parser is defined like this:
+ *
+ * ```ts
+ * const lineComment = (str: string): Parser<Unit> =>
+ *   skip2nd<Unit>(symbol(str))(chompUntilEndOr("\n"));
+ * ```
+ *
+ * So it will consume the remainder of the line. If the file ends before you
+ * see a newline, that is fine too.
  *
  * @category Whitespace
  */
@@ -1542,6 +1686,52 @@ export const lineComment = (str: string): Parser<A.Unit> => {
 };
 
 /**
+ * Parse multi-line comments. So if you wanted to parse Elm whitespace or JS
+ * whitespace, you could say:
+ *
+ * ```ts
+ *
+ * const ifProgress =
+ *   <A>(parser: P.Parser<A>) =>
+ *   (offset: number): P.Parser<P.Step<number, P.Unit>> => {
+ *     return P.succeed((x: A) => x)
+ *       .skip(parser)
+ *       .getOffset()
+ *       .map((newOffset) =>
+ *         offset === newOffset ? P.Done(P.Unit) : P.Loop(newOffset)
+ *       );
+ *   };
+ *
+ * const elm: P.Parser<P.Unit> = P.loop(0)(
+ *   ifProgress(
+ *     P.oneOf(
+ *       P.lineComment("//"),
+ *       P.multiComment("/*")("* /")(P.Nestable.Nestable),
+ *       P.spaces
+ *     )
+ *   )
+ * );
+ *
+ * const js: P.Parser<P.Unit> = P.loop(0)(
+ *   ifProgress(
+ *     P.oneOf(
+ *       P.lineComment("//"),
+ *       P.multiComment("/*")("* /")(P.Nestable.NotNestable),
+ *       P.chompWhile((c) => c == " " || c == "\n" || c == "\r" || c == "\t")
+ *     )
+ *   )
+ * );
+ *```
+ * `"* /"` is incorrect, it should be `"*​/"` but that requires me to use a
+ * {@link https://unicode-explorer.com/c/200B zero with space} character,
+ * confusing anyone who copies the code as to why the example doesn't work.
+ *
+ * **Note:** The fact that `spaces` comes last in the definition of `elm` is very
+ * important! It can succeed without consuming any characters, so if it were
+ * the first option, it would always succeed and bypass the others! (Same is
+ * true of `chompWhile` in `js`.) This possibility of success without consumption
+ * is also why wee need the `ifProgress` helper. It detects if there is no
+ * more whitespace to consume.
  *
  * @category Whitespace
  */

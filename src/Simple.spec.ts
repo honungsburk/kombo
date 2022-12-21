@@ -311,3 +311,123 @@ const singleLineComment: P.Parser<P.Unit> = P.symbol("--").skip(
 const indentation = P.succeed((a: number) => (b: number) => [a, b])
   .apply(P.withIndent(4)(P.getIndent))
   .apply(P.getIndent);
+
+// Location
+
+type Located<A> = {
+  start: [number, number];
+  value: A;
+  end: [number, number];
+};
+
+const Located =
+  <A>(start: [number, number]) =>
+  (value: A) =>
+  (end: [number, number]): Located<A> => ({
+    start: start,
+    value: value,
+    end: end,
+  });
+
+const located = <A>(parser: P.Parser<A>): P.Parser<Located<A>> => {
+  return P.succeed(Located<A>)
+    .apply(P.getPosition)
+    .apply(parser)
+    .apply(P.getPosition);
+};
+
+function toUnderlineChar(
+  minCol: number,
+  maxCol: number,
+  col: number,
+  char: string
+): string {
+  if (minCol <= col && col <= maxCol) {
+    return "^";
+  } else if (char === "\t") {
+    return "\t";
+  } else {
+    return " ";
+  }
+}
+
+function makeUnderline(row: string, minCol: number, maxCol: number): string {
+  const listOfChars: string[] = [...row];
+  const underline: string[] = listOfChars.map((char, index) =>
+    toUnderlineChar(minCol, maxCol, index, char)
+  );
+  return underline.join("");
+}
+
+// checkIndent
+
+const checkIndent: P.Parser<P.Unit> = P.succeed(
+  (indent: number) => (column: number) => indent <= column
+)
+  .apply(P.getIndent)
+  .apply(P.getCol)
+  .andThen((isIdented) => {
+    if (isIdented) {
+      return P.succeed(P.Unit);
+    } else {
+      return P.problem("expecting more spaces");
+    }
+  });
+
+// Whitespace
+
+const ifProgress =
+  <A>(parser: P.Parser<A>) =>
+  (offset: number): P.Parser<P.Step<number, P.Unit>> => {
+    return P.succeed((x: A) => x)
+      .skip(parser)
+      .getOffset()
+      .map((newOffset) =>
+        offset === newOffset ? P.Done(P.Unit) : P.Loop(newOffset)
+      );
+  };
+
+const elm: P.Parser<P.Unit> = P.loop(0)(
+  ifProgress(
+    P.oneOf(
+      P.lineComment("//"),
+      P.multiComment("/*")("*/")(P.Nestable.Nestable),
+      P.spaces
+    )
+  )
+);
+
+const js: P.Parser<P.Unit> = P.loop(0)(
+  ifProgress(
+    P.oneOf(
+      P.lineComment("//"),
+      P.multiComment("/*")("*/")(P.Nestable.NotNestable),
+      P.chompWhile((c) => c == " " || c == "\n" || c == "\r" || c == "\t")
+    )
+  )
+);
+
+// elm : Parser ()
+// elm =
+//   loop 0 <| ifProgress <|
+//     oneOf
+//       [ lineComment "--"
+//       , multiComment "{-" "-}" Nestable
+//       , spaces
+//       ]
+
+// js : Parser ()
+// js =
+//   loop 0 <| ifProgress <|
+//     oneOf
+//       [ lineComment "//"
+//       , multiComment "/*" "*/" NotNestable
+//       , chompWhile (\c -> c == ' ' || c == '\n' || c == '\r' || c == '\t')
+//       ]
+
+// ifProgress : Parser a -> Int -> Parser (Step Int ())
+// ifProgress parser offset =
+//   succeed identity
+//     |. parser
+//     |= getOffset
+//     |> map (\newOffset -> if offset == newOffset then Done () else Loop newOffset)
