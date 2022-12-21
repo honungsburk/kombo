@@ -58,7 +58,7 @@ To make fast parsers with precise error messages, all of the parsers in this pac
 
 This is nice in a string like `[ 1, 23zm5, 3 ]` where you want the error at the `z`. If we had backtracking by default, you might get the error on `[` instead. That is way less specific and harder to fix!
 
-So the defaults are nice, but sometimes the easiest way to write a parser is to look ahead a bit and see what is going to happen. It is definitely more costly to do this, but it can be handy if there is no other way. This is the role of [`backtrackable`](https://example.com#backtrackable) parsers. Check out the [semantics](https://github.com/honungsburk/ts-parser/blob/master/semantics.md) page for more details!
+So the defaults are nice, but sometimes the easiest way to write a parser is to look ahead a bit and see what is going to happen. It is definitely more costly to do this, but it can be handy if there is no other way. This is the role of [`backtrackable`](https://example.com#backtrackable) parsers. Check out the [semantics](https://github.com/honungsburk/kombo/blob/master/semantics.md) page for more details!
 
 ## Tracking Context
 
@@ -84,6 +84,10 @@ This technique is used by the parser in the Elm compiler to give more helpful er
 
 - [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
 - [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
+- [Kombo docs](https://honungsburk.github.io/kombo)
+- [github](https://github.com/honungsburk/kombo)
+- [npm](https://github.com/honungsburk/kombo)
+- [personal website](https://honungsburk.github.io/)
 
 ## Installation
 
