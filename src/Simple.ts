@@ -962,27 +962,46 @@ export const symbol = (str: string): Parser<A.Unit> => {
 // TOKEN
 
 /**
-Parse exactly the given string, without any regard to what comes next.
-
-A potential pitfall when parsing keywords is getting tricked by variables that
-start with a keyword, like `let` in `letters` or `import` in `important`. This
-is especially likely if you have a whitespace parser that can consume zero
-charcters. So the {@link keyword} parser is defined with `token` and a
-trick to peek ahead a bit: 
-
-```ts 
-TODO
-```
-
-This definition is specially designed so that (1) if you really see `let` you
-commit to that path and (2) if you see `letters` instead you can backtrack and
-try other options. If I had just put a `backtrackable` around the whole thing
-you would not get (1) anymore.
-
-@param token - the token to look for
-@returns a parser for your token
-
-@category Building Blocks
+ * Parse exactly the given string, without any regard to what comes next.
+ *
+ * A potential pitfall when parsing keywords is getting tricked by variables that
+ * start with a keyword, like `let` in `letters` or `import` in `important`. This
+ * is especially likely if you have a whitespace parser that can consume zero
+ * charcters. So the {@link keyword} parser is defined with `token` and a
+ * trick to peek ahead a bit:
+ *
+ * ```ts
+ * const isVarChar = (char: string) => {
+ *   return Helpers.isAlphaNum(char) || char === "_";
+ * };
+ *
+ * const checkEnding =
+ *   (kwd: string) =>
+ *   (isBadEnding: boolean): P.Parser<P.Unit> => {
+ *     if (isBadEnding) {
+ *       return P.problem("expecting the `" + kwd + "` keyword");
+ *     } else {
+ *       return P.commit(P.Unit);
+ *     }
+ *   };
+ *
+ * const keyword = (kwd: string): P.Parser<P.Unit> => {
+ *   return P.succeed((v: P.Unit) => v)
+ *     .skip(P.backtrackable(P.token(kwd)))
+ *     .keep(P.oneOf(P.backtrackable(P.chompIf(isVarChar)), P.succeed(false)))
+ *     .andThen(checkEnding(kwd));
+ * };
+ * ```
+ *
+ * This definition is specially designed so that (1) if you really see `let` you
+ * commit to that path and (2) if you see `letters` instead you can backtrack and
+ * try other options. If I had just put a `backtrackable` around the whole thing
+ * you would not get (1) anymore.
+ *
+ * @param token - the token to look for
+ * @returns a parser for your token
+ *
+ * @category Building Blocks
  */
 export const token = (token: string): Parser<A.Unit> => {
   return A.token(toToken(token));

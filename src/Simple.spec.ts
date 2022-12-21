@@ -162,66 +162,26 @@ parserGroup("zipCode", "@zipCode-parser", () => {
 
 // Token
 
-// const keyword = (kwd: string): P.Parser<P.Unit> {
-//   return P.succeed(v => v)
-//     .skip(P.backtrackable(P.token(kwd)))
-//     .keep(P.oneOf(
-//       P.backtrackable(P.chompIf(isVarCar)),
-//       P.succeed(false)
-//     )).andThen(checkEnding(kwd))
-// }
+const isVarChar = (char: string) => {
+  return Helpers.isAlphaNum(char) || char === "_";
+};
 
-// const checkEnding = (kwd: string) => (isBadEnding: boolean): Parser<P.Unit> => {
-//   if(isBadEnding){
-//     return P.problem("expecting the `" + kwd + "` keyword")
-//   } else {
-//     return P.
-//   }
-// }
+const checkEnding =
+  (kwd: string) =>
+  (isBadEnding: boolean): P.Parser<P.Unit> => {
+    if (isBadEnding) {
+      return P.problem("expecting the `" + kwd + "` keyword");
+    } else {
+      return P.commit(P.Unit);
+    }
+  };
 
-// keyword : String -> Parser ()
-// keyword kwd =
-//   succeed identity
-//     |. backtrackable (token kwd)
-//     |= oneOf
-//         [ map (\_ -> True) (backtrackable (chompIf isVarChar))
-//         , succeed False
-//         ]
-//     |> andThen (checkEnding kwd)
-// checkEnding : String -> Bool -> Parser ()
-// checkEnding kwd isBadEnding =
-//   if isBadEnding then
-//     problem ("expecting the `" ++ kwd ++ "` keyword")
-//   else
-//     commit ()
-// isVarChar : Char -> Bool
-// isVarChar char =
-//   Char.isAlphaNum char || char == '_'
-
-// LOOPS
-
-// TODO: Write a parser for a simple programming language
-
-// type Stmt = string;
-
-// const statement: P.Parser<Stmt> = P.succeed(().skip();
-
-// // Note that we are useing a mutable list here. Dangerous but OK in this scenario.
-// const statementsHelp = (stmts: Stmt[]): P.Parser<P.Step<Stmt[], Stmt[]>> => {
-//   return P.oneOf(
-//     P.succeed((stmt: Stmt) => {
-//       stmts.push(stmt);
-//       return new P.Loop(stmts);
-//     })
-//       .keep(statement)
-//       .skip(P.spaces)
-//       .skip(P.symbol(";"))
-//       .skip(P.spaces),
-//     P.succeed(P.Unit).map(() => new P.Done(stmts))
-//   );
-// };
-
-// const statements: P.Parser<Stmt[]> = P.loop([])(statementsHelp);
+const keyword = (kwd: string): P.Parser<P.Unit> => {
+  return P.succeed((v: P.Unit) => v)
+    .skip(P.backtrackable(P.token(kwd)))
+    .keep(P.oneOf(P.backtrackable(P.chompIf(isVarChar)), P.succeed(false)))
+    .andThen(checkEnding(kwd));
+};
 
 // NUMBERS
 
