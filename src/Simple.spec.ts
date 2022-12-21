@@ -1,6 +1,7 @@
 import { test, Group } from "@japa/runner";
 import * as P from "./Simple.js";
 import * as Helpers from "./Helpers.js";
+import { spaces } from "./Advanced.js";
 
 function parserGroup(
   parserName: string,
@@ -407,27 +408,10 @@ const js: P.Parser<P.Unit> = P.loop(0)(
   )
 );
 
-// elm : Parser ()
-// elm =
-//   loop 0 <| ifProgress <|
-//     oneOf
-//       [ lineComment "--"
-//       , multiComment "{-" "-}" Nestable
-//       , spaces
-//       ]
+// Variable
 
-// js : Parser ()
-// js =
-//   loop 0 <| ifProgress <|
-//     oneOf
-//       [ lineComment "//"
-//       , multiComment "/*" "*/" NotNestable
-//       , chompWhile (\c -> c == ' ' || c == '\n' || c == '\r' || c == '\t')
-//       ]
-
-// ifProgress : Parser a -> Int -> Parser (Step Int ())
-// ifProgress parser offset =
-//   succeed identity
-//     |. parser
-//     |= getOffset
-//     |> map (\newOffset -> if offset == newOffset then Done () else Loop newOffset)
+const typeVar: P.Parser<string> = P.variable({
+  start: Helpers.isLower,
+  inner: (c: string) => Helpers.isAlphaNum(c) || c === "_",
+  reserved: new Set(["let", "in", "case", "of"]),
+});

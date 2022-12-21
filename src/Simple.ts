@@ -11,6 +11,7 @@ export {
   Nestable,
   isNotNestable,
   isNestable,
+  Trailing,
 } from "./Advanced.js";
 
 // PARSERS
@@ -1591,15 +1592,21 @@ export const getSource: Parser<string> = A.getSource;
 // VARIABLES
 
 /**
- * Create a parser for variables.
- *
- * @remarks
- *
- * @example
+ * Create a parser for variables. If we wanted to parse type variables in
+ * Elm, we could try something like this:
  *
  * ```ts
- *
+ * const typeVar: P.Parser<string> = P.variable({
+ *   start: Helpers.isLower,
+ *   inner: (c: string) => Helpers.isAlphaNum(c) || c === "_",
+ *   reserved: new Set(["let", "in", "case", "of"]),
+ * });
  * ```
+ *
+ * This is saying it *must* start with a lower-case character. After that,
+ * characters can be letters, numbers, or underscores. It is also saying
+ * that if you run into any of these reserved names, it is definitely
+ * not a variable.
  *
  * @category Building Blocks
  */
@@ -1617,6 +1624,31 @@ export const variable = (args: {
 // SEQUENCES
 
 /**
+ * Handle things like lists and records, but you can customize the details
+ * however you need. Say you want to parse C-style code blocks:
+ *
+ * ```ts
+ * // const statement: Parser<Stmt> =
+ *
+ * const block: Parser<Stmt[]> =
+ *       sequence({
+ *         start: "{",
+ *         seperator: ";",
+ *         end: "}",
+ *         spaces: spaces,
+ *         item: statement,
+ *         trailing: Trailing.Mandatory
+ *         }
+ *       )
+ * ```
+ *
+ * **Note:** If you need something more custom, do not be afraid to check
+ * out the implementation and customize it for your case. It is better to get
+ * nice error messages with a lower-level implementation than to try to hack
+ * high-level parsers to do things they are not made for.
+ *
+ * @see
+ * - {@link Trailing}
  *
  * @category Loops
  */
