@@ -137,8 +137,8 @@ export type Problem =
  * A very basic `toString` function for {@link Problem}. You probably want to
  * implement your own!
  *
- * @param problem - the problem to transform into a string
- * @return a string of the problem
+ * @see
+ * - {@link Problem}
  *
  * @category Problem (All)
  * @category Errors
@@ -153,6 +153,9 @@ export function problemToString(problem: Problem): string {
 
 /**
  * returns true for any problem that has an extra `str` value.
+ *
+ * @see
+ * - {@link Problem}
  *
  * @category Problem (All)
  * @category Errors
@@ -171,6 +174,9 @@ export function isProblemWithStr(
 // Expecting
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type Expecting = {
@@ -179,6 +185,9 @@ export type Expecting = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const Expecting = (str: string): Expecting => ({
@@ -187,6 +196,9 @@ export const Expecting = (str: string): Expecting => ({
 });
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpecting(x: any): x is Expecting {
@@ -196,6 +208,9 @@ export function isExpecting(x: any): x is Expecting {
 // ExpectingBinary
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingBinary = {
@@ -203,6 +218,9 @@ export type ExpectingBinary = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingBinary: ExpectingBinary = {
@@ -210,6 +228,9 @@ export const ExpectingBinary: ExpectingBinary = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingBinary(x: any): x is ExpectingBinary {
@@ -219,6 +240,9 @@ export function isExpectingBinary(x: any): x is ExpectingBinary {
 // ExpectingOctal
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingOctal = {
@@ -226,6 +250,9 @@ export type ExpectingOctal = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingOctal: ExpectingOctal = {
@@ -233,6 +260,9 @@ export const ExpectingOctal: ExpectingOctal = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingOctal(x: any): x is ExpectingOctal {
@@ -242,6 +272,9 @@ export function isExpectingOctal(x: any): x is ExpectingOctal {
 // ExpectingHex
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingHex = {
@@ -249,6 +282,9 @@ export type ExpectingHex = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingHex: ExpectingHex = {
@@ -256,6 +292,9 @@ export const ExpectingHex: ExpectingHex = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingHex(x: any): x is ExpectingHex {
@@ -265,6 +304,9 @@ export function isExpectingHex(x: any): x is ExpectingHex {
 // ExpectingInt
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingInt = {
@@ -272,6 +314,9 @@ export type ExpectingInt = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingInt: ExpectingInt = {
@@ -279,6 +324,9 @@ export const ExpectingInt: ExpectingInt = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingInt(x: any): x is ExpectingInt {
@@ -288,6 +336,9 @@ export function isExpectingInt(x: any): x is ExpectingInt {
 // ExpectingFloat
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingFloat = {
@@ -295,6 +346,9 @@ export type ExpectingFloat = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingFloat: ExpectingFloat = {
@@ -302,6 +356,9 @@ export const ExpectingFloat: ExpectingFloat = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingFloat(x: any): x is ExpectingFloat {
@@ -311,6 +368,9 @@ export function isExpectingFloat(x: any): x is ExpectingFloat {
 // ExpectingBinary
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingNumber = {
@@ -318,6 +378,9 @@ export type ExpectingNumber = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingNumber: ExpectingNumber = {
@@ -325,6 +388,9 @@ export const ExpectingNumber: ExpectingNumber = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingNumber(x: any): x is ExpectingNumber {
@@ -334,6 +400,9 @@ export function isExpectingNumber(x: any): x is ExpectingNumber {
 // ExpectingVariable
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingVariable = {
@@ -341,6 +410,9 @@ export type ExpectingVariable = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingVariable: ExpectingVariable = {
@@ -348,6 +420,9 @@ export const ExpectingVariable: ExpectingVariable = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingVariable(x: any): x is ExpectingVariable {
@@ -357,6 +432,9 @@ export function isExpectingVariable(x: any): x is ExpectingVariable {
 // ExpectingSymbol
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingSymbol = {
@@ -365,6 +443,9 @@ export type ExpectingSymbol = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingSymbol = (str: string): ExpectingSymbol => ({
@@ -373,6 +454,9 @@ export const ExpectingSymbol = (str: string): ExpectingSymbol => ({
 });
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingSymbol(x: any): x is ExpectingSymbol {
@@ -382,6 +466,9 @@ export function isExpectingSymbol(x: any): x is ExpectingSymbol {
 // ExpectingKeyword
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingKeyword = {
@@ -390,6 +477,9 @@ export type ExpectingKeyword = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingKeyword = (str: string): ExpectingKeyword => ({
@@ -398,6 +488,9 @@ export const ExpectingKeyword = (str: string): ExpectingKeyword => ({
 });
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingKeyword(x: any): x is ExpectingKeyword {
@@ -407,6 +500,9 @@ export function isExpectingKeyword(x: any): x is ExpectingKeyword {
 // ExpectingEnd
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type ExpectingEnd = {
@@ -414,6 +510,9 @@ export type ExpectingEnd = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const ExpectingEnd: ExpectingEnd = {
@@ -421,6 +520,9 @@ export const ExpectingEnd: ExpectingEnd = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isExpectingEnd(x: any): x is ExpectingEnd {
@@ -430,6 +532,9 @@ export function isExpectingEnd(x: any): x is ExpectingEnd {
 // UnexpectedChar
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type UnexpectedChar = {
@@ -437,6 +542,9 @@ export type UnexpectedChar = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const UnexpectedChar: UnexpectedChar = {
@@ -444,6 +552,9 @@ export const UnexpectedChar: UnexpectedChar = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isUnexpectedChar(x: any): x is UnexpectedChar {
@@ -453,6 +564,9 @@ export function isUnexpectedChar(x: any): x is UnexpectedChar {
 // Generic
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export type Generic = {
@@ -461,6 +575,9 @@ export type Generic = {
 };
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export const Generic = (str: string): Generic => ({
@@ -469,6 +586,9 @@ export const Generic = (str: string): Generic => ({
 });
 
 /**
+ * @see
+ * - {@link Problem}
+ *
  * @category Problem (All)
  */
 export function isGeneric(x: any): x is Generic {
