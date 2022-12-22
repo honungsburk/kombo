@@ -477,7 +477,7 @@ advancedGroup("end", () => {
     expect(res.val).toStrictEqual(P.Unit);
   });
 
-  test("Success when string is empty", ({ expect }) => {
+  test("Fail when string is not empty", ({ expect }) => {
     const res = P.run(P.end("NotEnd"))(" ");
     expectProblem(expect, res, ["NotEnd"]);
   });

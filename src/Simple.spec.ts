@@ -56,29 +56,55 @@ parserGroup("Point", "@point-parser", () => {
 
 // Boolean
 
-type MyBoolean = typeof MyTrue | typeof MyFalse | MyOr;
-
-const MyTrue = {
-  kind: "MyTrue",
-} as const;
-
-const MyFalse = {
-  kind: "MyFalse",
-} as const;
-
-type MyOr = {
-  readonly kind: "MyOr";
-  readonly l: MyBoolean;
-  readonly r: MyBoolean;
+type MyBoolean = {
+  readonly kind: string;
+  equals(other: MyBoolean): boolean;
+  toString(): string;
 };
+
+const MyTrue: MyBoolean = {
+  kind: "MyTrue",
+  equals: (other: MyBoolean): boolean => {
+    return other.kind === "MyTrue";
+  },
+  toString: () => {
+    return "true";
+  },
+} as const;
+
+const MyFalse: MyBoolean = {
+  kind: "MyFalse",
+  equals: (other: MyBoolean): boolean => {
+    return other.kind === "MyFalse";
+  },
+  toString: () => {
+    return "false";
+  },
+} as const;
+
+function isMyOr(x: MyBoolean): x is MyOrImpl {
+  return x.kind === "MyOr";
+}
+
+class MyOrImpl implements MyBoolean {
+  public readonly kind = "MyOr";
+  constructor(public readonly l: MyBoolean, public readonly r: MyBoolean) {}
+
+  equals(other: MyBoolean): boolean {
+    if (isMyOr(other)) {
+      return this.l.equals(other.l) && this.r.equals(other.r);
+    }
+    return false;
+  }
+  toString() {
+    return `(${this.l.toString()} || ${this.r.toString()})`;
+  }
+}
 
 const MyOr =
   (l: MyBoolean) =>
-  (r: MyBoolean): MyOr => ({
-    kind: "MyOr",
-    l,
-    r,
-  });
+  (r: MyBoolean): MyBoolean =>
+    new MyOrImpl(l, r);
 
 const boolean: P.Parser<MyBoolean> = P.oneOf(
   P.succeed(MyTrue).skip(P.keyword("true")),
@@ -94,6 +120,22 @@ const boolean: P.Parser<MyBoolean> = P.oneOf(
     .skip(P.spaces)
     .skip(P.symbol(")"))
 );
+
+parserGroup("Boolean", "@boolean-parser", () => {
+  test("Succeed on true expressions", ({ expect }, value) => {
+    const res = P.run(boolean)(value.toString());
+    expect(res.ok).toBeTruthy();
+    if (res.ok) {
+      //@ts-ignore
+      expect(res.val.equals(value)).toBeTruthy();
+    }
+  }).with([
+    MyTrue,
+    MyFalse,
+    MyOr(MyFalse)(MyTrue),
+    MyOr(MyFalse)(MyOr(MyFalse)(MyTrue)),
+  ]);
+});
 
 // JSON
 
@@ -124,6 +166,31 @@ const json: P.Parser<Json> = P.oneOf(
   P.keyword("false").map(() => JBoolean(false)),
   P.keyword("null").map(() => JNull)
 );
+
+parserGroup("json", "@json-parser", () => {
+  test("Succeed on 'number'", ({ expect }) => {
+    const res = P.run(json)("1123.123");
+
+    expect(res.ok).toBeTruthy();
+  });
+
+  test("Succeed on 'true'", ({ expect }) => {
+    const res = P.run(json)("true");
+
+    expect(res.ok).toBeTruthy();
+  });
+
+  test("Succeed on 'false'", ({ expect }) => {
+    const res = P.run(json)("false");
+
+    expect(res.ok).toBeTruthy();
+  });
+  test("Succeed on 'null'", ({ expect }) => {
+    const res = P.run(json)("null");
+
+    expect(res.ok).toBeTruthy();
+  });
+});
 
 // US Zip Code
 
@@ -183,6 +250,20 @@ const keyword = (kwd: string): P.Parser<P.Unit> => {
     .andThen(checkEnding(kwd));
 };
 
+parserGroup("keyword", "@keyword-parser", () => {
+  test("Succeed on correct keyword", ({ expect }, value) => {
+    //@ts-ignore
+    const res = P.run(keyword("let"))(value);
+    expect(res.ok).toBeTruthy();
+  }).with(["let"]);
+
+  test("fail on incorrect keyword", ({ expect }, value) => {
+    //@ts-ignore
+    const res = P.run(keyword("let"))(value);
+    expect(res.err).toBeTruthy();
+  }).with(["llet"]);
+});
+
 // NUMBERS
 
 type Number = IntE | FloatE;
@@ -200,11 +281,47 @@ const elmNumber: P.Parser<Number> = P.number({
   float: (n) => new FloatE(n),
 });
 
+parserGroup("elmNumber", "@elmNumber-parser", () => {
+  test("Succeed on '123'", ({ expect }) => {
+    const res = P.run(elmNumber)("123");
+    expect(res.val).toStrictEqual(new IntE(123));
+  });
+
+  test("Succeed on '0x123abc'", ({ expect }) => {
+    const res = P.run(elmNumber)("0x123abc");
+    expect(res.val).toStrictEqual(new IntE(0x123abc));
+  });
+
+  test("Succeed on '123.123'", ({ expect }) => {
+    const res = P.run(elmNumber)("123.123");
+    expect(res.val).toStrictEqual(new FloatE(123.123));
+  });
+
+  test("fail on '0o1234'", ({ expect }, value) => {
+    const res = P.run(elmNumber)("0o1234");
+    expect(res.err).toBeTruthy;
+  });
+});
+
 // END
 
 const justAnInt: P.Parser<number> = P.succeed((n: number) => n)
   .apply(P.int)
   .skip(P.end);
+
+parserGroup("justAnInt", "@justAnInt-parser", () => {
+  test("Succeed on correct keyword", ({ expect }, value) => {
+    //@ts-ignore
+    const res = P.run(justAnInt)(value);
+    expect(res.ok).toBeTruthy();
+  }).with(["123"]);
+
+  test("fail on incorrect int", ({ expect }, value) => {
+    //@ts-ignore
+    const res = P.run(justAnInt)(value);
+    expect(res.err).toBeTruthy();
+  }).with(["1 + 2"]);
+});
 
 // CHOMPED STRINGS
 

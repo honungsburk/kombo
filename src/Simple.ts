@@ -1316,7 +1316,7 @@ export const number = <A>(args: {
     hex: toResult(args.int, ExpectingHex),
     octal: toResult(args.int, ExpectingOctal),
     binary: toResult(args.int, ExpectingBinary),
-    float: toResult(args.int, ExpectingFloat),
+    float: toResult(args.float, ExpectingFloat),
     invalid: ExpectingNumber,
     expecting: ExpectingNumber,
   });
