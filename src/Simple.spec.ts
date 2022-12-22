@@ -581,12 +581,38 @@ const ifProgress =
 const elm: P.Parser<P.Unit> = P.loop(0)(
   ifProgress(
     P.oneOf(
-      P.lineComment("//"),
-      P.multiComment("/*")("*/")(P.Nestable.Nestable),
+      P.lineComment("--"),
+      P.multiComment("{-")("-}")(P.Nestable.Nestable),
       P.spaces
     )
   )
 );
+
+parserGroup("elm-whitespace", "@elm-whitespace-parser", () => {
+  const parse = P.run(elm.getChompedString());
+  test("Succeed on empty string", ({ expect }) => {
+    const res = parse("");
+    expect(res.val).toStrictEqual("");
+  });
+
+  test("Succeed on with only white space string", ({ expect }) => {
+    const arg = "\n\n    ";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+
+  test("Succeed on line comment", ({ expect }) => {
+    const arg = "\n\n  -- asjkdnasdn  \n";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+
+  test("Succeed on multiline comment", ({ expect }) => {
+    const arg = "\n\n  {- asjkdnasdn  /n -}";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+});
 
 const js: P.Parser<P.Unit> = P.loop(0)(
   ifProgress(
@@ -597,6 +623,32 @@ const js: P.Parser<P.Unit> = P.loop(0)(
     )
   )
 );
+
+parserGroup("js-whitespace", "@js-whitespace-parser", () => {
+  const parse = P.run(js.getChompedString());
+  test("Succeed on empty string", ({ expect }) => {
+    const res = parse("");
+    expect(res.val).toStrictEqual("");
+  });
+
+  test("Succeed on with only white space string", ({ expect }) => {
+    const arg = "\t\n\n    ";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+
+  test("Succeed on line comment", ({ expect }) => {
+    const arg = "\t\n\n  // asjkdnasdn  \n";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+
+  test("Succeed on multiline comment", ({ expect }) => {
+    const arg = "\t\n\n  /* asjkdnasdn  /n */";
+    const res = parse(arg);
+    expect(res.val).toStrictEqual(arg);
+  });
+});
 
 // Variable
 
