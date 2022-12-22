@@ -562,19 +562,23 @@ export interface Parser<A, PROBLEM> {
    * run(parser)(""); // => 1
    *
    * const parser2 = succeed(Unit).getIndent().withIndent(3);
-   * run(parser2)(""); // =>
+   * run(parser2)(""); // => 3
    * ```
    *
    * This might at first look seem strange, but a good way to think about it is
    * that our parser is a tree like structure
    *
-   * ```txt
-   * parser1 ___ parser2
-   *         \
-   *          \_ parser3
-   * ```
+   *  withindent(4)___withindent(4)___ parser3
+   *               |               |
+   *               |               |__ parser4
+   *               |
+   *               |__parser2 ___ parser5
+   *                          |
+   *                          |__ parser6
+   *                          |
+   *                          |__ parser7
    *
-   * and `withIndent` wraps
+   * where `withIndent` only applies to its *subtrees*!
    *
    * @category Indentation
    */
