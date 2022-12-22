@@ -1,6 +1,6 @@
 // Imports
 import Immutable from "immutable";
-import * as Results from "ts-results-es";
+import * as Results from "./Result.js";
 import * as A from "./Advanced.js";
 
 // Exports
@@ -55,9 +55,9 @@ export const run =
   <A>(parser: Parser<A>) =>
   (src: string): Results.Result<A, DeadEnd[]> => {
     const res = A.run(parser)(src);
-    if (res.err) {
-      return new Results.Err(
-        res.val.map((p) => ({ row: p.row, col: p.col, problem: p.problem }))
+    if (Results.isErr(res)) {
+      return Results.Err(
+        res.value.map((p) => ({ row: p.row, col: p.col, problem: p.problem }))
       );
     }
 

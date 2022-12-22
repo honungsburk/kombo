@@ -1,5 +1,4 @@
-// TODO: remove and replace with dependency injection instead.
-import * as Results from "ts-results-es";
+import * as Results from "./Result.js";
 import * as Helpers from "./Helpers.js";
 import * as immutable from "immutable";
 
@@ -1476,13 +1475,13 @@ function finalizeInt<A, PROBLEM>(
   [endOffset, n]: [number, number],
   s: State<unknown>
 ): PStep<A, never, PROBLEM> {
-  if (handler.err) {
-    return Bad(true, fromState(s, handler.val));
+  if (Results.isErr(handler)) {
+    return Bad(true, fromState(s, handler.value));
   } else {
     if (startOffset === endOffset) {
       return Bad(s.offset < startOffset, fromState(s, invalid));
     } else {
-      return Good(true, handler.val(n), bumpOffset(endOffset, s));
+      return Good(true, handler.value(n), bumpOffset(endOffset, s));
     }
   }
 }
@@ -1519,12 +1518,12 @@ function finalizeFloat<A, PROBLEM>(
   } else if (intOffset === floatOffset) {
     return finalizeInt(invalid, intSettings, s.offset, floatPair, s);
   } else {
-    if (floatSettings.err) {
-      return Bad(true, fromState(s, floatSettings.val));
+    if (Results.isErr(floatSettings)) {
+      return Bad(true, fromState(s, floatSettings.value));
     } else {
       try {
         const n = parseFloat(s.src.slice(s.offset, floatOffset));
-        return Good(true, floatSettings.val(n), bumpOffset(floatOffset, s));
+        return Good(true, floatSettings.value(n), bumpOffset(floatOffset, s));
       } catch (e) {
         return Bad(true, fromState(s, invalid));
       }

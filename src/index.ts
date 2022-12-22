@@ -20,21 +20,27 @@
  * simplifications.
  *
  * If you want to define your own problem type from scratch and start
- * capturing the context a parser is in when it fails head over to the {@link Advanced:namespace | advanced module}.
+ * capturing the context a parser is in when it fails head over to the {@link Advanced:namespace | Advanced module}.
  */
 export * as Simple from "./Simple.js";
 
 /**
  * The advanced module gives you full access to specifing your own problems and
  * contexts. Fantastic if you want to create even better error messages.
- * If you want a simpler API head over to the {@link Simple:namespace | simple module}.
+ * If you want a simpler API head over to the {@link Simple:namespace | Simple module}.
  */
 export * as Advanced from "./Advanced.js";
 
 /**
- * The Helper module contains utility functions that are used in both the {@link Advanced:namespace | advanced}
- * and {@link Simple:namespace | simple} modules.
+ * The Helper module contains utility functions that are used in both the {@link Advanced:namespace | Advanced}
+ * and {@link Simple:namespace | Simple} modules.
  *
  * Feel free to use them when you are writing your own parsers :)
  */
 export * as Helpers from "./Helpers.js";
+
+/**
+ * The {@link Result:namespace | Result} defines a simple `Result` type for
+ * representing success and error.
+ */
+export * as Result from "./Result.js";

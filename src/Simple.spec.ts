@@ -1,7 +1,7 @@
 import { test, Group } from "@japa/runner";
 import * as P from "./Simple.js";
 import * as Helpers from "./Helpers.js";
-import { spaces } from "./Advanced.js";
+import * as Results from "./Result.js";
 
 function parserGroup(
   parserName: string,
@@ -38,16 +38,16 @@ const point: P.Parser<Point> = P.succeed(createPoint)
 
 parserGroup("Point", "@point-parser", () => {
   test("Succeed on '( 3, 4 )'", ({ expect }) => {
-    expect(P.run(point)("( 3, 4 )").val).toStrictEqual({ x: 3, y: 4 });
+    expect(P.run(point)("( 3, 4 )").value).toStrictEqual({ x: 3, y: 4 });
   });
 
   test("Fail on '( 3. 4 )'", ({ expect }) => {
     const res = P.run(point)("( 3. 4 )");
 
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
 
-    if (res.err) {
-      expect(res.val).toStrictEqual([
+    if (Results.isErr(res)) {
+      expect(res.value).toStrictEqual([
         { col: 5, problem: P.ExpectingSymbol(","), row: 1 },
       ]);
     }
@@ -124,10 +124,10 @@ const boolean: P.Parser<MyBoolean> = P.oneOf(
 parserGroup("Boolean", "@boolean-parser", () => {
   test("Succeed on true expressions", ({ expect }, value) => {
     const res = P.run(boolean)(value.toString());
-    expect(res.ok).toBeTruthy();
-    if (res.ok) {
+    expect(Results.isOk(res)).toBeTruthy();
+    if (Results.isOk(res)) {
       //@ts-ignore
-      expect(res.val.equals(value)).toBeTruthy();
+      expect(res.value.equals(value)).toBeTruthy();
     }
   }).with([
     MyTrue,
@@ -171,24 +171,24 @@ parserGroup("json", "@json-parser", () => {
   test("Succeed on 'number'", ({ expect }) => {
     const res = P.run(json)("1123.123");
 
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
 
   test("Succeed on 'true'", ({ expect }) => {
     const res = P.run(json)("true");
 
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
 
   test("Succeed on 'false'", ({ expect }) => {
     const res = P.run(json)("false");
 
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
   test("Succeed on 'null'", ({ expect }) => {
     const res = P.run(json)("null");
 
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
 });
 
@@ -208,22 +208,22 @@ const zipCode: P.Parser<string> = P.chompWhile(Helpers.isDigit)
 
 parserGroup("zipCode", "@zipCode-parser", () => {
   test("Succeed on '12345'", ({ expect }) => {
-    expect(P.run(zipCode)("12345").val).toStrictEqual("12345");
+    expect(P.run(zipCode)("12345").value).toStrictEqual("12345");
   });
 
   test("Succeed on '00045'", ({ expect }) => {
-    expect(P.run(zipCode)("00045").val).toStrictEqual("00045");
+    expect(P.run(zipCode)("00045").value).toStrictEqual("00045");
   });
 
   test("Fail on '123456'", ({ expect }) => {
     const res = P.run(zipCode)("123456");
 
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
   test("Fail on '012345'", ({ expect }) => {
     const res = P.run(zipCode)("012345");
 
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -254,13 +254,13 @@ parserGroup("keyword", "@keyword-parser", () => {
   test("Succeed on correct keyword", ({ expect }, value) => {
     //@ts-ignore
     const res = P.run(keyword("let"))(value);
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   }).with(["let"]);
 
   test("fail on incorrect keyword", ({ expect }, value) => {
     //@ts-ignore
     const res = P.run(keyword("let"))(value);
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   }).with(["llet"]);
 });
 
@@ -284,22 +284,22 @@ const elmNumber: P.Parser<Number> = P.number({
 parserGroup("elmNumber", "@elmNumber-parser", () => {
   test("Succeed on '123'", ({ expect }) => {
     const res = P.run(elmNumber)("123");
-    expect(res.val).toStrictEqual(new IntE(123));
+    expect(res.value).toStrictEqual(new IntE(123));
   });
 
   test("Succeed on '0x123abc'", ({ expect }) => {
     const res = P.run(elmNumber)("0x123abc");
-    expect(res.val).toStrictEqual(new IntE(0x123abc));
+    expect(res.value).toStrictEqual(new IntE(0x123abc));
   });
 
   test("Succeed on '123.123'", ({ expect }) => {
     const res = P.run(elmNumber)("123.123");
-    expect(res.val).toStrictEqual(new FloatE(123.123));
+    expect(res.value).toStrictEqual(new FloatE(123.123));
   });
 
   test("fail on '0o1234'", ({ expect }, value) => {
     const res = P.run(elmNumber)("0o1234");
-    expect(res.err).toBeTruthy;
+    expect(Results.isErr(res)).toBeTruthy;
   });
 });
 
@@ -313,13 +313,13 @@ parserGroup("justAnInt", "@justAnInt-parser", () => {
   test("Succeed on correct keyword", ({ expect }, value) => {
     //@ts-ignore
     const res = P.run(justAnInt)(value);
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   }).with(["123"]);
 
   test("fail on incorrect int", ({ expect }, value) => {
     //@ts-ignore
     const res = P.run(justAnInt)(value);
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   }).with(["1 + 2"]);
 });
 
@@ -335,20 +335,20 @@ const php: P.Parser<string> = P.getChompedString(
 parserGroup("php", "@php-parser", () => {
   test("Succeed on '$_'", ({ expect }) => {
     const res = P.run(php)("$_");
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
   test("Succeed on '$_asd'", ({ expect }) => {
     const res = P.run(php)("$_asd");
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
 
   test("Fail on '$'", ({ expect }) => {
     const res = P.run(php)("$");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
   test("Fail on 'asd'", ({ expect }) => {
     const res = P.run(php)("$");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -382,12 +382,12 @@ const chompUpper: P.Parser<P.Unit> = P.chompIf(Helpers.isUpper);
 parserGroup("chompUpper", "@chompUpper-parser", () => {
   test("Succeed on 'ABC'", ({ expect }) => {
     const res = P.run(chompUpper.getChompedString())("ABC");
-    expect(res.val).toStrictEqual("A");
+    expect(res.value).toStrictEqual("A");
   });
 
   test("Fail on 'abc'", ({ expect }) => {
     const res = P.run(chompUpper)("abc");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -401,12 +401,12 @@ parserGroup("whitespace", "@whitespace-parser", () => {
   test("Succeed on ' \\t\\n  a'", ({ expect }) => {
     const ws = " \t\n  ";
     const res = P.run(whitespace)(ws + "a");
-    expect(res.val).toStrictEqual(ws);
+    expect(res.value).toStrictEqual(ws);
   });
 
   test("Succeed on no whitespace", ({ expect }) => {
     const res = P.run(whitespace)("abc");
-    expect(res.val).toStrictEqual("");
+    expect(res.value).toStrictEqual("");
   });
 });
 
@@ -419,12 +419,12 @@ const elmVar: P.Parser<string> = P.getChompedString(
 parserGroup("elmVar", "@elmVar-parser", () => {
   test("Succeed on 'avar'", ({ expect }) => {
     const res = P.run(elmVar)("avar");
-    expect(res.val).toStrictEqual("avar");
+    expect(res.value).toStrictEqual("avar");
   });
 
   test("Fail on 'Avar", ({ expect }) => {
     const res = P.run(elmVar)("Avar");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -437,12 +437,12 @@ const comment: P.Parser<string> = P.symbol("{-")
 parserGroup("comment", "@comment-parser", () => {
   test("Succeed on '{- COMMENT -}'", ({ expect }) => {
     const res = P.run(comment)("{- COMMENT -}");
-    expect(res.val).toStrictEqual("{- COMMENT -}");
+    expect(res.value).toStrictEqual("{- COMMENT -}");
   });
 
   test("Fail on '{- COMMENT", ({ expect }) => {
     const res = P.run(comment)("{- COMMENT");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -455,22 +455,22 @@ const singleLineComment: P.Parser<string> = P.symbol("--")
 parserGroup("singleLineComment", "@singleLineComment-parser", () => {
   test("Succeed on '-- COMMENT'", ({ expect }) => {
     const res = P.run(singleLineComment)("-- COMMENT");
-    expect(res.val).toStrictEqual("-- COMMENT");
+    expect(res.value).toStrictEqual("-- COMMENT");
   });
 
   test("Succeed on '-- COMMENT\\n asdad'", ({ expect }) => {
     const res = P.run(singleLineComment)("-- COMMENT\n asdad");
-    expect(res.val).toStrictEqual("-- COMMENT\n");
+    expect(res.value).toStrictEqual("-- COMMENT\n");
   });
 
   test("Succeed on '-- \\n asdad'", ({ expect }) => {
     const res = P.run(singleLineComment)("-- \n asdad");
-    expect(res.val).toStrictEqual("-- \n");
+    expect(res.value).toStrictEqual("-- \n");
   });
 
   test("Fail on '{- COMMENT", ({ expect }) => {
     const res = P.run(singleLineComment)("{- COMMENT");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -531,7 +531,7 @@ parserGroup("located", "@located-parser", () => {
   const parse = P.run(located(php));
   test("Succeed on '$_var'", ({ expect }) => {
     const res = parse("$_var");
-    expect(res.val).toStrictEqual(Located([1, 1])("$_var")([1, 6]));
+    expect(res.value).toStrictEqual(Located([1, 1])("$_var")([1, 6]));
   });
 });
 
@@ -553,7 +553,7 @@ const checkIndent: P.Parser<P.Unit> = P.succeed(
 parserGroup("checkIndent", "@checkIndent-parser", () => {
   test("Succeed when indendation is smaller or equal to col", ({ expect }) => {
     const res = P.run(checkIndent)("");
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
   test("Fail when indentation is larger then col", ({ expect }) => {
     const res = P.run(
@@ -561,7 +561,7 @@ parserGroup("checkIndent", "@checkIndent-parser", () => {
         .andThen(() => checkIndent)
         .withIndent(3)
     )("");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -592,25 +592,25 @@ parserGroup("elm-whitespace", "@elm-whitespace-parser", () => {
   const parse = P.run(elm.getChompedString());
   test("Succeed on empty string", ({ expect }) => {
     const res = parse("");
-    expect(res.val).toStrictEqual("");
+    expect(res.value).toStrictEqual("");
   });
 
   test("Succeed on with only white space string", ({ expect }) => {
     const arg = "\n\n    ";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 
   test("Succeed on line comment", ({ expect }) => {
     const arg = "\n\n  -- asjkdnasdn  \n";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 
   test("Succeed on multiline comment", ({ expect }) => {
     const arg = "\n\n  {- asjkdnasdn  /n -}";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 });
 
@@ -628,25 +628,25 @@ parserGroup("js-whitespace", "@js-whitespace-parser", () => {
   const parse = P.run(js.getChompedString());
   test("Succeed on empty string", ({ expect }) => {
     const res = parse("");
-    expect(res.val).toStrictEqual("");
+    expect(res.value).toStrictEqual("");
   });
 
   test("Succeed on with only white space string", ({ expect }) => {
     const arg = "\t\n\n    ";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 
   test("Succeed on line comment", ({ expect }) => {
     const arg = "\t\n\n  // asjkdnasdn  \n";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 
   test("Succeed on multiline comment", ({ expect }) => {
     const arg = "\t\n\n  /* asjkdnasdn  /n */";
     const res = parse(arg);
-    expect(res.val).toStrictEqual(arg);
+    expect(res.value).toStrictEqual(arg);
   });
 });
 

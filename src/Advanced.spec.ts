@@ -1,6 +1,6 @@
 import { Expect } from "@japa/expect";
 import { test, Group } from "@japa/runner";
-import * as Results from "ts-results-es";
+import * as Results from "./Result.js";
 import * as P from "./Advanced.js";
 import * as Helpers from "./Helpers.js";
 import Immutable from "immutable";
@@ -19,9 +19,9 @@ function expectProblem<A, CTX>(
   result: Results.Result<any, P.DeadEnd<CTX, A>[]>,
   toBe: A[]
 ): void {
-  expect(result.err).toBeTruthy();
-  if (result.err) {
-    expect(result.val.map((d) => d.problem)).toStrictEqual(toBe);
+  expect(Results.isErr(result)).toBeTruthy();
+  if (Results.isErr(result)) {
+    expect(result.value.map((d) => d.problem)).toStrictEqual(toBe);
   }
 }
 
@@ -36,7 +36,7 @@ advancedGroup("succeed", () => {
 // problem
 advancedGroup("problem", () => {
   test("always fails", ({ expect }) => {
-    expect(P.run(P.problem(1))("a").err).toStrictEqual(true);
+    expect(Results.isErr(P.run(P.problem(1))("a"))).toStrictEqual(true);
   });
 });
 
@@ -45,7 +45,7 @@ advancedGroup("map", () => {
   test("can map values", ({ expect }) => {
     const always1 = P.succeed(1);
     const added1 = P.map((n: number) => n + 1)(always1);
-    expect(P.run(added1)("a").val).toStrictEqual(2);
+    expect(P.run(added1)("a").value).toStrictEqual(2);
   });
 });
 
@@ -57,7 +57,7 @@ advancedGroup("map2", () => {
     const added3 = P.map2((n1: number, n2: number) => n1 + n2)(always1)(
       always2
     );
-    expect(P.run(added3)("a").val).toStrictEqual(3);
+    expect(P.run(added3)("a").value).toStrictEqual(3);
   });
 
   test("first parser has problem", ({ expect }) => {
@@ -66,7 +66,7 @@ advancedGroup("map2", () => {
     const added1 = P.map2((n1: number, n2: number) => n1 + n2)(problem1)(
       always2
     );
-    expect(P.run(added1)("a").err).toStrictEqual(true);
+    expect(Results.isErr(P.run(added1)("a"))).toStrictEqual(true);
   });
 
   test("second parser has problem", ({ expect }) => {
@@ -75,7 +75,7 @@ advancedGroup("map2", () => {
     const added1 = P.map2((n1: number, n2: number) => n1 + n2)(always2)(
       problem1
     );
-    expect(P.run(added1)("a").err).toStrictEqual(true);
+    expect(Results.isErr(P.run(added1)("a"))).toStrictEqual(true);
   });
 });
 
@@ -85,21 +85,21 @@ advancedGroup("skip2nd", () => {
     const string = P.problem("Problem");
     const number = P.succeed(2);
     const res = P.skip2nd(string)(number);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 
   test("If the 2nd parser fails, it fails.", ({ expect }) => {
     const string = P.problem("Problem");
     const number = P.succeed(2);
     const res = P.skip2nd(number)(string);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 
   test("Skips the value of the second parser", ({ expect }) => {
     const string = P.succeed("Take Me");
     const number = P.succeed(2);
     const res = P.skip2nd(string)(number);
-    expect(P.run(res)("a").val).toStrictEqual("Take Me");
+    expect(P.run(res)("a").value).toStrictEqual("Take Me");
   });
 });
 
@@ -111,21 +111,21 @@ advancedGroup("keep", () => {
     const add = P.succeed((n: number) => n + 1);
     const number = P.succeed(2);
     const res = P.apply(add)(number);
-    expect(P.run(res)("a").val).toStrictEqual(3);
+    expect(P.run(res)("a").value).toStrictEqual(3);
   });
 
   test("The first parser has a problem", ({ expect }) => {
     const add = P.problem("problem1");
     const number = P.succeed(2);
     const res = P.apply(add)(number);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 
   test("The second parser has a problem", ({ expect }) => {
     const add = P.succeed((n: number) => n + 1);
     const number = P.problem("problem2");
     const res = P.apply(add)(number);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 });
 // andThen
@@ -140,7 +140,7 @@ advancedGroup("andThen", () => {
       }
     };
     const res = P.andThen(toString)(number);
-    expect(P.run(res)("a").val).toStrictEqual("2 or smaller");
+    expect(P.run(res)("a").value).toStrictEqual("2 or smaller");
   });
 
   test("fail when there is a problem", ({ expect }) => {
@@ -153,7 +153,7 @@ advancedGroup("andThen", () => {
       }
     };
     const res = P.andThen(toString)(number);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 
   test("fail when a problem is returned", ({ expect }) => {
@@ -166,7 +166,7 @@ advancedGroup("andThen", () => {
       }
     };
     const res = P.andThen(toString)(number);
-    expect(P.run(res)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(res)("a"))).toBeTruthy();
   });
 });
 
@@ -177,14 +177,14 @@ advancedGroup("oneOf", () => {
     const success1 = P.succeed(1);
 
     const p = P.oneOf(success1);
-    expect(P.run(p)("a").val).toStrictEqual(1);
+    expect(P.run(p)("a").value).toStrictEqual(1);
   });
 
   test("Given one parser that fails, it fails", ({ expect }) => {
     const problem1 = P.problem("problem1");
 
     const p = P.oneOf(problem1);
-    expect(P.run(p)("a").err).toBeTruthy();
+    expect(Results.isErr(P.run(p)("a"))).toBeTruthy();
   });
 
   test("Given two parser that succeeds, it takes the first one", ({
@@ -194,7 +194,7 @@ advancedGroup("oneOf", () => {
     const success2 = P.succeed(2);
 
     const p = P.oneOf(success1, success2);
-    expect(P.run(p)("a").val).toStrictEqual(1);
+    expect(P.run(p)("a").value).toStrictEqual(1);
   });
 
   test("Given one parser that fails, and one that succeeds it will succeed", ({
@@ -204,7 +204,7 @@ advancedGroup("oneOf", () => {
     const problem1 = P.problem("problem1");
 
     const p = P.oneOf(problem1, success1);
-    expect(P.run(p)("a").val).toStrictEqual(1);
+    expect(P.run(p)("a").value).toStrictEqual(1);
   });
 
   test("If given multiple parsers it takes the first one that succeeds", ({
@@ -216,7 +216,7 @@ advancedGroup("oneOf", () => {
     const problem2 = P.problem("problem1");
 
     const p = P.oneOf(problem1, problem2, success1, success2);
-    expect(P.run(p)("a").val).toStrictEqual(1);
+    expect(P.run(p)("a").value).toStrictEqual(1);
   });
 });
 
@@ -244,7 +244,7 @@ const cChars = () => P.loop([] as string[])(cCharsHelper);
 
 advancedGroup("loop", () => {
   test("Parse a list of C:s like 'ccccc'", ({ expect }) => {
-    expect(P.run(cChars())("ccccc").val).toStrictEqual([
+    expect(P.run(cChars())("ccccc").value).toStrictEqual([
       "c",
       "c",
       "c",
@@ -254,11 +254,11 @@ advancedGroup("loop", () => {
   });
 
   test("can detect non 'c' chars", ({ expect }) => {
-    expect(P.run(cChars())("ccbcc").val).toStrictEqual(["c", "c"]);
+    expect(P.run(cChars())("ccbcc").value).toStrictEqual(["c", "c"]);
   });
 
   test("can handle empty string 'c' chars", ({ expect }) => {
-    expect(P.run(cChars())("ccbcc").val).toStrictEqual(["c", "c"]);
+    expect(P.run(cChars())("ccbcc").value).toStrictEqual(["c", "c"]);
   });
 });
 
@@ -284,38 +284,38 @@ const backtrackExample = P.oneOf(
 advancedGroup("backtrackable", () => {
   test("succeed", ({ expect }) => {
     const res = P.run(backtrackExample)("  , 4");
-    expect(res.ok);
-    if (res.ok) {
-      expect(res.val).toStrictEqual(4);
+    expect(Results.isOk(res));
+    if (Results.isOk(res)) {
+      expect(res.value).toStrictEqual(4);
     }
   });
 
   test("fail", ({ expect }) => {
     const res = P.run(backtrackExample)("  ,");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("can not go back", ({ expect }) => {
     const res = P.run(backtrackExample)("  , a");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("can go back", ({ expect }) => {
     const res = P.run(backtrackExample)("  ]");
-    expect(res.ok);
-    if (res.ok) {
-      expect(res.val).toStrictEqual(undefined);
+    expect(Results.isOk(res));
+    if (Results.isOk(res)) {
+      expect(res.value).toStrictEqual(undefined);
     }
   });
 
   test("can not go back again", ({ expect }) => {
     const res = P.run(backtrackExample)("  a");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("fail on first char", ({ expect }) => {
     const res = P.run(backtrackExample)("abc");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 });
 
@@ -325,12 +325,12 @@ const comma = P.token(P.Token(",", "ExpectingComma"));
 advancedGroup("token", () => {
   test("fail on other token", ({ expect }) => {
     const res = P.run(comma)("abc");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("succeed on correct token", ({ expect }) => {
     const res = P.run(comma)(",");
-    expect(res.ok);
+    expect(Results.isOk(res));
   });
 });
 
@@ -345,7 +345,7 @@ const int = P.int(IntProblem.ExpectingNumber)(IntProblem.InvalidInt);
 advancedGroup("int", () => {
   test("succeed on int", ({ expect }) => {
     const res = P.run(int)("123");
-    expect(res.val).toStrictEqual(123);
+    expect(res.value).toStrictEqual(123);
   });
 
   test("fail on none number", ({ expect }) => {
@@ -388,7 +388,7 @@ const float = P.float(FloatProblems.ExpectingNumber)(
 advancedGroup("float", () => {
   test("succeed on int", ({ expect }) => {
     const res = P.run(float)("123");
-    expect(res.val).toStrictEqual(123);
+    expect(res.value).toStrictEqual(123);
   });
 
   test("fail on none number", ({ expect }) => {
@@ -398,7 +398,7 @@ advancedGroup("float", () => {
 
   test("succed on float", ({ expect }) => {
     const res = P.run(float)("1.1");
-    expect(res.val).toStrictEqual(1.1);
+    expect(res.value).toStrictEqual(1.1);
   });
 
   test("fail on hex", ({ expect }) => {
@@ -455,7 +455,7 @@ advancedGroup("number", () => {
 
   test("hex parser succeed on hex", ({ expect }) => {
     const res = P.run(hex)("0x10ab725");
-    expect(res.val).toStrictEqual(17479461);
+    expect(res.value).toStrictEqual(17479461);
   });
 
   test("hex parser fail on float", ({ expect }) => {
@@ -474,7 +474,7 @@ advancedGroup("number", () => {
 advancedGroup("end", () => {
   test("Success when string is empty", ({ expect }) => {
     const res = P.run(P.end("NotEnd"))("");
-    expect(res.val).toStrictEqual(P.Unit);
+    expect(res.value).toStrictEqual(P.Unit);
   });
 
   test("Fail when string is not empty", ({ expect }) => {
@@ -505,11 +505,11 @@ advancedGroup("chompIf", () => {
   });
   test("single char", ({ expect }) => {
     const res = P.run(chompIfAB)("a");
-    expect(res.val).toStrictEqual("a");
+    expect(res.value).toStrictEqual("a");
   });
   test("multi char", ({ expect }) => {
     const res = P.run(chompIfAB)("aabba");
-    expect(res.val).toStrictEqual("a");
+    expect(res.value).toStrictEqual("a");
   });
   test("no valid char", ({ expect }) => {
     const res = P.run(chompIfAB)("äaabba");
@@ -526,15 +526,15 @@ const chompWhileAB = P.getChompedString(
 advancedGroup("chompWhile", () => {
   test("empty string", ({ expect }) => {
     const res = P.run(chompWhileAB)("");
-    expect(res.val).toStrictEqual("");
+    expect(res.value).toStrictEqual("");
   });
   test("full ab string", ({ expect }) => {
     const res = P.run(chompWhileAB)("abababa");
-    expect(res.val).toStrictEqual("abababa");
+    expect(res.value).toStrictEqual("abababa");
   });
   test("partial ab string", ({ expect }) => {
     const res = P.run(chompWhileAB)("abababaäöå");
-    expect(res.val).toStrictEqual("abababa");
+    expect(res.value).toStrictEqual("abababa");
   });
 });
 
@@ -554,12 +554,12 @@ advancedGroup("chompUntil", () => {
 
   test("part of string", ({ expect }) => {
     const res = P.run(chompUntilColon)("aaa:bbb");
-    expect(res.val).toStrictEqual("aaa:");
+    expect(res.value).toStrictEqual("aaa:");
   });
 
   test("empty string", ({ expect }) => {
     const res = P.run(chompUntilColon)(":bbb");
-    expect(res.val).toStrictEqual(":");
+    expect(res.value).toStrictEqual(":");
   });
 });
 
@@ -569,22 +569,22 @@ advancedGroup("chompUntilEndOr", () => {
   );
   test("handles empty string", ({ expect }) => {
     const res = parseHello("");
-    expect(res.val).toStrictEqual([1, 1]);
+    expect(res.value).toStrictEqual([1, 1]);
   });
   test("parses until keyword", ({ expect }) => {
     const res = parseHello("asdnahd hello asdasd");
-    expect(res.val).toStrictEqual([1, 14]);
+    expect(res.value).toStrictEqual([1, 14]);
   });
   test("parses until keyword, even newlines", ({ expect }) => {
     const res = parseHello("asdnahd\n hello asdasd");
-    expect(res.val).toStrictEqual([2, 7]);
+    expect(res.value).toStrictEqual([2, 7]);
   });
 
   const comment = P.run(P.chompUntilEndOr("\n").andThen(() => P.getPosition));
 
   test("parses until keyword, even newlines", ({ expect }) => {
     const res = comment("asdnahd\n hello asdasd");
-    expect(res.val).toStrictEqual([2, 1]);
+    expect(res.value).toStrictEqual([2, 1]);
   });
 });
 
@@ -612,9 +612,9 @@ const contextParser = P.run(P.oneOf(parseHelloWorld, parseGoodMorning));
 advancedGroup("inContext", () => {
   test("first context", ({ expect }) => {
     const res = contextParser("Hello, World");
-    expect(res.err).toBeTruthy();
-    if (res.err) {
-      expect(res.val.map((e) => e.contextStack)).toStrictEqual([
+    expect(Results.isErr(res)).toBeTruthy();
+    if (Results.isErr(res)) {
+      expect(res.value.map((e) => e.contextStack)).toStrictEqual([
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX1 }]),
       ]);
@@ -623,9 +623,9 @@ advancedGroup("inContext", () => {
 
   test("second context", ({ expect }) => {
     const res = contextParser("Both fail");
-    expect(res.err).toBeTruthy();
-    if (res.err) {
-      expect(res.val.map((e) => e.contextStack)).toStrictEqual([
+    expect(Results.isErr(res)).toBeTruthy();
+    if (Results.isErr(res)) {
+      expect(res.value.map((e) => e.contextStack)).toStrictEqual([
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX1 }]),
       ]);
@@ -641,7 +641,7 @@ advancedGroup("indentation", () => {
       .apply(P.withIndent(4)(P.getIndent))
       .apply(P.getIndent);
     const res = P.run(parser)("");
-    expect(res.val).toStrictEqual([4, 0]);
+    expect(res.value).toStrictEqual([4, 0]);
   });
 
   test("Get and set nested indentation", ({ expect }) => {
@@ -649,17 +649,17 @@ advancedGroup("indentation", () => {
       .apply(P.getIndent.withIndent(4).withIndent(8))
       .apply(P.withIndent(8)(P.withIndent(4)(P.getIndent)));
     const res = P.run(parser)("");
-    expect(res.val).toStrictEqual([12, 12]);
+    expect(res.value).toStrictEqual([12, 12]);
   });
 
   test("infix indentation", ({ expect }) => {
     const parser1 = P.succeed(P.Unit).getIndent();
     const res1 = P.run(parser1)("");
-    expect(res1.val).toStrictEqual(0);
+    expect(res1.value).toStrictEqual(0);
 
     const parser2 = P.succeed(P.Unit).getIndent().withIndent(3);
     const res2 = P.run(parser2)("");
-    expect(res2.val).toStrictEqual(3);
+    expect(res2.value).toStrictEqual(3);
   });
 });
 
@@ -676,12 +676,12 @@ const keywordLet = P.run(
 advancedGroup("keyword", () => {
   test("Can parse a valid keyword", ({ expect }) => {
     const res = keywordLet("let");
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
   test("Can not parse an invalid keyword", ({ expect }, value) => {
     //@ts-ignore
     const res = keywordLet(value);
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   }).with(["letter", "other"]);
 });
 
@@ -693,15 +693,15 @@ advancedGroup("getPosition", () => {
   const parser = P.run(alphaNumParser.andThen(() => P.getPosition));
   test("get correct position on empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual([1, 1]);
+    expect(res.value).toStrictEqual([1, 1]);
   });
   test("get correct position on a line", ({ expect }) => {
     const res = parser("aaabbbå");
-    expect(res.val).toStrictEqual([1, 7]);
+    expect(res.value).toStrictEqual([1, 7]);
   });
   test("get correct position on multiple lines", ({ expect }) => {
     const res = parser("aaa\n\nbbbå");
-    expect(res.val).toStrictEqual([3, 4]);
+    expect(res.value).toStrictEqual([3, 4]);
   });
 });
 
@@ -709,60 +709,60 @@ advancedGroup("getRow", () => {
   const parser = P.run(alphaNumParser.andThen(() => P.getRow));
   test("get correct row on empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
   test("get correct row on a line", ({ expect }) => {
     const res = parser("aaabbbå");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
   test("get correct row on multiple lines", ({ expect }) => {
     const res = parser("aaa\n\nbbbå");
-    expect(res.val).toStrictEqual(3);
+    expect(res.value).toStrictEqual(3);
   });
 });
 advancedGroup("getCol", () => {
   const parser = P.run(alphaNumParser.andThen(() => P.getCol));
   test("get correct column on empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
   test("get correct column on a line", ({ expect }) => {
     const res = parser("aaabbbå");
-    expect(res.val).toStrictEqual(7);
+    expect(res.value).toStrictEqual(7);
   });
   test("get correct column on multiple lines", ({ expect }) => {
     const res = parser("aaa\n\nbbbå");
-    expect(res.val).toStrictEqual(4);
+    expect(res.value).toStrictEqual(4);
   });
 });
 advancedGroup("getOffset", () => {
   const parser = P.run(alphaNumParser.andThen(() => P.getOffset));
   test("get correct offset on empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual(0);
+    expect(res.value).toStrictEqual(0);
   });
   test("get correct offset on a line", ({ expect }) => {
     const res = parser("aaabbbå");
-    expect(res.val).toStrictEqual(6);
+    expect(res.value).toStrictEqual(6);
   });
   test("get correct offset on multiple lines", ({ expect }) => {
     const res = parser("aaa\n\nbbbå");
-    expect(res.val).toStrictEqual(8);
+    expect(res.value).toStrictEqual(8);
   });
 });
 advancedGroup("getSource", () => {
   const parser = P.run(alphaNumParser.andThen(() => P.getSource));
   test("get correct source on empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual("");
+    expect(res.value).toStrictEqual("");
   });
   test("get correct source on a line", ({ expect }) => {
     const res = parser("aaabbbå");
-    expect(res.val).toStrictEqual("aaabbbå");
+    expect(res.value).toStrictEqual("aaabbbå");
   });
   test("get correct source on multiple lines", ({ expect }) => {
     const res = parser("aaa\n\nbbbå");
-    expect(res.val).toStrictEqual("aaa\n\nbbbå");
+    expect(res.value).toStrictEqual("aaa\n\nbbbå");
   });
 });
 
@@ -782,14 +782,14 @@ advancedGroup("variable", () => {
   test("succeed on valid variable names", ({ expect }, val) => {
     //@ts-ignore
     const res = P.run(typeVar)(val);
-    expect(res.val).toStrictEqual(val);
+    expect(res.value).toStrictEqual(val);
   }).with(["ok", "variable_names_are_great", "butThisWorks", "valid"]);
 
   test("succeed on valid valid part", ({ expect }, val) => {
     //@ts-ignore
     const res = P.run(typeVar)(val.test);
     //@ts-ignore
-    expect(res.val).toStrictEqual(val.result);
+    expect(res.value).toStrictEqual(val.result);
   }).with([{ test: "valid-yes", result: "valid" }]);
 
   test("fail on invalid variable names", ({ expect }, val) => {
@@ -831,38 +831,38 @@ const intSetForbidden = P.run(intSet(P.Trailing.Forbidden));
 advancedGroup("sequence", () => {
   test("can parse a singel item", ({ expect }) => {
     const res = intSetOptional("{ 1337 \n}");
-    expect(res.val).toStrictEqual(Immutable.List([1337]));
+    expect(res.value).toStrictEqual(Immutable.List([1337]));
   });
 
   test("can parse multiple items", ({ expect }) => {
     const res = intSetOptional("{ 1337 \n, 12, 98,\n888}");
-    expect(res.val).toStrictEqual(Immutable.List([1337, 12, 98, 888]));
+    expect(res.value).toStrictEqual(Immutable.List([1337, 12, 98, 888]));
   });
 
   test("will not parse incorrect items", ({ expect }) => {
     const res = intSetOptional("{ 1337 \n, 12.9, 98,\n888}");
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("trailing seperator is optional", ({ expect }) => {
     const res1 = intSetOptional("{ 1337, \n}");
-    expect(res1.val).toStrictEqual(Immutable.List([1337]));
+    expect(res1.value).toStrictEqual(Immutable.List([1337]));
     const res2 = intSetOptional("{ 1337 \n}");
-    expect(res2.val).toStrictEqual(Immutable.List([1337]));
+    expect(res2.value).toStrictEqual(Immutable.List([1337]));
   });
 
   test("trailing seperator is mandatory", ({ expect }) => {
     const res1 = intSetMandatory("{ 1337, \n}");
-    expect(res1.val).toStrictEqual(Immutable.List([1337]));
+    expect(res1.value).toStrictEqual(Immutable.List([1337]));
     const res2 = intSetMandatory("{ 1337 \n}");
-    expect(res2.err).toBeTruthy();
+    expect(Results.isErr(res2)).toBeTruthy();
   });
 
   test("trailing seperator is forbidden", ({ expect }) => {
     const res1 = intSetForbidden("{ 1337, \n}");
-    expect(res1.err).toBeTruthy();
+    expect(Results.isErr(res1)).toBeTruthy();
     const res2 = intSetForbidden("{ 1337 \n}");
-    expect(res2.val).toStrictEqual(Immutable.List([1337]));
+    expect(res2.value).toStrictEqual(Immutable.List([1337]));
   });
 });
 
@@ -872,32 +872,32 @@ advancedGroup("spaces", () => {
   const parser = P.run(P.skip1st(P.spaces)(P.getOffset));
   test("Parse a space character", ({ expect }) => {
     const res = parser(" ");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
 
   test("Parse a carriage return", ({ expect }) => {
     const res = parser("\r");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
 
   test("Parse a new line", ({ expect }) => {
     const res = parser("\n");
-    expect(res.val).toStrictEqual(1);
+    expect(res.value).toStrictEqual(1);
   });
 
   test("Parse multiple space characters", ({ expect }) => {
     const res = parser("\n   \r\n  ");
-    expect(res.val).toStrictEqual(8);
+    expect(res.value).toStrictEqual(8);
   });
 
   test("Stop parsing when non-space characters appear", ({ expect }) => {
     const res = parser("\n   \r\n  asdasdasd");
-    expect(res.val).toStrictEqual(8);
+    expect(res.value).toStrictEqual(8);
   });
 
   test("Can parse empty string", ({ expect }) => {
     const res = parser("");
-    expect(res.val).toStrictEqual(0);
+    expect(res.value).toStrictEqual(0);
   });
 });
 
@@ -916,18 +916,18 @@ const singleLineComment = P.run(
 advancedGroup("lineComment", () => {
   test("can parse a valid line comment", ({ expect }) => {
     const res = singleLineComment("// this is a comment");
-    expect(res.ok).toBeTruthy();
+    expect(Results.isOk(res)).toBeTruthy();
   });
 
   test("only parses the line until newline", ({ expect }) => {
     const res = singleLineComment("// this is a comment\nsomething else");
-    expect(res.val).toStrictEqual([2, 1]);
+    expect(res.value).toStrictEqual([2, 1]);
   });
 
   test("can not parse an invalid line comment", ({ expect }, value) => {
     //@ts-ignore
     const res = singleLineComment(value);
-    expect(res.err).toBeTruthy();
+    expect(Results.isErr(res)).toBeTruthy();
   }).with(["/ this is a comment", " // this is a comment"]);
 });
 
@@ -953,24 +953,24 @@ const notNestableMulti = multiLineComment(P.Nestable.NotNestable);
 advancedGroup("multiComment", () => {
   test("Can parse a multiline comment on a singel line", ({ expect }) => {
     const res = nestableMulti("/*Can Be Parsed*/adsasd");
-    expect(res.val).toStrictEqual([1, 18]);
+    expect(res.value).toStrictEqual([1, 18]);
   });
   test("Can parse a multiline comment across multiple lines", ({ expect }) => {
     const res = nestableMulti("/* \n Can \n Be \n Parsed \n */adsasd");
-    expect(res.val).toStrictEqual([5, 4]);
+    expect(res.value).toStrictEqual([5, 4]);
   });
 
   test("Can parse a nested multiline comment on a singel line", ({
     expect,
   }) => {
     const res = nestableMulti("/*Can /*Be*/ Parsed*/adsasd");
-    expect(res.val).toStrictEqual([1, 22]);
+    expect(res.value).toStrictEqual([1, 22]);
   });
 
   test("Can parse a nested multiline comment across multiple lines", ({
     expect,
   }) => {
     const res = nestableMulti("/* \n Can /* \n Be */ \n Parsed \n */adsasd");
-    expect(res.val).toStrictEqual([5, 4]);
+    expect(res.value).toStrictEqual([5, 4]);
   });
 });
