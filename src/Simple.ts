@@ -100,7 +100,19 @@ export type DeadEnd = {
  * @category Errors
  */
 export function deadEndsToString(deadEnds: DeadEnd[]): string {
-  return "TODO";
+  const res: string[] = [];
+
+  const indentation = ["\n"];
+
+  for (const deadEnd of deadEnds) {
+    res.push(problemToString(deadEnd.problem));
+    res.push(...indentation);
+    res.push(`at row ${deadEnd.row} and col ${deadEnd.col}`);
+    indentation.push("   ");
+    res.push(...indentation);
+  }
+
+  return res.join("");
 }
 
 /**
