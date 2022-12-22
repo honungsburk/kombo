@@ -55,6 +55,10 @@
     "./Helpers": {
       "import": "./dist/mjs/Helpers.js",
       "require": "./dist/cjs/Helpers.js"
+    },
+    "./Result": {
+      "import": "./dist/mjs/Result.js",
+      "require": "./dist/cjs/Result.js"
     }
   }
 }
