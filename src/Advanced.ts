@@ -12,11 +12,6 @@ import * as immutable from "immutable";
 /**
  * The location and context of an error.
  *
- * @remarks
- * It was not possible to make the `context` typed and still have good type
- * inference, therefore I've set it to `unknown`. See {@link inContext } for a
- * more detailed explentation.
- *
  * **Note:** Rows and columns are counted like a text editor. The beginning is `row=1`
  * and `col=1`. The `col` increments as characters are chomped. When a `\n` is chomped,
  * `row` is incremented and `col` starts over again at `1`.
@@ -29,7 +24,7 @@ import * as immutable from "immutable";
  *
  * @category Parsers
  */
-export type Located = {
+export type Located<CTX> = {
   row: number;
   col: number;
   context: unknown;
@@ -44,11 +39,11 @@ export type Located = {
  * Then you might be able to write parsers for bytestrings and other stringlike
  * objects
  */
-type State = {
+type State<CTX> = {
   src: string;
   offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
   indent: number;
-  context: immutable.Stack<Located>;
+  context: immutable.Stack<Located<CTX>>;
   row: number; //in newlines
   col: number; //in UTF-16 characters
 };
@@ -103,11 +98,11 @@ type State = {
  * @category Parsers
  * @category DeadEnd (All)
  */
-export type DeadEnd<PROBLEM> = {
+export type DeadEnd<CTX, PROBLEM> = {
   row: number;
   col: number;
   problem: PROBLEM;
-  contextStack: immutable.Stack<Located>;
+  contextStack: immutable.Stack<Located<CTX>>;
 };
 
 /**
@@ -115,12 +110,12 @@ export type DeadEnd<PROBLEM> = {
  *
  * @category DeadEnd (All)
  */
-export function Deadend<PROBLEM>(
+export function Deadend<CTX, PROBLEM>(
   row: number,
   col: number,
   problem: PROBLEM,
-  contextStack: immutable.Stack<Located>
-): DeadEnd<PROBLEM> {
+  contextStack: immutable.Stack<Located<CTX>>
+): DeadEnd<CTX, PROBLEM> {
   return {
     row,
     col,
@@ -129,7 +124,7 @@ export function Deadend<PROBLEM>(
   };
 }
 
-type Bag<PROBLEM> = Empty | AddRight<PROBLEM> | Append<PROBLEM>;
+type Bag<CTX, PROBLEM> = Empty | AddRight<CTX, PROBLEM> | Append<CTX, PROBLEM>;
 
 // Empty
 
@@ -139,22 +134,22 @@ const Empty = {
   kind: "Empty",
 } as const;
 
-function isEmpty(bag: Bag<any>): bag is Empty {
+function isEmpty(bag: Bag<any, any>): bag is Empty {
   return bag.kind === "Empty";
 }
 
 // AddRight
 
-type AddRight<PROBLEM> = {
+type AddRight<CTX, PROBLEM> = {
   kind: "AddRight";
-  bag: Bag<PROBLEM>;
-  deadEnd: DeadEnd<PROBLEM>;
+  bag: Bag<CTX, PROBLEM>;
+  deadEnd: DeadEnd<CTX, PROBLEM>;
 };
 
-function AddRight<PROBLEM>(
-  bag: Bag<PROBLEM>,
-  deadEnd: DeadEnd<PROBLEM>
-): AddRight<PROBLEM> {
+function AddRight<CTX, PROBLEM>(
+  bag: Bag<CTX, PROBLEM>,
+  deadEnd: DeadEnd<CTX, PROBLEM>
+): AddRight<CTX, PROBLEM> {
   return {
     kind: "AddRight",
     bag: bag,
@@ -162,22 +157,24 @@ function AddRight<PROBLEM>(
   };
 }
 
-function isAddRight<PROBLEM>(bag: Bag<PROBLEM>): bag is AddRight<PROBLEM> {
+function isAddRight<CTX, PROBLEM>(
+  bag: Bag<CTX, PROBLEM>
+): bag is AddRight<CTX, PROBLEM> {
   return bag.kind === "AddRight";
 }
 
 // Append
 
-type Append<PROBLEM> = {
+type Append<CTX, PROBLEM> = {
   kind: "Append";
-  left: Bag<PROBLEM>;
-  right: Bag<PROBLEM>;
+  left: Bag<CTX, PROBLEM>;
+  right: Bag<CTX, PROBLEM>;
 };
 
-function Append<PROBLEM>(
-  left: Bag<PROBLEM>,
-  right: Bag<PROBLEM>
-): Append<PROBLEM> {
+function Append<CTX, PROBLEM>(
+  left: Bag<CTX, PROBLEM>,
+  right: Bag<CTX, PROBLEM>
+): Append<CTX, PROBLEM> {
   return {
     kind: "Append",
     left: left,
@@ -185,31 +182,38 @@ function Append<PROBLEM>(
   };
 }
 
-function isAppend<PROBLEM>(bag: Bag<PROBLEM>): bag is Append<PROBLEM> {
+function isAppend<CTX, PROBLEM>(
+  bag: Bag<CTX, PROBLEM>
+): bag is Append<CTX, PROBLEM> {
   return bag.kind === "Append";
 }
 
 // Bag transforms
 
-function fromState<PROBLEM>(state: State, p: PROBLEM): Bag<PROBLEM> {
+function fromState<CTX, PROBLEM>(
+  state: State<CTX>,
+  p: PROBLEM
+): Bag<CTX, PROBLEM> {
   return AddRight(Empty, Deadend(state.row, state.col, p, state.context));
 }
 
-function fromInfo<PROBLEM>(
+function fromInfo<CTX, PROBLEM>(
   row: number,
   col: number,
   p: PROBLEM,
-  context: immutable.Stack<{ row: number; col: number; context: unknown }>
-): Bag<PROBLEM> {
+  context: immutable.Stack<{ row: number; col: number; context: CTX }>
+): Bag<CTX, PROBLEM> {
   return AddRight(Empty, Deadend(row, col, p, context));
 }
 
-function bagToList<PROBLEM>(bag: Bag<PROBLEM>): DeadEnd<PROBLEM>[] {
+function bagToList<CTX, PROBLEM>(
+  bag: Bag<CTX, PROBLEM>
+): DeadEnd<CTX, PROBLEM>[] {
   const workList = [bag];
-  const list: DeadEnd<PROBLEM>[] = [];
+  const list: DeadEnd<CTX, PROBLEM>[] = [];
 
   while (workList.length > 0) {
-    const currentBag: Bag<PROBLEM> = workList.pop() as any;
+    const currentBag: Bag<CTX, PROBLEM> = workList.pop() as any;
     if (isAddRight(currentBag)) {
       list.push(currentBag.deadEnd);
       workList.push(currentBag.bag);
@@ -227,20 +231,20 @@ function bagToList<PROBLEM>(bag: Bag<PROBLEM>): DeadEnd<PROBLEM>[] {
 
 // PStep
 
-type PStep<A, PROBLEM> = Good<A> | Bad<PROBLEM>;
+type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
 
-type Good<A> = {
+type Good<A, CTX> = {
   kind: "Good";
   flag: boolean; // if true, reached an unrecoverable error
   value: A;
-  ctx: State;
+  ctx: State<CTX>;
 };
 
-function Good<A>(
+function Good<A, CTX>(
   flag: boolean, // if true, reached an end state
   value: A,
-  ctx: State
-): Good<A> {
+  ctx: State<CTX>
+): Good<A, CTX> {
   return {
     kind: "Good",
     flag,
@@ -249,17 +253,20 @@ function Good<A>(
   };
 }
 
-function isGood<A>(x: PStep<A, any>): x is Good<A> {
+function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
   return typeof x === "object" && x.kind === "Good";
 }
 
-type Bad<PROBLEM> = {
+type Bad<CTX, PROBLEM> = {
   kind: "Bad";
   flag: boolean; // if true, reached an end state
-  bag: Bag<PROBLEM>;
+  bag: Bag<CTX, PROBLEM>;
 };
 
-function Bad<PROBLEM>(flag: boolean, bag: Bag<PROBLEM>): Bad<PROBLEM> {
+function Bad<CTX, PROBLEM>(
+  flag: boolean,
+  bag: Bag<CTX, PROBLEM>
+): Bad<CTX, PROBLEM> {
   return {
     kind: "Bad",
     flag,
@@ -267,7 +274,9 @@ function Bad<PROBLEM>(flag: boolean, bag: Bag<PROBLEM>): Bad<PROBLEM> {
   };
 }
 
-function isBad<PROBLEM>(x: PStep<any, PROBLEM>): x is Bad<PROBLEM> {
+function isBad<CTX, PROBLEM>(
+  x: PStep<any, CTX, PROBLEM>
+): x is Bad<CTX, PROBLEM> {
   return typeof x === "object" && x.kind === "Bad";
 }
 
@@ -338,14 +347,14 @@ export type GetReturnType<Function> = Function extends (arg: any) => any
  *
  * @category Parsers
  */
-export interface Parser<A, PROBLEM> {
+export interface Parser<A, CTX, PROBLEM> {
   /**
    * **WARNING:** Do not use directly, it is used by the library
    *
    * @private
    * @internal
    */
-  exec: (s: State) => PStep<A, PROBLEM>;
+  exec: (s: State<unknown>) => PStep<A, CTX, PROBLEM>;
 
   /**
    * Transform the result of a parser.
@@ -370,7 +379,7 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Mapping
    */
-  map<B>(fn: (v: A) => B): Parser<B, PROBLEM>;
+  map<B>(fn: (v: A) => B): Parser<B, CTX, PROBLEM>;
 
   /**
    *
@@ -410,9 +419,9 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Mapping
    */
-  andThen<B, PROBLEM2>(
-    fn: (v: A) => Parser<B, PROBLEM2>
-  ): Parser<B, PROBLEM | PROBLEM2>;
+  andThen<B, CTX2, PROBLEM2>(
+    fn: (v: A) => Parser<B, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Skip the return value of the parser on the right hand side.
@@ -432,9 +441,9 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Mapping
    */
-  skip<PROBLEM2>(
-    other: Parser<unknown, PROBLEM2>
-  ): Parser<A, PROBLEM | PROBLEM2>;
+  skip<CTX2, PROBLEM2>(
+    other: Parser<unknown, CTX2, PROBLEM2>
+  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Keep the return value of the parser it is given, and ignore the previous value.
@@ -452,7 +461,9 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Mapping
    */
-  keep<B, PROBLEM2>(other: Parser<B, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2>;
+  keep<B, CTX2, PROBLEM2>(
+    other: Parser<B, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Apply values to a function in a parser pipeline.
@@ -493,9 +504,9 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Mapping
    */
-  apply<PROBLEM2>(
-    parser: Parser<GetArgumentType<A>, PROBLEM2>
-  ): Parser<GetReturnType<A>, PROBLEM | PROBLEM2>;
+  apply<CTX2, PROBLEM2>(
+    parser: Parser<GetArgumentType<A>, CTX2, PROBLEM2>
+  ): Parser<GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Just like {@link Simple!oneOf | Simple.oneOf} but only between **two** parsers.
@@ -508,37 +519,37 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Branches
    */
-  or<B, PROBLEM2>(
-    other: Parser<B, PROBLEM2>
-  ): Parser<A | B, PROBLEM | PROBLEM2>;
+  or<B, CTX2, PROBLEM2>(
+    other: Parser<B, CTX2, PROBLEM2>
+  ): Parser<A | B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Just like {@link Simple!run | Simple.run}
    *
    * @category Parsers
    */
-  run(src: string): Results.Result<A, DeadEnd<PROBLEM>[]>;
+  run(src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]>;
 
   /**
    * Just like {@link Simple!backtrackable | Simple.backtrackable}
    *
    * @category Branches
    */
-  backtrackable(): Parser<A, PROBLEM>;
+  backtrackable(): Parser<A, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getChompedString | Simple.getChompedString}
    *
    * @category Chompers
    */
-  getChompedString(): Parser<string, PROBLEM>;
+  getChompedString(): Parser<string, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
    *
    * @category Chompers
    */
-  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, PROBLEM>;
+  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getIndent | Simple.getIndent}
@@ -548,7 +559,7 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Indentation
    */
-  getIndent(): Parser<number, PROBLEM>;
+  getIndent(): Parser<number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!withIndent | Simple.withIndent}
@@ -582,119 +593,127 @@ export interface Parser<A, PROBLEM> {
    *
    * @category Indentation
    */
-  withIndent(newIndent: number): Parser<A, PROBLEM>;
+  withIndent(newIndent: number): Parser<A, CTX, PROBLEM>;
 
   /**
    *  Just like {@link Simple!getPosition | Simple.getPosition}
    *
    * @category Positions
    */
-  getPosition(): Parser<[number, number], PROBLEM>;
+  getPosition(): Parser<[number, number], CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getRow | Simple.getRow}
    *
    * @category Positions
    */
-  getRow(): Parser<number, PROBLEM>;
+  getRow(): Parser<number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getCol  | Simple.getCol}
    * @category Positions
    */
-  getCol(): Parser<number, PROBLEM>;
+  getCol(): Parser<number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getOffset}
    *
    * @category Positions
    */
-  getOffset(): Parser<number, PROBLEM>;
+  getOffset(): Parser<number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getSource}
    *
    * @category Positions
    */
-  getSource(): Parser<string, PROBLEM>;
+  getSource(): Parser<string, CTX, PROBLEM>;
 }
 /**
  * @hidden
  */
-class ParserImpl<A, PROBLEM> implements Parser<A, PROBLEM> {
-  constructor(public exec: (s: State) => PStep<A, PROBLEM>) {}
+class ParserImpl<A, CTX = never, PROBLEM = never>
+  implements Parser<A, CTX, PROBLEM>
+{
+  constructor(public exec: (s: State<unknown>) => PStep<A, CTX, PROBLEM>) {}
 
-  map<B>(fn: (v: A) => B): Parser<B, PROBLEM> {
+  map<B>(fn: (v: A) => B): Parser<B, CTX, PROBLEM> {
     return map(fn)(this);
   }
 
-  andThen<B, PROBLEM2>(
-    fn: (v: A) => Parser<B, PROBLEM2>
-  ): Parser<B, PROBLEM | PROBLEM2> {
+  andThen<B, CTX2, PROBLEM2>(
+    fn: (v: A) => Parser<B, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return andThen(fn)(this);
   }
 
-  skip<PROBLEM2>(
-    other: Parser<unknown, PROBLEM2>
-  ): Parser<A, PROBLEM | PROBLEM2> {
+  skip<CTX2, PROBLEM2>(
+    other: Parser<unknown, CTX2, PROBLEM2>
+  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> {
     return skip2nd(this)(other);
   }
 
-  keep<B, PROBLEM2>(other: Parser<B, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2> {
+  keep<B, CTX2, PROBLEM2>(
+    other: Parser<B, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return this.andThen(() => other);
   }
 
-  apply<PROBLEM2>(
-    parser: Parser<GetArgumentType<A>, PROBLEM2>
-  ): Parser<GetReturnType<A>, PROBLEM | PROBLEM2> {
+  apply<CTX2, PROBLEM2>(
+    parser: Parser<GetArgumentType<A>, CTX2, PROBLEM2>
+  ): Parser<GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2> {
     return apply(
-      this as Parser<(a: GetArgumentType<A>) => GetReturnType<A>, PROBLEM>
+      this as Parser<
+        (a: GetArgumentType<A>) => GetReturnType<A>,
+        CTX | CTX2,
+        PROBLEM
+      >
     )(parser);
   }
 
-  run(src: string): Results.Result<A, DeadEnd<PROBLEM>[]> {
+  run(src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]> {
     return run(this)(src);
   }
 
-  or<B, PROBLEM2>(
-    other: Parser<B, PROBLEM2>
-  ): Parser<A | B, PROBLEM | PROBLEM2> {
+  or<B, CTX2, PROBLEM2>(
+    other: Parser<B, CTX2, PROBLEM2>
+  ): Parser<A | B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return oneOf(this, other);
   }
 
-  backtrackable(): Parser<A, PROBLEM> {
+  backtrackable(): Parser<A, CTX, PROBLEM> {
     return backtrackable(this);
   }
 
-  getChompedString(): Parser<string, PROBLEM> {
+  getChompedString(): Parser<string, CTX, PROBLEM> {
     return getChompedString(this);
   }
 
-  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, PROBLEM> {
+  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, CTX, PROBLEM> {
     return mapChompedString(fn)(this);
   }
 
-  getIndent(): Parser<number, PROBLEM> {
+  getIndent(): Parser<number, CTX, PROBLEM> {
     return this.keep(getIndent);
   }
 
-  withIndent(newIndent: number): Parser<A, PROBLEM> {
+  withIndent(newIndent: number): Parser<A, CTX, PROBLEM> {
     return withIndent(newIndent)(this);
   }
 
-  getPosition(): Parser<[number, number], PROBLEM> {
+  getPosition(): Parser<[number, number], CTX, PROBLEM> {
     return this.keep(getPosition);
   }
-  getRow(): Parser<number, PROBLEM> {
+  getRow(): Parser<number, CTX, PROBLEM> {
     return this.keep(getRow);
   }
-  getCol(): Parser<number, PROBLEM> {
+  getCol(): Parser<number, CTX, PROBLEM> {
     return this.keep(getCol);
   }
-  getOffset(): Parser<number, PROBLEM> {
+  getOffset(): Parser<number, CTX, PROBLEM> {
     return this.keep(getOffset);
   }
-  getSource(): Parser<string, PROBLEM> {
+  getSource(): Parser<string, CTX, PROBLEM> {
     return this.keep(getSource);
   }
 }
@@ -712,8 +731,8 @@ class ParserImpl<A, PROBLEM> implements Parser<A, PROBLEM> {
  * @category Parsers
  */
 export const run =
-  <A, PROBLEM>(parser: Parser<A, PROBLEM>) =>
-  (src: string): Results.Result<A, DeadEnd<PROBLEM>[]> => {
+  <A, CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>) =>
+  (src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]> => {
     const res = parser.exec({
       src: src,
       offset: 0,
@@ -738,7 +757,7 @@ export const run =
  *
  * @category Primitives
  */
-export function succeed<A>(a: A): Parser<A, never> {
+export function succeed<A>(a: A): Parser<A, never, never> {
   return new ParserImpl((s) => Good(false, a, s));
 }
 
@@ -749,7 +768,7 @@ export function succeed<A>(a: A): Parser<A, never> {
  *
  * @category Primitives
  */
-export function problem<PROBLEM>(p: PROBLEM): Parser<never, PROBLEM> {
+export function problem<PROBLEM>(p: PROBLEM): Parser<never, never, PROBLEM> {
   return new ParserImpl((s) => Bad(false, fromState(s, p)));
 }
 
@@ -765,7 +784,7 @@ export function problem<PROBLEM>(p: PROBLEM): Parser<never, PROBLEM> {
  */
 export const map =
   <A, B>(fn: (a: A) => B) =>
-  <PROBLEM>(parser: Parser<A, PROBLEM>): Parser<B, PROBLEM> => {
+  <CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<B, CTX, PROBLEM> => {
     return new ParserImpl((s) => {
       const res = parser.exec(s);
       if (isGood(res)) {
@@ -783,9 +802,11 @@ export const map =
  */
 export const map2 =
   <A, B, C>(fn: (a: A, b: B) => C) =>
-  <PROBLEM>(parserA: Parser<A, PROBLEM>) =>
-  <PROBLEM2>(parserB: Parser<B, PROBLEM2>): Parser<C, PROBLEM | PROBLEM2> => {
-    return new ParserImpl((s0): PStep<C, PROBLEM | PROBLEM2> => {
+  <CTX, PROBLEM>(parserA: Parser<A, CTX, PROBLEM>) =>
+  <CTX2, PROBLEM2>(
+    parserB: Parser<B, CTX2, PROBLEM2>
+  ): Parser<C, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return new ParserImpl((s0): PStep<C, CTX | CTX2, PROBLEM | PROBLEM2> => {
       const res0 = parserA.exec(s0);
       if (isBad(res0)) {
         return res0;
@@ -813,8 +834,10 @@ export const map2 =
  * @category Mapping
  */
 export const apply =
-  <A, B, PROBLEM>(parseFunc: Parser<(a: A) => B, PROBLEM>) =>
-  <PROBLEM2>(parseArg: Parser<A, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2> => {
+  <A, B, CTX, PROBLEM>(parseFunc: Parser<(a: A) => B, CTX, PROBLEM>) =>
+  <CTX2, PROBLEM2>(
+    parseArg: Parser<A, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((fn: (a: A) => B, arg: A) => fn(arg))(parseFunc)(parseArg);
   };
 
@@ -828,8 +851,10 @@ export const apply =
  * @category Mapping
  */
 export const skip1st =
-  <PROBLEM>(first: Parser<unknown, PROBLEM>) =>
-  <A, PROBLEM2>(second: Parser<A, PROBLEM2>): Parser<A, PROBLEM | PROBLEM2> => {
+  <CTX, PROBLEM>(first: Parser<unknown, CTX, PROBLEM>) =>
+  <A, CTX2, PROBLEM2>(
+    second: Parser<A, CTX2, PROBLEM2>
+  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((a, b: A) => b)(first)(second);
   };
 
@@ -843,10 +868,10 @@ export const skip1st =
  * @category Mapping
  */
 export const skip2nd =
-  <A, PROBLEM>(keepParser: Parser<A, PROBLEM>) =>
-  <PROBLEM2>(
-    ignoreParser: Parser<unknown, PROBLEM2>
-  ): Parser<A, PROBLEM | PROBLEM2> => {
+  <A, CTX, PROBLEM>(keepParser: Parser<A, CTX, PROBLEM>) =>
+  <CTX2, PROBLEM2>(
+    ignoreParser: Parser<unknown, CTX2, PROBLEM2>
+  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((a: A, b) => a)(keepParser)(ignoreParser);
   };
 
@@ -861,9 +886,11 @@ export const skip2nd =
  * @category Mapping
  */
 export const andThen =
-  <A, B, PROBLEM>(fn: (a: A) => Parser<B, PROBLEM>) =>
-  <PROBLEM2>(p: Parser<A, PROBLEM2>): Parser<B, PROBLEM | PROBLEM2> => {
-    return new ParserImpl((ctx0): PStep<B, PROBLEM | PROBLEM2> => {
+  <A, B, CTX, PROBLEM>(fn: (a: A) => Parser<B, CTX, PROBLEM>) =>
+  <CTX2, PROBLEM2>(
+    p: Parser<A, CTX2, PROBLEM2>
+  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return new ParserImpl((ctx0): PStep<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
       const res1 = p.exec(ctx0);
 
       if (isBad(res1)) {
@@ -886,9 +913,9 @@ export const andThen =
  *
  * @category Helpers
  */
-export const lazy = <A, PROBLEM>(
-  thunk: () => Parser<A, PROBLEM>
-): Parser<A, PROBLEM> => {
+export const lazy = <A, CTX, PROBLEM>(
+  thunk: () => Parser<A, CTX, PROBLEM>
+): Parser<A, CTX, PROBLEM> => {
   return new ParserImpl((ctx) => {
     return thunk().exec(ctx);
   });
@@ -905,25 +932,44 @@ export const lazy = <A, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOf<A, PROBLEM>(one: Parser<A, PROBLEM>): Parser<A, PROBLEM>;
+export function oneOf<A, CTX, PROBLEM>(
+  one: Parser<A, CTX, PROBLEM>
+): Parser<A, CTX, PROBLEM>;
 
-export function oneOf<A, B, PROBLEM1, PROBLEM2>(
-  one: Parser<A, PROBLEM1>,
-  two: Parser<B, PROBLEM2>
-): Parser<A | B, PROBLEM1 | PROBLEM2>;
+export function oneOf<A, B, CTX1, CTX2, PROBLEM1, PROBLEM2>(
+  one: Parser<A, CTX1, PROBLEM1>,
+  two: Parser<B, CTX2, PROBLEM2>
+): Parser<A | B, CTX1 | CTX2, PROBLEM1 | PROBLEM2>;
 
-export function oneOf<A, B, C, PROBLEM1, PROBLEM2, PROBLEM3>(
-  one: Parser<A, PROBLEM1>,
-  two: Parser<B, PROBLEM2>,
-  three: Parser<C, PROBLEM3>
-): Parser<A | B | C, PROBLEM1 | PROBLEM2 | PROBLEM3>;
+export function oneOf<A, B, C, CTX1, CTX2, CTX3, PROBLEM1, PROBLEM2, PROBLEM3>(
+  one: Parser<A, CTX1, PROBLEM1>,
+  two: Parser<B, CTX2, PROBLEM2>,
+  three: Parser<C, CTX3, PROBLEM3>
+): Parser<A | B | C, CTX1 | CTX2 | CTX3, PROBLEM1 | PROBLEM2 | PROBLEM3>;
 
-export function oneOf<A, B, C, D, PROBLEM1, PROBLEM2, PROBLEM3, PROBLEM4>(
-  one: Parser<A, PROBLEM1>,
-  two: Parser<B, PROBLEM2>,
-  three: Parser<C, PROBLEM3>,
-  four: Parser<D, PROBLEM4>
-): Parser<A | B | C | D, PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4>;
+export function oneOf<
+  A,
+  B,
+  C,
+  D,
+  CTX1,
+  CTX2,
+  CTX3,
+  CTX4,
+  PROBLEM1,
+  PROBLEM2,
+  PROBLEM3,
+  PROBLEM4
+>(
+  one: Parser<A, CTX1, PROBLEM1>,
+  two: Parser<B, CTX2, PROBLEM2>,
+  three: Parser<C, CTX3, PROBLEM3>,
+  four: Parser<D, CTX4, PROBLEM4>
+): Parser<
+  A | B | C | D,
+  CTX1 | CTX2 | CTX3 | CTX4,
+  PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4
+>;
 
 export function oneOf<
   A,
@@ -931,25 +977,31 @@ export function oneOf<
   C,
   D,
   E,
+  CTX1,
+  CTX2,
+  CTX3,
+  CTX4,
+  CTX5,
   PROBLEM1,
   PROBLEM2,
   PROBLEM3,
   PROBLEM4,
   PROBLEM5
 >(
-  one: Parser<A, PROBLEM1>,
-  two: Parser<B, PROBLEM2>,
-  three: Parser<C, PROBLEM3>,
-  four: Parser<D, PROBLEM4>,
-  five: Parser<E, PROBLEM5>
+  one: Parser<A, CTX1, PROBLEM1>,
+  two: Parser<B, CTX2, PROBLEM2>,
+  three: Parser<C, CTX3, PROBLEM3>,
+  four: Parser<D, CTX4, PROBLEM4>,
+  five: Parser<E, CTX5, PROBLEM5>
 ): Parser<
   A | B | C | D | E,
+  CTX1 | CTX2 | CTX3 | CTX4 | CTX5,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
 >;
 
-export function oneOf<A, PROBLEM>(
-  ...parsers: Parser<A, PROBLEM>[]
-): Parser<A, PROBLEM> {
+export function oneOf<A, CTX, PROBLEM>(
+  ...parsers: Parser<A, CTX, PROBLEM>[]
+): Parser<A, CTX, PROBLEM> {
   return oneOfMany(...parsers);
 }
 
@@ -961,17 +1013,17 @@ export function oneOf<A, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOfMany<A, PROBLEM>(
-  ...parsers: Parser<A, PROBLEM>[]
-): Parser<A, PROBLEM> {
+export function oneOfMany<A, CTX, PROBLEM>(
+  ...parsers: Parser<A, CTX, PROBLEM>[]
+): Parser<A, CTX, PROBLEM> {
   return new ParserImpl((ctx) => oneOfHelp(ctx, Empty, parsers));
 }
 
-function oneOfHelp<A, PROBLEM>(
-  ctx0: State,
-  bag: Bag<PROBLEM>,
-  parsers: Parser<A, PROBLEM>[]
-): PStep<A, PROBLEM> {
+function oneOfHelp<A, CTX, PROBLEM>(
+  ctx0: State<unknown>,
+  bag: Bag<CTX, PROBLEM>,
+  parsers: Parser<A, CTX, PROBLEM>[]
+): PStep<A, CTX, PROBLEM> {
   let localBag = bag;
 
   for (const parser of parsers) {
@@ -1084,17 +1136,17 @@ export function isDone<A>(x: Step<unknown, A>): x is Done<A> {
  */
 export const loop =
   <STATE>(state: STATE) =>
-  <A, PROBLEM>(
-    fn: (state: STATE) => Parser<Step<STATE, A>, PROBLEM>
-  ): Parser<A, PROBLEM> => {
+  <A, CTX, PROBLEM>(
+    fn: (state: STATE) => Parser<Step<STATE, A>, CTX, PROBLEM>
+  ): Parser<A, CTX, PROBLEM> => {
     return new ParserImpl((s) => loopHelp(state, fn, s));
   };
 
-const loopHelp = <STATE, A, PROBLEM>(
+const loopHelp = <STATE, A, CTX, PROBLEM>(
   state: STATE,
-  fn: (state: STATE) => Parser<Step<STATE, A>, PROBLEM>,
-  s: State
-): PStep<A, PROBLEM> => {
+  fn: (state: STATE) => Parser<Step<STATE, A>, CTX, PROBLEM>,
+  s: State<unknown>
+): PStep<A, CTX, PROBLEM> => {
   let tmpState = state;
   let tmpS = s;
   let p = false;
@@ -1125,9 +1177,9 @@ const loopHelp = <STATE, A, PROBLEM>(
  *
  * @category Branches
  */
-export const backtrackable = <A, PROBLEM>(
-  parser: Parser<A, PROBLEM>
-): Parser<A, PROBLEM> => {
+export const backtrackable = <A, CTX, PROBLEM>(
+  parser: Parser<A, CTX, PROBLEM>
+): Parser<A, CTX, PROBLEM> => {
   return new ParserImpl((ctx) => {
     const res = parser.exec(ctx);
     if (isBad(res)) {
@@ -1143,7 +1195,7 @@ export const backtrackable = <A, PROBLEM>(
  *
  * @category Branches
  */
-export const commit = <A>(a: A): Parser<A, never> => {
+export const commit = <A>(a: A): Parser<A, never, never> => {
   return new ParserImpl((s) => Good(true, a, s));
 };
 
@@ -1233,7 +1285,9 @@ export function Token<PROBLEM>(
  * @category Branches
  * @category Token (All)
  */
-export function token<PROBLEM>(token: Token<PROBLEM>): Parser<Unit, PROBLEM> {
+export function token<PROBLEM>(
+  token: Token<PROBLEM>
+): Parser<Unit, never, PROBLEM> {
   const progress = token.value.length !== 0;
   return new ParserImpl((s) => {
     const [newOffset, newRow, newCol] = Helpers.isSubString(
@@ -1286,7 +1340,7 @@ export function token<PROBLEM>(token: Token<PROBLEM>): Parser<Unit, PROBLEM> {
  */
 export const int =
   <PROBLEM>(expecting: PROBLEM) =>
-  (invalid: PROBLEM): Parser<number, PROBLEM> => {
+  (invalid: PROBLEM): Parser<number, never, PROBLEM> => {
     return number({
       hex: Results.Err(invalid),
       int: Results.Ok((id: number) => id),
@@ -1322,7 +1376,7 @@ export const int =
  */
 export const float =
   <PROBLEM>(expecting: PROBLEM) =>
-  (invalid: PROBLEM): Parser<number, PROBLEM> => {
+  (invalid: PROBLEM): Parser<number, never, PROBLEM> => {
     return number({
       int: Results.Ok((id: number) => id),
       hex: Results.Err(invalid),
@@ -1353,7 +1407,7 @@ export function number<A, PROBLEM>(args: {
   float: Results.Result<(n: number) => A, PROBLEM>;
   invalid: PROBLEM;
   expecting: PROBLEM;
-}): Parser<A, PROBLEM> {
+}): Parser<A, never, PROBLEM> {
   return new ParserImpl((s) => {
     // 0x30 => 0
     if (Helpers.isCharCode(0x30, s.offset, s.src)) {
@@ -1420,8 +1474,8 @@ function finalizeInt<A, PROBLEM>(
   handler: Results.Result<(n: number) => A, PROBLEM>,
   startOffset: number,
   [endOffset, n]: [number, number],
-  s: State
-): PStep<A, PROBLEM> {
+  s: State<unknown>
+): PStep<A, never, PROBLEM> {
   if (handler.err) {
     return Bad(true, fromState(s, handler.val));
   } else {
@@ -1433,7 +1487,7 @@ function finalizeInt<A, PROBLEM>(
   }
 }
 
-function bumpOffset(newOffset: number, s: State): State {
+function bumpOffset<CTX>(newOffset: number, s: State<CTX>): State<CTX> {
   return {
     src: s.src,
     offset: newOffset,
@@ -1450,8 +1504,8 @@ function finalizeFloat<A, PROBLEM>(
   intSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatPair: [number, number],
-  s: State
-): PStep<A, PROBLEM> {
+  s: State<unknown>
+): PStep<A, never, PROBLEM> {
   const intOffset = floatPair[0];
   const floatOffset = consumeDotAndExp(intOffset, s.src);
 
@@ -1530,7 +1584,9 @@ function consumeExp(offset: number, src: string): number {
  *
  * @category Building Blocks
  */
-export const end = <PROBLEM>(problem: PROBLEM): Parser<Unit, PROBLEM> => {
+export const end = <PROBLEM>(
+  problem: PROBLEM
+): Parser<Unit, never, PROBLEM> => {
   return new ParserImpl((s) => {
     if (s.src.length === s.offset) {
       return Good(false, Unit, s);
@@ -1550,9 +1606,9 @@ export const end = <PROBLEM>(problem: PROBLEM): Parser<Unit, PROBLEM> => {
  *
  * @category Chompers
  */
-export const getChompedString = <A, PROBLEM>(
-  parser: Parser<A, PROBLEM>
-): Parser<string, PROBLEM> => {
+export const getChompedString = <A, CTX, PROBLEM>(
+  parser: Parser<A, CTX, PROBLEM>
+): Parser<string, CTX, PROBLEM> => {
   return mapChompedString((a) => a)(parser);
 };
 
@@ -1566,7 +1622,7 @@ export const getChompedString = <A, PROBLEM>(
  */
 export const mapChompedString =
   <A, B>(fn: (s: string, v: A) => B) =>
-  <PROBLEM>(parser: Parser<A, PROBLEM>): Parser<B, PROBLEM> => {
+  <CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<B, CTX, PROBLEM> => {
     return new ParserImpl((s) => {
       const res = parser.exec(s);
       if (isBad(res)) {
@@ -1591,7 +1647,7 @@ export const mapChompedString =
  */
 export const chompIf =
   (isGood: (char: string) => boolean) =>
-  <PROBLEM>(expecting: PROBLEM): Parser<Unit, PROBLEM> => {
+  <PROBLEM>(expecting: PROBLEM): Parser<Unit, never, PROBLEM> => {
     return new ParserImpl((s) => {
       const newOffset = Helpers.isSubChar(isGood, s.offset, s.src);
       if (newOffset === -1) {
@@ -1627,7 +1683,7 @@ export const chompIf =
  */
 export const chompWhile = (
   isGood: (char: string) => boolean
-): Parser<Unit, never> => {
+): Parser<Unit, never, never> => {
   return new ParserImpl((s) =>
     chompWhileHelp(isGood, s.offset, s.row, s.col, s)
   );
@@ -1638,8 +1694,8 @@ function chompWhileHelp(
   offset: number,
   row: number,
   col: number,
-  s0: State
-): PStep<Unit, never> {
+  s0: State<unknown>
+): PStep<Unit, never, never> {
   let finalOffset = offset;
   let finalRow = row;
   let finalCol = col;
@@ -1680,7 +1736,7 @@ function chompWhileHelp(
  */
 export const chompUntil = <PROBLEM>(
   token: Token<PROBLEM>
-): Parser<Unit, PROBLEM> => {
+): Parser<Unit, never, PROBLEM> => {
   return new ParserImpl((s) => {
     const [newOffset, newRow, newCol] = Helpers.findSubString(
       token.value,
@@ -1716,7 +1772,7 @@ export const chompUntil = <PROBLEM>(
  *
  * @category Chompers
  */
-export const chompUntilEndOr = (str: string): Parser<Unit, never> => {
+export const chompUntilEndOr = (str: string): Parser<Unit, never, never> => {
   return new ParserImpl((s) => {
     const [newOffset, newRow, newCol] = Helpers.findSubString(
       str,
@@ -1786,14 +1842,6 @@ export const chompUntilEndOr = (str: string): Parser<Unit, never> => {
  * `definitionBody` will get this extra context information. That way you can say
  * things like, “I was expecting an equals sign in the `view` definition.” Context!
  *
- * @remarks
- * **Note:** Typescript, while powerful, is not powerfull enough to allow us to type `ctx`.
- * `Parser` is a function of type `(s: State) => PStep<A, PROBLEM>` and if we add a `CTX`
- * type parameter like so `(s: State<CTX>) => PStep<A, CTX, PROBLEM>` we have
- * `CTX` as an *argument*. This is problematic since `inContext` changes the argument of a function that
- * is *already* declared! You end up in a situation where the parser can not know
- * the type of `CTX` since that is decided by function that wrapps it.
- *
  *
  * @privateRemarks
  * We will not add this to the Parser interface since that will make `CTX` leak
@@ -1802,8 +1850,8 @@ export const chompUntilEndOr = (str: string): Parser<Unit, never> => {
  * @category Parsers
  */
 export const inContext =
-  (ctx: unknown) =>
-  <A, PROBLEM>(parser: Parser<A, PROBLEM>): Parser<A, PROBLEM> => {
+  <CTX>(ctx: CTX) =>
+  <A, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<A, CTX, PROBLEM> => {
     return new ParserImpl((s0) => {
       // This must use a immutable list!!!
       const res = parser.exec(
@@ -1821,10 +1869,10 @@ export const inContext =
     });
   };
 
-function changeContext(
-  newContext: immutable.Stack<Located>,
-  { context, ...rest }: State
-): State {
+function changeContext<CTX>(
+  newContext: immutable.Stack<Located<CTX>>,
+  { context, ...rest }: State<unknown>
+): State<CTX> {
   return {
     context: newContext,
     ...rest,
@@ -1838,8 +1886,8 @@ function changeContext(
  *
  * @category Indentation
  */
-export const getIndent = new ParserImpl<number, never>(
-  (s: State): PStep<number, never> => Good(false, s.indent, s)
+export const getIndent = new ParserImpl<number, never, never>(
+  (s: State<never>): PStep<number, never, never> => Good(false, s.indent, s)
 );
 
 /**
@@ -1851,7 +1899,9 @@ export const withIndent = (newIndent: number) => {
   if (newIndent < 0) {
     throw Error(`Indentation was smaller then 1, value: ${newIndent}`);
   }
-  return <A, PROBLEM>(parse: Parser<A, PROBLEM>): Parser<A, PROBLEM> => {
+  return <A, CTX, PROBLEM>(
+    parse: Parser<A, CTX, PROBLEM>
+  ): Parser<A, CTX, PROBLEM> => {
     return new ParserImpl((s) => {
       const res = parse.exec(changeIndent(newIndent + s.indent, s));
       if (isGood(res)) {
@@ -1863,7 +1913,10 @@ export const withIndent = (newIndent: number) => {
   };
 };
 
-function changeIndent(newIndent: number, { indent, ...rest }: State): State {
+function changeIndent<CTX>(
+  newIndent: number,
+  { indent, ...rest }: State<CTX>
+): State<CTX> {
   return {
     indent: newIndent, // we must remove one so that that withIndent(4) => 4 and not 5
     ...rest,
@@ -1905,7 +1958,7 @@ export const symbol = token;
  */
 export const keyword = <PROBLEM>(
   token: Token<PROBLEM>
-): Parser<Unit, PROBLEM> => {
+): Parser<Unit, never, PROBLEM> => {
   const kwd = token.value;
 
   const progress = kwd.length > 0;
@@ -1949,17 +2002,19 @@ export const keyword = <PROBLEM>(
  *
  * @category Positions
  */
-export const getPosition: Parser<[number, number], never> = new ParserImpl(
-  (s: State): PStep<[number, number], never> => Good(false, [s.row, s.col], s)
-);
+export const getPosition: Parser<[number, number], never, never> =
+  new ParserImpl(
+    (s: State<unknown>): PStep<[number, number], never, never> =>
+      Good(false, [s.row, s.col], s)
+  );
 
 /**
  * Just like {@link Simple!getRow | Simple.getRow}
  *
  * @category Positions
  */
-export const getRow: Parser<number, never> = new ParserImpl(
-  (s: State): PStep<number, never> => Good(false, s.row, s)
+export const getRow: Parser<number, never, never> = new ParserImpl(
+  (s: State<unknown>): PStep<number, never, never> => Good(false, s.row, s)
 );
 
 /**
@@ -1967,8 +2022,8 @@ export const getRow: Parser<number, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getCol: Parser<number, never> = new ParserImpl(
-  (s: State): PStep<number, never> => Good(false, s.col, s)
+export const getCol: Parser<number, never, never> = new ParserImpl(
+  (s: State<unknown>): PStep<number, never, never> => Good(false, s.col, s)
 );
 
 /**
@@ -1976,8 +2031,8 @@ export const getCol: Parser<number, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getOffset: Parser<number, never> = new ParserImpl(
-  (s: State): PStep<number, never> => Good(false, s.offset, s)
+export const getOffset: Parser<number, never, never> = new ParserImpl(
+  (s: State<unknown>): PStep<number, never, never> => Good(false, s.offset, s)
 );
 
 /**
@@ -1985,8 +2040,8 @@ export const getOffset: Parser<number, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getSource: Parser<string, never> = new ParserImpl(
-  (s: State): PStep<string, never> => Good(false, s.src, s)
+export const getSource: Parser<string, never, never> = new ParserImpl(
+  (s: State<unknown>): PStep<string, never, never> => Good(false, s.src, s)
 );
 
 // VARIABLES
@@ -2002,7 +2057,7 @@ export const variable = <PROBLEM>(args: {
   inner: (char: string) => boolean;
   reserved: Set<string>;
   expecting: PROBLEM;
-}): Parser<string, PROBLEM> => {
+}): Parser<string, never, PROBLEM> => {
   return new ParserImpl((s) => {
     const firstOffset = Helpers.isSubChar(args.start, s.offset, s.src);
 
@@ -2039,15 +2094,15 @@ export const variable = <PROBLEM>(args: {
   });
 };
 
-const varHelp = (
+const varHelp = <CTX>(
   isGood: (s: string) => boolean,
   offset: number,
   row: number,
   col: number,
   src: string,
   indent: number,
-  context: immutable.Stack<Located>
-): State => {
+  context: immutable.Stack<Located<CTX>>
+): State<CTX> => {
   let currentOffset = offset;
   let currentRow = row;
   let currentCol = col;
@@ -2086,6 +2141,8 @@ const varHelp = (
  */
 export const sequence = <
   A,
+  CTX1,
+  CTX2,
   PROBLEM1,
   PROBLEM2,
   PROBLEM3,
@@ -2095,16 +2152,21 @@ export const sequence = <
   start: Token<PROBLEM1>;
   separator: Token<PROBLEM2>;
   end: Token<PROBLEM3>;
-  spaces: Parser<Unit, PROBLEM4>;
-  item: Parser<A, PROBLEM5>;
+  spaces: Parser<Unit, CTX1, PROBLEM4>;
+  item: Parser<A, CTX2, PROBLEM5>;
   trailing: Trailing;
 }): Parser<
   immutable.List<A>,
+  CTX1 | CTX2,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
 > => {
-  return skip1st<PROBLEM1>(token(args.start))(
+  return skip1st<never, PROBLEM1>(token(args.start))(
     skip1st(args.spaces)(
-      sequenceEnd<A, PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5>(
+      sequenceEnd<
+        A,
+        CTX1 | CTX2,
+        PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
+      >(
         token(args.end),
         args.spaces,
         args.item,
@@ -2133,13 +2195,13 @@ export const Trailing = {
  */
 export type Trailing = "Forbidden" | "Optional" | "Mandatory";
 
-const sequenceEnd = <A, PROBLEM>(
-  ender: Parser<Unit, PROBLEM>,
-  ws: Parser<Unit, PROBLEM>,
-  parseItem: Parser<A, PROBLEM>,
-  sep: Parser<Unit, PROBLEM>,
+const sequenceEnd = <A, CTX, PROBLEM>(
+  ender: Parser<Unit, CTX, PROBLEM>,
+  ws: Parser<Unit, CTX, PROBLEM>,
+  parseItem: Parser<A, CTX, PROBLEM>,
+  sep: Parser<Unit, CTX, PROBLEM>,
   trailing: Trailing
-): Parser<immutable.List<A>, PROBLEM> => {
+): Parser<immutable.List<A>, CTX, PROBLEM> => {
   const chompRest = (item: A) => {
     if (trailing === Trailing.Forbidden) {
       const res = loop(immutable.List([item]))(
@@ -2175,15 +2237,15 @@ const sequenceEnd = <A, PROBLEM>(
 };
 
 const sequenceEndForbidden =
-  <A, PROBLEM>(
-    ender: Parser<Unit, PROBLEM>,
-    ws: Parser<Unit, PROBLEM>,
-    parseItem: Parser<A, PROBLEM>,
-    sep: Parser<Unit, PROBLEM>
+  <A, CTX, PROBLEM>(
+    ender: Parser<Unit, CTX, PROBLEM>,
+    ws: Parser<Unit, CTX, PROBLEM>,
+    parseItem: Parser<A, CTX, PROBLEM>,
+    sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
     revItems: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, PROBLEM> => {
+  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return skip1st(ws)(
       oneOf(
         skip1st(sep)(
@@ -2195,15 +2257,15 @@ const sequenceEndForbidden =
   };
 
 const sequenceEndOptional =
-  <A, PROBLEM>(
-    ender: Parser<Unit, PROBLEM>,
-    ws: Parser<Unit, PROBLEM>,
-    parseItem: Parser<A, PROBLEM>,
-    sep: Parser<Unit, PROBLEM>
+  <A, CTX, PROBLEM>(
+    ender: Parser<Unit, CTX, PROBLEM>,
+    ws: Parser<Unit, CTX, PROBLEM>,
+    parseItem: Parser<A, CTX, PROBLEM>,
+    sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
     revItems: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, PROBLEM> => {
+  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     const parseEnd = ender.map(() => Done(revItems));
     return skip1st(ws)(
       oneOf(
@@ -2221,14 +2283,14 @@ const sequenceEndOptional =
   };
 
 const sequenceEndMandatory =
-  <A, PROBLEM>(
-    ws: Parser<Unit, PROBLEM>,
-    parseItem: Parser<A, PROBLEM>,
-    sep: Parser<Unit, PROBLEM>
+  <A, CTX, PROBLEM>(
+    ws: Parser<Unit, CTX, PROBLEM>,
+    parseItem: Parser<A, CTX, PROBLEM>,
+    sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
     revItems: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, PROBLEM> => {
+  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return oneOf(
       skip2nd(parseItem)(skip2nd(ws)(skip2nd(sep)(ws))).map((item) =>
         Loop(revItems.push(item))
@@ -2244,7 +2306,7 @@ const sequenceEndMandatory =
  *
  * @category Whitespace
  */
-export const spaces = new ParserImpl<Unit, never>((s: State) =>
+export const spaces = new ParserImpl<Unit, never>((s: State<unknown>) =>
   chompWhile((c) => c === " " || c === "\n" || c === "\r").exec(s)
 );
 
@@ -2258,8 +2320,8 @@ export const spaces = new ParserImpl<Unit, never>((s: State) =>
  */
 export const lineComment = <PROBLEM>(
   start: Token<PROBLEM>
-): Parser<Unit, PROBLEM> =>
-  skip2nd<Unit, PROBLEM>(token(start))(chompUntilEndOr("\n"));
+): Parser<Unit, never, PROBLEM> =>
+  skip2nd<Unit, never, PROBLEM>(token(start))(chompUntilEndOr("\n"));
 
 // Multiline Comment
 
@@ -2307,7 +2369,7 @@ export function isNotNestable(x: any): x is typeof Nestable.NotNestable {
 export const multiComment =
   <PROBLEM>(open: Token<PROBLEM>) =>
   (close: Token<PROBLEM>) =>
-  (nestable: Nestable): Parser<Unit, PROBLEM> => {
+  (nestable: Nestable): Parser<Unit, never, PROBLEM> => {
     if (isNotNestable(nestable)) {
       return skip2nd(token(open))(chompUntil(close));
     } else {
@@ -2318,7 +2380,7 @@ export const multiComment =
 function nestableComment<PROBELM>(
   open: Token<PROBELM>,
   close: Token<PROBELM>
-): Parser<Unit, PROBELM> {
+): Parser<Unit, never, PROBELM> {
   const openChar = open.value.at(0);
   const closeChar = close.value.at(0);
   if (openChar === undefined) {
@@ -2337,13 +2399,13 @@ function nestableComment<PROBELM>(
   );
 }
 
-function nestableHelp<PROBLEM>(
+function nestableHelp<CTX, PROBLEM>(
   isNotRelevant: (c: string) => boolean,
-  open: Parser<Unit, PROBLEM>,
-  close: Parser<Unit, PROBLEM>,
+  open: Parser<Unit, CTX, PROBLEM>,
+  close: Parser<Unit, CTX, PROBLEM>,
   expectingClose: PROBLEM,
   nestLevel: number
-): Parser<Unit, PROBLEM> {
+): Parser<Unit, CTX, PROBLEM> {
   return skip1st(chompWhile(isNotRelevant))(
     oneOf(
       nestLevel === 1

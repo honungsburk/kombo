@@ -30,7 +30,7 @@ export {
  *
  * @category Parsers
  */
-export type Parser<A> = A.Parser<A, Problem>;
+export type Parser<A> = A.Parser<A, never, Problem>;
 
 // RUN
 

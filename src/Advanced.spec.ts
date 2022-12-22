@@ -14,9 +14,9 @@ function advancedGroup(fnName: string, callback: (group: Group) => void) {
   });
 }
 
-function expectProblem<A>(
+function expectProblem<A, CTX>(
   expect: Expect,
-  result: Results.Result<any, P.DeadEnd<A>[]>,
+  result: Results.Result<any, P.DeadEnd<CTX, A>[]>,
   toBe: A[]
 ): void {
   expect(result.err).toBeTruthy();
