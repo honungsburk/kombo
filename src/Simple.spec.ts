@@ -527,10 +527,18 @@ function makeUnderline(row: string, minCol: number, maxCol: number): string {
   return underline.join("");
 }
 
+parserGroup("located", "@located-parser", () => {
+  const parse = P.run(located(php));
+  test("Succeed on '$_var'", ({ expect }) => {
+    const res = parse("$_var");
+    expect(res.val).toStrictEqual(Located([1, 1])("$_var")([1, 6]));
+  });
+});
+
 // checkIndent
 
 const checkIndent: P.Parser<P.Unit> = P.succeed(
-  (indent: number) => (column: number) => indent <= column
+  (indent: number) => (column: number) => indent < column
 )
   .apply(P.getIndent)
   .apply(P.getCol)
@@ -541,6 +549,21 @@ const checkIndent: P.Parser<P.Unit> = P.succeed(
       return P.problem("expecting more spaces");
     }
   });
+
+parserGroup("checkIndent", "@checkIndent-parser", () => {
+  test("Succeed when indendation is smaller or equal to col", ({ expect }) => {
+    const res = P.run(checkIndent)("");
+    expect(res.ok).toBeTruthy();
+  });
+  test("Fail when indentation is larger then col", ({ expect }) => {
+    const res = P.run(
+      P.succeed(P.Unit)
+        .andThen(() => checkIndent)
+        .withIndent(3)
+    )("");
+    expect(res.err).toBeTruthy();
+  });
+});
 
 // Whitespace
 

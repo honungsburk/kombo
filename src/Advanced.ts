@@ -553,6 +553,29 @@ export interface Parser<A, PROBLEM> {
   /**
    * Just like {@link Simple!withIndent | Simple.withIndent}
    *
+   * @example
+   *
+   * **Note:** `withIndent` sets the indentation for all *previous* uses of `getIndent`
+   *
+   * ```ts
+   * const parser = succeed(Unit).withIndent(3).getIndent();
+   * run(parser)(""); // => 1
+   *
+   * const parser2 = succeed(Unit).getIndent().withIndent(3);
+   * run(parser2)(""); // =>
+   * ```
+   *
+   * This might at first look seem strange, but a good way to think about it is
+   * that our parser is a tree like structure
+   *
+   * ```txt
+   * parser1 ___ parser2
+   *         \
+   *          \_ parser3
+   * ```
+   *
+   * and `withIndent` wraps
+   *
    * @category Indentation
    */
   withIndent(newIndent: number): Parser<A, PROBLEM>;
@@ -1820,11 +1843,13 @@ export const getIndent = new ParserImpl<number, never>(
  *
  * @category Indentation
  */
-export const withIndent =
-  (newIndent: number) =>
-  <A, PROBLEM>(parse: Parser<A, PROBLEM>): Parser<A, PROBLEM> => {
+export const withIndent = (newIndent: number) => {
+  if (newIndent < 0) {
+    throw Error(`Indentation was smaller then 1, value: ${newIndent}`);
+  }
+  return <A, PROBLEM>(parse: Parser<A, PROBLEM>): Parser<A, PROBLEM> => {
     return new ParserImpl((s) => {
-      const res = parse.exec(changeIndent(newIndent, s));
+      const res = parse.exec(changeIndent(newIndent + s.indent, s));
       if (isGood(res)) {
         return Good(res.flag, res.value, changeIndent(s.indent, res.ctx));
       } else {
@@ -1832,10 +1857,11 @@ export const withIndent =
       }
     });
   };
+};
 
 function changeIndent(newIndent: number, { indent, ...rest }: State): State {
   return {
-    indent: newIndent,
+    indent: newIndent, // we must remove one so that that withIndent(4) => 4 and not 5
     ...rest,
   };
 }

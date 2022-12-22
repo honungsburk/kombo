@@ -1544,6 +1544,10 @@ export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
  * cares about spaces sometimes. {@link withIndent} and {@link getIndent} allow you to manage
  * "indentation state" yourself, however is necessary in your scenario.
  *
+ * @remarks
+ *
+ * **Note:** indentation starts at **1**!
+ *
  * @see
  * - {@link Advanced!Parser.withIndent | Parser.withIndent}
  * - {@link getIndent}
@@ -1568,8 +1572,21 @@ export const withIndent =
  * ```ts
  *     succeed((a: number) => (b: number) => [a, b])
  *       .apply(withIndent(4)(getIndent))
- *       .apply(getIndent);
+ *       .apply(getIndent); // => [4,0]
  * ```
+ *
+ * `withIndent` is addative:
+ *
+ * ```ts
+ *    const parser = P.succeed((x: number) => (y: number) => [x, y])
+ *      .apply(P.withIndent(8)(P.withIndent(4)(P.getIndent)))
+ *      .apply(withIndent(4)(getIndent))
+ *      // => [8, 4]
+ * ```
+ *
+ * This is really nice, because it means that someone else can tell us what
+ * our indentation level is. If we then do any comparisons against `col` it will
+ * check out!
  *
  * @see
  * - {@link Advanced!Parser.getIndent | Parser.getIndent}

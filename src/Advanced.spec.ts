@@ -643,6 +643,24 @@ advancedGroup("indentation", () => {
     const res = P.run(parser)("");
     expect(res.val).toStrictEqual([4, 0]);
   });
+
+  test("Get and set nested indentation", ({ expect }) => {
+    const parser = P.succeed((x: number) => (y: number) => [x, y])
+      .apply(P.getIndent.withIndent(4).withIndent(8))
+      .apply(P.withIndent(8)(P.withIndent(4)(P.getIndent)));
+    const res = P.run(parser)("");
+    expect(res.val).toStrictEqual([12, 12]);
+  });
+
+  test("infix indentation", ({ expect }) => {
+    const parser1 = P.succeed(P.Unit).getIndent();
+    const res1 = P.run(parser1)("");
+    expect(res1.val).toStrictEqual(0);
+
+    const parser2 = P.succeed(P.Unit).getIndent().withIndent(3);
+    const res2 = P.run(parser2)("");
+    expect(res2.val).toStrictEqual(3);
+  });
 });
 
 // KEYWORD
