@@ -554,12 +554,12 @@ advancedGroup("chompUntil", () => {
 
   test("part of string", ({ expect }) => {
     const res = P.run(chompUntilColon)("aaa:bbb");
-    expect(res.val).toStrictEqual("aaa");
+    expect(res.val).toStrictEqual("aaa:");
   });
 
   test("empty string", ({ expect }) => {
     const res = P.run(chompUntilColon)(":bbb");
-    expect(res.val).toStrictEqual("");
+    expect(res.val).toStrictEqual(":");
   });
 });
 
@@ -578,6 +578,13 @@ advancedGroup("chompUntilEndOr", () => {
   test("parses until keyword, even newlines", ({ expect }) => {
     const res = parseHello("asdnahd\n hello asdasd");
     expect(res.val).toStrictEqual([2, 7]);
+  });
+
+  const comment = P.run(P.chompUntilEndOr("\n").andThen(() => P.getPosition));
+
+  test("parses until keyword, even newlines", ({ expect }) => {
+    const res = comment("asdnahd\n hello asdasd");
+    expect(res.val).toStrictEqual([2, 1]);
   });
 });
 

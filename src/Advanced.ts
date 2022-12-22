@@ -1665,13 +1665,20 @@ export const chompUntil = <PROBLEM>(
     if (newOffset === -1) {
       return Bad(false, fromInfo(newRow, newCol, token.problem, s.context));
     } else {
+      const [finalOffset, finalRow, finalCol] = Helpers.isSubString(
+        token.value,
+        newOffset,
+        newRow,
+        newCol,
+        s.src
+      );
       return Good(s.offset < newOffset, Unit, {
         src: s.src,
-        offset: newOffset,
+        offset: finalOffset,
         indent: s.indent,
         context: s.context,
-        row: newRow,
-        col: newCol,
+        row: finalRow,
+        col: finalCol,
       });
     }
   });

@@ -190,7 +190,7 @@ export function isLower(string: string): boolean {
  * Check that a string only consists of uppercase characters
  *
  * ```ts
- *     isUpper("ABCDEFGHIJKLMNOPQRSTUVXYZ") // => true
+ *     isUpper("abcdefghijKlmnopqrstuvxyz") // => true
  *     isUpper("ABCDEFGHIJKLmNOPQRSTUVXYZ") // => false
  *     isUpper("=")                         // => false
  * ```

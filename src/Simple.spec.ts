@@ -325,13 +325,32 @@ parserGroup("justAnInt", "@justAnInt-parser", () => {
 
 // CHOMPED STRINGS
 
-// TODO: Add a postfix operator!
 const php: P.Parser<string> = P.getChompedString(
   P.succeed(P.Unit)
     .skip(P.chompIf((c: string) => c === "$"))
     .skip(P.chompIf((c: string) => Helpers.isAlphaNum(c) || c === "_"))
     .skip(P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c === "_"))
 );
+
+parserGroup("php", "@php-parser", () => {
+  test("Succeed on '$_'", ({ expect }) => {
+    const res = P.run(php)("$_");
+    expect(res.ok).toBeTruthy();
+  });
+  test("Succeed on '$_asd'", ({ expect }) => {
+    const res = P.run(php)("$_asd");
+    expect(res.ok).toBeTruthy();
+  });
+
+  test("Fail on '$'", ({ expect }) => {
+    const res = P.run(php)("$");
+    expect(res.err).toBeTruthy();
+  });
+  test("Fail on 'asd'", ({ expect }) => {
+    const res = P.run(php)("$");
+    expect(res.err).toBeTruthy();
+  });
+});
 
 const getChompedString = (parser: P.Parser<any>) => {
   return P.succeed(
@@ -360,29 +379,100 @@ const mapChompedString =
 
 const chompUpper: P.Parser<P.Unit> = P.chompIf(Helpers.isUpper);
 
+parserGroup("chompUpper", "@chompUpper-parser", () => {
+  test("Succeed on 'ABC'", ({ expect }) => {
+    const res = P.run(chompUpper.getChompedString())("ABC");
+    expect(res.val).toStrictEqual("A");
+  });
+
+  test("Fail on 'abc'", ({ expect }) => {
+    const res = P.run(chompUpper)("abc");
+    expect(res.err).toBeTruthy();
+  });
+});
+
 // CHOMP WHILE
 
-const whitespace: P.Parser<P.Unit> = P.chompWhile(
+const whitespace: P.Parser<string> = P.chompWhile(
   (c: string) => c == " " || c == "\t" || c == "\n" || c == "\r"
-);
+).getChompedString();
+
+parserGroup("whitespace", "@whitespace-parser", () => {
+  test("Succeed on ' \\t\\n  a'", ({ expect }) => {
+    const ws = " \t\n  ";
+    const res = P.run(whitespace)(ws + "a");
+    expect(res.val).toStrictEqual(ws);
+  });
+
+  test("Succeed on no whitespace", ({ expect }) => {
+    const res = P.run(whitespace)("abc");
+    expect(res.val).toStrictEqual("");
+  });
+});
 
 const elmVar: P.Parser<string> = P.getChompedString(
-  P.succeed(P.Unit).skip(
-    P.chompIf(Helpers.isLower).skip(
-      P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c == "_")
-    )
-  )
+  P.succeed(P.Unit)
+    .skip(P.chompIf(Helpers.isLower))
+    .skip(P.chompWhile((c: string) => Helpers.isAlphaNum(c) || c == "_"))
 );
+
+parserGroup("elmVar", "@elmVar-parser", () => {
+  test("Succeed on 'avar'", ({ expect }) => {
+    const res = P.run(elmVar)("avar");
+    expect(res.val).toStrictEqual("avar");
+  });
+
+  test("Fail on 'Avar", ({ expect }) => {
+    const res = P.run(elmVar)("Avar");
+    expect(res.err).toBeTruthy();
+  });
+});
 
 // CHOMP UNTIL
 
-const comment: P.Parser<P.Unit> = P.symbol("{-").skip(P.chompUntil("-}"));
+const comment: P.Parser<string> = P.symbol("{-")
+  .skip(P.chompUntil("-}"))
+  .getChompedString();
+
+parserGroup("comment", "@comment-parser", () => {
+  test("Succeed on '{- COMMENT -}'", ({ expect }) => {
+    const res = P.run(comment)("{- COMMENT -}");
+    expect(res.val).toStrictEqual("{- COMMENT -}");
+  });
+
+  test("Fail on '{- COMMENT", ({ expect }) => {
+    const res = P.run(comment)("{- COMMENT");
+    expect(res.err).toBeTruthy();
+  });
+});
 
 // CHOMP UNTIL END OR
 
-const singleLineComment: P.Parser<P.Unit> = P.symbol("--").skip(
-  P.chompUntilEndOr("\n")
-);
+const singleLineComment: P.Parser<string> = P.symbol("--")
+  .skip(P.chompUntilEndOr("\n"))
+  .getChompedString();
+
+parserGroup("singleLineComment", "@singleLineComment-parser", () => {
+  test("Succeed on '-- COMMENT'", ({ expect }) => {
+    const res = P.run(singleLineComment)("-- COMMENT");
+    expect(res.val).toStrictEqual("-- COMMENT");
+  });
+
+  test("Succeed on '-- COMMENT\\n asdad'", ({ expect }) => {
+    const res = P.run(singleLineComment)("-- COMMENT\n asdad");
+    expect(res.val).toStrictEqual("-- COMMENT\n");
+  });
+
+  test("Succeed on '-- \\n asdad'", ({ expect }) => {
+    const res = P.run(singleLineComment)("-- \n asdad");
+    expect(res.val).toStrictEqual("-- \n");
+  });
+
+  test("Fail on '{- COMMENT", ({ expect }) => {
+    const res = P.run(singleLineComment)("{- COMMENT");
+    expect(res.err).toBeTruthy();
+  });
+});
 
 // INDENTAION
 
