@@ -2,8 +2,16 @@
   "name": "@honungsburk/kombo",
   "version": "1.0.0",
   "description": "Are you tired of complex regex? Do you want good error messages? Use kombo!",
-  "author": "Frank Hampus Weslien",
-  "license": "MIT",
+  "author": "Frank Hampus Weslien (https://honungsburk.github.io/)",
+  "license": "BSD-3-Clause",
+  "homepage": "https://honungsburk.github.io/kombo/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/honungsburk/kombo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/honungsburk/kombo/issues"
+  },
   "files": [
     "dist/",
     "README.md",
