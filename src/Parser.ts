@@ -59,7 +59,7 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
 export type State<CTX> = {
   src: string;
   offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
-  indent: number;
+  indent: number; // starts from 0
   context: immutable.Stack<Located<CTX>>;
   row: number; //in newlines
   col: number; //in UTF-16 characters
@@ -143,6 +143,8 @@ export function Deadend<CTX, PROBLEM>(
 
 /**
  * Keeps track of the context and problem.
+ *
+ * @internal
  */
 export type Bag<CTX, PROBLEM> =
   | Empty
@@ -151,24 +153,39 @@ export type Bag<CTX, PROBLEM> =
 
 // Empty
 
+/**
+ * @internal
+ */
 export type Empty = typeof Empty;
 
+/**
+ * @internal
+ */
 export const Empty = {
   kind: "Empty",
 } as const;
 
+/**
+ * @internal
+ */
 export function isEmpty(bag: Bag<any, any>): bag is Empty {
   return bag.kind === "Empty";
 }
 
 // AddRight
 
+/**
+ * @internal
+ */
 export type AddRight<CTX, PROBLEM> = {
   kind: "AddRight";
   bag: Bag<CTX, PROBLEM>;
   deadEnd: DeadEnd<CTX, PROBLEM>;
 };
 
+/**
+ * @internal
+ */
 export function AddRight<CTX, PROBLEM>(
   bag: Bag<CTX, PROBLEM>,
   deadEnd: DeadEnd<CTX, PROBLEM>
@@ -180,6 +197,9 @@ export function AddRight<CTX, PROBLEM>(
   };
 }
 
+/**
+ * @internal
+ */
 export function isAddRight<CTX, PROBLEM>(
   bag: Bag<CTX, PROBLEM>
 ): bag is AddRight<CTX, PROBLEM> {
@@ -188,12 +208,18 @@ export function isAddRight<CTX, PROBLEM>(
 
 // Append
 
+/**
+ * @internal
+ */
 export type Append<CTX, PROBLEM> = {
   kind: "Append";
   left: Bag<CTX, PROBLEM>;
   right: Bag<CTX, PROBLEM>;
 };
 
+/**
+ * @internal
+ */
 export function Append<CTX, PROBLEM>(
   left: Bag<CTX, PROBLEM>,
   right: Bag<CTX, PROBLEM>
@@ -205,6 +231,9 @@ export function Append<CTX, PROBLEM>(
   };
 }
 
+/**
+ * @internal
+ */
 export function isAppend<CTX, PROBLEM>(
   bag: Bag<CTX, PROBLEM>
 ): bag is Append<CTX, PROBLEM> {
@@ -213,6 +242,13 @@ export function isAppend<CTX, PROBLEM>(
 
 // Bag transforms
 
+/**
+ * Create a {@link Bag} from the current state and a given problem.
+ *
+ * **Note:** Internal
+ *
+ * @internal
+ */
 export function fromState<CTX, PROBLEM>(
   state: State<CTX>,
   p: PROBLEM
@@ -228,6 +264,9 @@ export function fromState<CTX, PROBLEM>(
   );
 }
 
+/**
+ * @internal
+ */
 export function fromInfo<CTX, PROBLEM>(
   row: number,
   col: number,
@@ -237,6 +276,9 @@ export function fromInfo<CTX, PROBLEM>(
   return AddRight(Empty, Deadend(row, col, p, context));
 }
 
+/**
+ * @internal
+ */
 export function bagToList<CTX, PROBLEM>(
   bag: Bag<CTX, PROBLEM>
 ): DeadEnd<CTX, PROBLEM>[] {
@@ -262,8 +304,14 @@ export function bagToList<CTX, PROBLEM>(
 
 // PStep
 
+/**
+ * @internal
+ */
 export type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
 
+/**
+ * @internal
+ */
 export type Good<A, CTX> = {
   kind: "Good";
   flag: boolean; // if true, reached an unrecoverable error
@@ -271,6 +319,9 @@ export type Good<A, CTX> = {
   ctx: State<CTX>;
 };
 
+/**
+ * @internal
+ */
 export function Good<A, CTX>(
   flag: boolean, // if true, reached an end state
   value: A,
@@ -284,6 +335,9 @@ export function Good<A, CTX>(
   };
 }
 
+/**
+ * @internal
+ */
 export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
   return typeof x === "object" && x.kind === "Good";
 }
@@ -297,6 +351,8 @@ export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
  * @see
  * - {@link Bad:function Bad constructor}
  * - {@link isBad:function}
+ *
+ * @internal
  */
 export type Bad<CTX, PROBLEM> = {
   kind: "Bad";
@@ -310,6 +366,8 @@ export type Bad<CTX, PROBLEM> = {
  * @see
  * - {@link Bad:type Bad type}
  * - {@link isBad:function}
+ *
+ * @internal
  */
 export function Bad<CTX, PROBLEM>(
   flag: boolean,
@@ -328,6 +386,8 @@ export function Bad<CTX, PROBLEM>(
  * @see
  * - {@link Bad:type Bad type}
  * - {@link Bad:function Bad constructor}
+ *
+ * @internal
  */
 export function isBad<CTX, PROBLEM>(
   x: PStep<any, CTX, PROBLEM>
@@ -347,6 +407,8 @@ export function isBad<CTX, PROBLEM>(
  * - {@link GetReturnType}
  *
  * @category Helper Types
+ *
+ * @internal
  */
 export type GetArgumentType<Function> = Function extends (arg: infer A) => any
   ? A
@@ -364,6 +426,8 @@ export type GetArgumentType<Function> = Function extends (arg: infer A) => any
  * - {@link GetArgumentType}
  *
  * @category Helper Types
+ *
+ * @internal
  */
 export type GetReturnType<Function> = Function extends (arg: any) => any
   ? ReturnType<Function>
@@ -406,7 +470,6 @@ export interface Parser<A, CTX, PROBLEM> {
   /**
    * **WARNING:** Do not use directly, it is used by the library
    *
-   * @private
    * @internal
    */
   exec: (s: State<unknown>) => PStep<A, CTX, PROBLEM>;

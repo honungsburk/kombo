@@ -616,8 +616,8 @@ advancedGroup("inContext", () => {
     expect(Results.isErr(res)).toBeTruthy();
     if (Results.isErr(res)) {
       expect(res.value.map((e) => e.contextStack)).toStrictEqual([
-        Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX1 }]),
+        Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
       ]);
     }
   });
@@ -627,8 +627,8 @@ advancedGroup("inContext", () => {
     expect(Results.isErr(res)).toBeTruthy();
     if (Results.isErr(res)) {
       expect(res.value.map((e) => e.contextStack)).toStrictEqual([
-        Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
         Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX1 }]),
+        Immutable.Stack([{ row: 1, col: 1, context: ContextContext.CTX2 }]),
       ]);
     }
   });
