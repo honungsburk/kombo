@@ -6,9 +6,10 @@ import * as P from "./Parser.js";
 
 // Exports
 export {
+  isLoop,
   Loop,
+  isDone,
   Done,
-  Unit,
   Nestable,
   isNotNestable,
   isNestable,
@@ -89,14 +90,14 @@ export type DeadEnd = {
  *
  * @remark
  * **Note:** This is just a baseline of quality. It cannot do anything with
- * colors. It is not interactivite. It just turns the raw data into strings.
- * I really hope folks will check out the {@link https://github.com/elm/compiler elm source code}
+ * colors. It is not interactive. It just turns the raw data into strings.
+ * I hope folks will check out the {@link https://github.com/elm/compiler elm source code}
  * for some inspiration on how to turn errors into Html with nice colors and
- * interaction! The Parser.Advanced module lets you work with context as well,
- * which really unlocks another level of quality! The "context" technique is
+ * interaction! The {@link Advanced:namespace } module lets you work with context as well,
+ * which unlocks another level of quality! The "context" technique is
  * how the Elm compiler can say "I think I am parsing a list, so I was expecting
  * a closing ] here." Telling users what the parser thinks is happening can be
- * really helpful!
+ * helpful!
  *
  * @category Errors
  */
@@ -122,7 +123,7 @@ export function deadEndsToString(deadEnds: DeadEnd[]): string {
  * how {@link problemToString} works!
  *
  * **Note:** If you feel limited by this type (i.e. having to represent custom
- * problems as strings) I highly recommend switching to `Parser.Advanced`. It
+ * problems as strings) I highly recommend switching to the {@link Advanced:module} module. It
  * lets you define your own `Problem` type. It can also track "context" which
  * can improve error messages a ton! This is how the Elm compiler produces
  * relatively nice parse errors, and I am excited to see those techniques applied
@@ -648,7 +649,7 @@ export function isBadRepeat(x: any): x is BadRepeat {
  * ```
  *
  * Seems weird on its own, but it is very useful in combination with other
- * functions. The docs for {@link Advanced!Parser.apply} and {@link Advanced!Parser.andThen} have some neat
+ * functions. The docs for {@link Parser!Parser.apply} and {@link Parser!Parser.andThen} have some neat
  * examples.
  *
  * ```ts
@@ -667,7 +668,7 @@ export function succeed<A>(v: A): Parser<A> {
 
 /**
  * Indicate that a parser has reached a dead end. "Everything was going fine
- * until I ran into this problem." Check out the {@link Advanced!Parser.andThen} docs to see
+ * until I ran into this problem." Check out the {@link Parser!Parser.andThen} docs to see
  * an example usage.
  *
  * ```ts
@@ -687,7 +688,7 @@ export function problem<A>(msg: string): Parser<A> {
 // MAPPING
 
 /**
- * This is a curried version of the {@link Advanced!Parser.map} method on the {@link Advanced!Parser} interface.
+ * This is a curried version of the {@link Parser!Parser.map} method on the {@link Parser!Parser} interface.
  *
  * ```ts
  * const parser = success(89).map(n => n + 1)
@@ -724,7 +725,7 @@ export const map2 =
   };
 
 /**
- * This is a curried version of the {@link Advanced!Parser.apply} method on the Parser interface.
+ * This is a curried version of the {@link Parser!Parser.apply} method on the Parser interface.
  *
  * ```ts
  * const parser = apply(success(n => { int: n }))(int)
@@ -741,7 +742,7 @@ export const apply =
   };
 
 /**
- * Run two parsers in sucession, only keeping the result of the second one.
+ * Run two parsers in succession, only keeping the result of the second one.
  *
  * ```ts
  * run(skip1st(spaces)(int))("   123")  // => Ok(123)
@@ -749,8 +750,8 @@ export const apply =
  * ```
  *
  * @See
- * - {@link Advanced!Parser.keep } is the infix version of `skip1st`.
- * - {@link skip2nd } for a function that skips it's second argument.
+ * - {@link Parser!Parser.keep } is the infix version of `skip1st`.
+ * - {@link skip2nd } for a function that skips its second argument.
  *
  * @category Mapping
  */
@@ -761,7 +762,7 @@ export const skip1st =
   };
 
 /**
- * A curried version of the {@link Parser.skip } method on the Parser class.
+ * The curried, stand-alone version of the {@link Parser!Parser.skip }.
  *
  * ```ts
  * run(skip2nd(spaces)(int))("   123")  // => Ok(Unit)
@@ -770,7 +771,7 @@ export const skip1st =
  *
  * **Note:** that `spaces` returns `Unit`! Unit is defined as `const Unit = false`
  *
- * @See {@link skip1st } for a function that skips it's first argument.
+ * @See {@link skip1st } for a function that skips its first argument.
  *
  * @category Mapping
  */
@@ -783,7 +784,7 @@ export const skip2nd =
 // AND THEN
 
 /**
- * A curried version of the {@link Advanced!Parser.andThen } method on the Parser interface.
+ * The curried version of the {@link Parser!Parser.andThen } method on the Parser interface.
  *
  * ```ts
  * const checkZipCode = (code: string): Parser<string> => {
@@ -878,7 +879,7 @@ export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
 // ONE OF
 
 //
-// More advanced typechecking.
+// More advanced type-checking.
 //
 
 /**
@@ -993,7 +994,7 @@ export type Step<STATE, A> = A.Step<STATE, A>;
  * repeated structures, like a bunch of statements:
  *
  * ```ts
- *     // Note that we are useing a mutable list here. Dangerous but OK in this scenario.
+ *     // Note that we are using a mutable list here. Dangerous but OK in this scenario.
  *     const statementsHelp = (stmts: Stmt[]): P.Parser<P.Step<Stmt[], Stmt[]>> => {
  *       return P.oneOf(
  *         P.succeed((stmt) => {
@@ -1012,14 +1013,14 @@ export type Step<STATE, A> = A.Step<STATE, A>;
  * ```
  *
  * **IMPORTANT NOTE:** Parsers like `succeed(Unit)` and `chompWhile(isAlpha)` can
- * succeed without consuming any characters. So in some cases you may want to use
+ * succeed without consuming any characters. So in some cases, you may want to use
  * {@link getOffset} to ensure that each step actually consumed characters.
  * Otherwise you could end up in an infinite loop!
  *
  * **Note:** Anything you can write with `loop`, you can also write as a parser
  * that chomps some characters `andThen` calls itself with new arguments. The
  * problem with calling `andThen` recursively is that it grows the stack, so you
- * cannot do it indefinitely. So `loop` allow us to write more efficient parsers.
+ * cannot do it indefinitely. So `loop` allows us to write more efficient parsers.
  * Of course you could also use the looping constructs built into javascript/typescript itself.
  *
  * @see
@@ -1078,11 +1079,11 @@ export const commit = <A>(value: A): Parser<A> => {
  * should not be used for binary operators like `+` and `-` because you can find
  * yourself in weird situations. For example, is `"3--4"` a typo? Or is it `"3 - -4"`?
  * I have had better luck with `chompWhile(isSymbol)` and sorting out which
- * operator it is afterwards.
+ * operator it is afterward.
  *
  * @category Building Blocks
  */
-export const symbol = (str: string): Parser<A.Unit> => {
+export const symbol = (str: string): Parser<P.Unit> => {
   return A.symbol(A.Token(str, ExpectingSymbol(str)));
 };
 
@@ -1091,10 +1092,10 @@ export const symbol = (str: string): Parser<A.Unit> => {
 /**
  * Parse exactly the given string, without any regard to what comes next.
  *
- * A potential pitfall when parsing keywords is getting tricked by variables that
+ * A potential pitfall when parsing `keywords` is getting tricked by variables that
  * start with a keyword, like `let` in `letters` or `import` in `important`. This
  * is especially likely if you have a whitespace parser that can consume zero
- * charcters. So the {@link keyword} parser is defined with `token` and a
+ * characters. So the {@link keyword} parser is defined with `token` and a
  * trick to peek ahead a bit:
  *
  * ```ts
@@ -1127,7 +1128,7 @@ export const symbol = (str: string): Parser<A.Unit> => {
  *
  * @category Building Blocks
  */
-export const token = (token: string): Parser<A.Unit> => {
+export const token = (token: string): Parser<P.Unit> => {
   return A.token(toToken(token));
 };
 
@@ -1167,7 +1168,7 @@ function toToken(str: string): A.Token<Problem> {
  *
  * @category Building Blocks
  */
-export const keyword = (kwd: string): Parser<A.Unit> => {
+export const keyword = (kwd: string): Parser<P.Unit> => {
   return A.keyword(A.Token(kwd, ExpectingKeyword(kwd)));
 };
 
@@ -1348,7 +1349,7 @@ export const number = <A>(args: {
  *
  * @category Building Blocks
  */
-export const end: Parser<A.Unit> = A.end(ExpectingEnd);
+export const end: Parser<P.Unit> = A.end(ExpectingEnd);
 
 // CHOMPED STRINGS
 
@@ -1442,7 +1443,7 @@ export const mapChompedString =
  *
  * @category Chompers
  */
-export const chompIf = (isGood: (char: string) => boolean): Parser<A.Unit> => {
+export const chompIf = (isGood: (char: string) => boolean): Parser<P.Unit> => {
   return A.chompIf(isGood)(UnexpectedChar);
 };
 
@@ -1480,7 +1481,7 @@ export const chompIf = (isGood: (char: string) => boolean): Parser<A.Unit> => {
  */
 export const chompWhile = (
   isGood: (char: string) => boolean
-): Parser<A.Unit> => {
+): Parser<P.Unit> => {
   return A.chompWhile(isGood);
 };
 
@@ -1492,7 +1493,7 @@ export const chompWhile = (
  * @remarks
  *
  * @example Multi-line comments
- * You could define haskell-style multi-line comments like this:
+ * You could define Haskell-style multi-line comments like this:
  *
  * ```ts
  *   const comment: P.Parser<P.Unit> =
@@ -1505,7 +1506,7 @@ export const chompWhile = (
  *
  * @category Chompers
  */
-export const chompUntil = (str: string): Parser<A.Unit> => {
+export const chompUntil = (str: string): Parser<P.Unit> => {
   return A.chompUntil(toToken(str));
 };
 
@@ -1534,7 +1535,7 @@ export const chompUntil = (str: string): Parser<A.Unit> => {
  *
  * @category Chompers
  */
-export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
+export const chompUntilEndOr = (str: string): Parser<P.Unit> => {
   return A.chompUntilEndOr(str);
 };
 
@@ -1543,14 +1544,14 @@ export const chompUntilEndOr = (str: string): Parser<A.Unit> => {
 /**
  * Some languages are indentation sensitive. Python cares about tabs. Elm
  * cares about spaces sometimes. {@link withIndent} and {@link getIndent} allow you to manage
- * "indentation state" yourself, however is necessary in your scenario.
+ * "indentation state" yourself.
  *
  * @remarks
  *
  * **Note:** indentation starts at **1**!
  *
  * @see
- * - {@link Advanced!Parser.withIndent | Parser.withIndent}
+ * - {@link Parser!Parser.withIndent | Parser.withIndent}
  * - {@link getIndent}
  *
  * @category Indentation
@@ -1585,12 +1586,12 @@ export const withIndent =
  *      // => [8, 4]
  * ```
  *
- * This is really nice, because it means that someone else can tell us what
+ * This is really nice because it means that someone else can tell us what
  * our indentation level is. If we then do any comparisons against `col` it will
  * check out!
  *
  * @see
- * - {@link Advanced!Parser.getIndent | Parser.getIndent}
+ * - {@link Parser!Parser.getIndent | Parser.getIndent}
  * - {@link withIndent}
  *
  * @category Indentation
@@ -1709,7 +1710,7 @@ export const getRow: Parser<number> = A.getRow;
 export const getCol: Parser<number> = A.getCol;
 
 /**
- * Editors think of code as a grid, but behind the scenes it is just a flat
+ * Editors think of code as a grid, but behind the scenes, it is just a flat
  * array of UTF-16 characters. `getOffset` tells you your index in that
  * flat array. So if you chomp `"\n\n\n\n"` you are on row 5, column 1,
  * and offset 4.
@@ -1797,7 +1798,7 @@ export const variable = (args: {
  *
  * **Note:** If you need something more custom, do not be afraid to check
  * out the implementation and customize it for your case. It is better to get
- * nice error messages with a lower-level implementation than to try to hack
+ * nice error messages with a lower-level implementation than trying to hack
  * high-level parsers to do things they are not made for.
  *
  * @see
@@ -1809,7 +1810,7 @@ export const sequence = <A>(args: {
   start: string;
   seperator: string;
   end: string;
-  spaces: Parser<A.Unit>;
+  spaces: Parser<P.Unit>;
   item: Parser<A>;
   trailing: A.Trailing; // TODO: define a new trailing type in this file?
 }): Parser<Immutable.List<A>> => {
@@ -1839,7 +1840,7 @@ export const sequence = <A>(args: {
  *
  * @category Whitespace
  */
-export const spaces: Parser<A.Unit> = A.spaces;
+export const spaces: Parser<P.Unit> = A.spaces;
 
 // COMMENTS
 
@@ -1866,7 +1867,7 @@ export const spaces: Parser<A.Unit> = A.spaces;
  *
  * @category Whitespace
  */
-export const lineComment = (str: string): Parser<A.Unit> => {
+export const lineComment = (str: string): Parser<P.Unit> => {
   return A.lineComment(toToken(str));
 };
 
@@ -1915,7 +1916,7 @@ export const lineComment = (str: string): Parser<A.Unit> => {
  * important! It can succeed without consuming any characters, so if it were
  * the first option, it would always succeed and bypass the others! (Same is
  * true of `chompWhile` in `js`.) This possibility of success without consumption
- * is also why wee need the `ifProgress` helper. It detects if there is no
+ * is also why we need the `ifProgress` helper. It detects if there is no
  * more whitespace to consume.
  *
  * @category Whitespace
@@ -1923,6 +1924,6 @@ export const lineComment = (str: string): Parser<A.Unit> => {
 export const multiComment =
   (open: string) =>
   (close: string) =>
-  (nestable: A.Nestable): Parser<A.Unit> => {
+  (nestable: A.Nestable): Parser<P.Unit> => {
     return A.multiComment(toToken(open))(toToken(close))(nestable);
   };

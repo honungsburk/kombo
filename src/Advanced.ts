@@ -15,6 +15,7 @@ import {
   Bad,
   fromInfo,
   fromState,
+  Unit,
   Empty,
   Bag,
   Append,
@@ -122,7 +123,7 @@ class ParserImpl<A, CTX = never, PROBLEM = never>
  * for each dead end.
  *
  * @see
- * - {@link Parser.run} is the infix version of `run`
+ * - {@link Parser!Parser.run} is the infix version of `run`
  *
  * @category Parsers
  */
@@ -159,8 +160,8 @@ export function succeed<A>(a: A): Parser<A, never, never> {
 
 /**
  *
- *  Just like {@link Simple!problem | Simple.problem} except you provide a custom
- *  type for your problem.
+ * Just like {@link Simple!problem | Simple.problem} except you provide a custom
+ * type for your problem.
  *
  * @category Primitives
  */
@@ -174,7 +175,7 @@ export function problem<PROBLEM>(p: PROBLEM): Parser<never, never, PROBLEM> {
  * Just like {@link Simple!map | Simple.map}.
  *
  * @see
- * - {@link Parser.map} is the infix version of `map`
+ * - {@link Parser!Parser.map} is the infix version of `map`
  *
  * @category Mapping
  */
@@ -184,7 +185,7 @@ export const map =
     return new ParserImpl((s) => {
       const res = parser.exec(s);
       if (isGood(res)) {
-        return Good(res.flag, fn(res.value), res.ctx);
+        return Good(res.haveConsumed, fn(res.value), res.state);
       } else {
         return res;
       }
@@ -207,14 +208,14 @@ export const map2 =
       if (isBad(res0)) {
         return res0;
       } else {
-        const res1 = parserB.exec(res0.ctx);
+        const res1 = parserB.exec(res0.state);
         if (isBad(res1)) {
-          return Bad(res0.flag || res1.flag, res1.bag);
+          return Bad(res0.haveConsumed || res1.haveConsumed, res1.bag);
         } else {
           return Good(
-            res0.flag || res1.flag,
+            res0.haveConsumed || res1.haveConsumed,
             fn(res0.value, res1.value),
-            res1.ctx
+            res1.state
           );
         }
       }
@@ -225,7 +226,7 @@ export const map2 =
  * Just like {@link Simple!apply | Simple.apply}.
  *
  * @see
- * - {@link Parser.apply} is the infix version of `apply`
+ * - {@link Parser!Parser.apply} is the infix version of `apply`
  *
  * @category Mapping
  */
@@ -241,8 +242,8 @@ export const apply =
  * Just like {@link Simple!skip1st}.
  *
  * @see
- * - {@link Parser.keep } is the infix version of `skip1st`.
- * - {@link skip2nd } is similar but skips the the second argument instead of the first.
+ * - {@link Parser!Parser.keep } is the infix version of `skip1st`.
+ * - {@link skip2nd } is similar but skips the second argument instead of the first.
  *
  * @category Mapping
  */
@@ -258,8 +259,8 @@ export const skip1st =
  * Just like {@link Simple!skip2nd}.
  *
  * @see
- * - {@link Parser.skip } is the infix version of `skip2nd`.
- * - {@link skip1st } is similar but skips the the first argument instead of the second.
+ * - {@link Parser!Parser.skip } is the infix version of `skip2nd`.
+ * - {@link skip1st } is similar but skips the first argument instead of the second.
  *
  * @category Mapping
  */
@@ -277,7 +278,7 @@ export const skip2nd =
  * Just like {@link Simple!andThen | Simple.andThen}.
  *
  * @see
- * - {@link Parser.andThen } is the infix version of `andThen`.
+ * - {@link Parser!Parser.andThen } is the infix version of `andThen`.
  *
  * @category Mapping
  */
@@ -292,11 +293,15 @@ export const andThen =
       if (isBad(res1)) {
         return res1;
       } else {
-        const res2 = fn(res1.value).exec(res1.ctx);
+        const res2 = fn(res1.value).exec(res1.state);
         if (isBad(res2)) {
-          return Bad(res1.flag || res2.flag, res2.bag);
+          return Bad(res1.haveConsumed || res2.haveConsumed, res2.bag);
         } else {
-          return Good(res1.flag || res2.flag, res2.value, res2.ctx);
+          return Good(
+            res1.haveConsumed || res2.haveConsumed,
+            res2.value,
+            res2.state
+          );
         }
       }
     });
@@ -323,8 +328,8 @@ export const lazy = <A, CTX, PROBLEM>(
  * Just like {@link Simple!oneOf | Simple.oneOf}
  *
  * @see
- * - {@link Parser.or | Parser.or} is the infix version of `oneOf`
- * - {@link oneOfMany | Advanced.oneOfMany} for when you need to choose between more then 5 parsers.
+ * - {@link Parser!Parser.or | Parser.or} is the infix version of `oneOf`
+ * - {@link oneOfMany | Advanced.oneOfMany} for when you need to choose between more than 5 parsers.
  *
  * @category Branches
  */
@@ -424,7 +429,7 @@ function oneOfHelp<A, CTX, PROBLEM>(
 
   for (const parser of parsers) {
     const res = parser.exec(ctx0);
-    if (isGood(res) || res.flag) {
+    if (isGood(res) || res.haveConsumed) {
       return res;
     }
     localBag = Append(localBag, res.bag);
@@ -553,10 +558,10 @@ const loopHelp = <STATE, A, CTX, PROBLEM>(
 
     if (isGood(res)) {
       const val = res.value;
-      p = p || res.flag;
+      p = p || res.haveConsumed;
       if (isLoop(val)) {
         tmpState = val.value;
-        tmpS = res.ctx;
+        tmpS = res.state;
       } else {
         return Good(p, val.value, tmpS);
       }
@@ -581,7 +586,7 @@ export const backtrackable = <A, CTX, PROBLEM>(
     if (isBad(res)) {
       return Bad(false, res.bag);
     } else {
-      return Good(false, res.value, res.ctx);
+      return Good(false, res.value, res.state);
     }
   });
 };
@@ -595,34 +600,12 @@ export const commit = <A>(a: A): Parser<A, never, never> => {
   return new ParserImpl((s) => Good(true, a, s));
 };
 
-// Unit
-
-/**
- * When you want to return a value but no information. Typescript/Javascript
- * has no direct support for this but we can emulate it by create a type alias
- * for false.
- *
- * @see {@link Unit:var | The Unit constant}
- *
- * @category Helper Types
- */
-export type Unit = false;
-
-/**
- * {@inheritDoc Unit:type}
- *
- * @see {@link Unit:type | The Unit type}
- *
- * @category Helper Types
- */
-export const Unit: Unit = false;
-
 // Token
 
 /**
  * With the simpler `Parser` module, you could just say `symbol(",")` and
  * parse all the commas you wanted. But now that we have a custom type for our
- * problems, we actually have to specify that as well. So anywhere you just used
+ * problems, we have to specify that as well. So anywhere you just used
  * a `string` in the simpler module, you now use a `Token<Problem>` in the advanced
  * module:
  *
@@ -712,7 +695,7 @@ export function token<PROBLEM>(
 
 /**
  * Just like {@link Simple!int | Simple.int} where you have to handle negation
- * yourself. The only difference is that you provide a two potential problems:
+ * yourself. The only difference is that you provide two potential problems:
  *
  * ```ts
  * const int =
@@ -942,7 +925,7 @@ function consumeDotAndExp(offset: number, src: string): number {
 }
 
 /**
- * On a failure, returns negative index of problem.
+ * On a failure, returns a negative index of the problem.
  *
  */
 function consumeExp(offset: number, src: string): number {
@@ -1025,9 +1008,9 @@ export const mapChompedString =
         return res;
       } else {
         return Good(
-          res.flag,
-          fn(s.src.slice(s.offset, res.ctx.offset), res.value),
-          res.ctx
+          res.haveConsumed,
+          fn(s.src.slice(s.offset, res.state.offset), res.value),
+          res.state
         );
       }
     });
@@ -1125,7 +1108,7 @@ function chompWhileHelp(
 
 /**
  * Just like {@link Simple!chompUntil | Simple.chompUntil} except you provide a
- * `Token` in case you chomp all the way to the end of the input without finding
+ * `Token` in case you chomp to the end of the input without finding
  * what you need.
  *
  * @category Chompers
@@ -1258,7 +1241,11 @@ export const inContext =
       );
 
       if (isGood(res)) {
-        return Good(res.flag, res.value, changeContext(s0.context, res.ctx));
+        return Good(
+          res.haveConsumed,
+          res.value,
+          changeContext(s0.context, res.state)
+        );
       } else {
         return res;
       }
@@ -1303,7 +1290,11 @@ export const withIndent = (newIndent: number) => {
     return new ParserImpl((s) => {
       const res = parse.exec(changeIndent(newIndent + s.indent, s));
       if (isGood(res)) {
-        return Good(res.flag, res.value, changeIndent(s.indent, res.ctx));
+        return Good(
+          res.haveConsumed,
+          res.value,
+          changeIndent(s.indent, res.state)
+        );
       } else {
         return res;
       }
@@ -1326,7 +1317,7 @@ function changeIndent<CTX>(
 /**
  *
  * Just like {@link Simple!symbol | Simple.symbol} except you provide a `Token` to
- * clearly indicate your custom type of problems:
+ * indicate your custom type of problems:
  *
  * ```ts
  * const comma: Parser<Unit, Problem> = symbol(Token("," ExpectingComma))
@@ -1350,7 +1341,7 @@ export const symbol = token;
  * ```
  *
  * Note that this would fail to chomp `letter` because of the subsequent
- * characters. Use `token` if you do not want that last letter check.
+ * characters. Use `token` if you do not want that last letter checked.
  *
  * @category Building Blocks
  */
@@ -1704,7 +1695,11 @@ const sequenceEndMandatory =
  *
  * @category Whitespace
  */
-export const spaces = new ParserImpl<Unit, never>((s: State<unknown>) =>
+export const spaces: Parser<Unit, never, never> = new ParserImpl<
+  Unit,
+  never,
+  never
+>((s: State<unknown>) =>
   chompWhile((c) => c === " " || c === "\n" || c === "\r").exec(s)
 );
 
@@ -1724,7 +1719,7 @@ export const lineComment = <PROBLEM>(
 // Multiline Comment
 
 /**
- * Help distinguish between unnestable  `/*` `* /` comments like in JS and nestable `{-` `-}`
+ * Help distinguish between un-nestable  `/*` `* /` comments like in JS and nestable `{-` `-}`
  * comments like in Elm. \u002A
  *
  * **NOTE**: the extra space in `* /` is because I couldn't figure out how to escape it.

@@ -17,8 +17,8 @@
  * ```
  *
  * You are looking for `"let"` at a given `offset`. On failure, the
- * `newOffset` is `-1`. On success, the `newOffset` is the new offset. With
- * our `"let"` example, it would be `offset + 3`.
+ * `newOffset` is `-1`. On success, the `newOffset` is the new offset.
+ * Our `"let"` example would be `offset + 3`.
  *
  * You also provide the current `row` and `col` which do not align with
  * `offset` in a clean way. For example, when you see a `\n` you are at
@@ -102,7 +102,7 @@ export function isSubChar(
  * @param code - the character code to check against
  * @param offset - the offset into the string
  * @param string - the source string
- * @returns true if the caracter at the given offset has the given code, otherwise false
+ * @returns true if the character at the given offset has the given code, otherwise false
  *
  * @category Uses offset
  */

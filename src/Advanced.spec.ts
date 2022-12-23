@@ -475,7 +475,7 @@ advancedGroup("number", () => {
 advancedGroup("end", () => {
   test("Success when string is empty", ({ expect }) => {
     const res = A.run(A.end("NotEnd"))("");
-    expect(res.value).toStrictEqual(A.Unit);
+    expect(res.value).toStrictEqual(P.Unit);
   });
 
   test("Fail when string is not empty", ({ expect }) => {
@@ -654,11 +654,11 @@ advancedGroup("indentation", () => {
   });
 
   test("infix indentation", ({ expect }) => {
-    const parser1 = A.succeed(A.Unit).getIndent();
+    const parser1 = A.succeed(P.Unit).getIndent();
     const res1 = A.run(parser1)("");
     expect(res1.value).toStrictEqual(0);
 
-    const parser2 = A.succeed(A.Unit).getIndent().withIndent(3);
+    const parser2 = A.succeed(P.Unit).getIndent().withIndent(3);
     const res2 = A.run(parser2)("");
     expect(res2.value).toStrictEqual(3);
   });

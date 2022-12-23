@@ -1,10 +1,10 @@
 /**
  * If you are new to this library, please take a look at {@link Simple:namespace | simple module}.
  * It is a simple wrapper around the {@link Advanced:namespace | advanced module} that hides some of the
- * complexity. You do not have to worry about having to reqrite any of your code. They are both fully compatible.
+ * complexity. You do not have to worry about having to rewrite any of your code. They are both fully compatible.
  *
  * @remarks
- * I created this library because I wanted a type safe parser combinator library
+ * I created this library because I wanted a type-safe parser combinator library
  * like Haskell's {@link https://hackage.haskell.org/package/parsec parsec}
  * or Elm's {@link https://package.elm-lang.org/packages/elm/parser/ parser library}.
  *
@@ -25,7 +25,7 @@
 export * as Simple from "./Simple.js";
 
 /**
- * The advanced module gives you full access to specifing your own problems and
+ * The advanced module gives you full access to specifying your own problems and
  * contexts. Fantastic if you want to create even better error messages.
  * If you want a simpler API head over to the {@link Simple:namespace | Simple module}.
  */
@@ -47,7 +47,7 @@ export * as Result from "./Result.js";
 
 /**
  * The {@link Parser:namespace | Parser} defines the generic Parser interface
- * as well as some internal datastructres and functions.
+ * as well as some internal data structures and functions.
  * It is probably not what you are looking for, instead import either the
  * {@link Simple:namespace | Simple} or {@link Advanced:namespace | Advanced}
  * modules.

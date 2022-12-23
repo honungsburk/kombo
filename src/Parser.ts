@@ -1,6 +1,28 @@
 import * as immutable from "immutable";
 import * as Results from "./Result.js";
 
+// Unit
+
+/**
+ * When you want to return a value but have no information. Typescript/Javascript
+ * has no direct support for this but we can emulate it by creating a type alias
+ * for false.
+ *
+ * @see {@link Unit:var | The Unit constant}
+ *
+ * @category Helper Types
+ */
+export type Unit = false;
+
+/**
+ * {@inheritDoc Unit:type}
+ *
+ * @see {@link Unit:type | The Unit type}
+ *
+ * @category Helper Types
+ */
+export const Unit: Unit = false;
+
 // Located
 
 /**
@@ -14,13 +36,13 @@ import * as Results from "./Result.js";
  *
  * Note that the `context` is actually untyped! This was a contious decision to
  * help improve type inference. Use the {@link getContext} function to retreive
- * the context witht he appropriate type!
+ * the context with the appropriate type!
  *
  * @see
  *
  * - {@link DeadEnd}
- * - {@link run}
- * - {@link inContext}
+ * - {@link Parser.run}
+ * - {@link Advanced!inContext}
  * - {@link getContext}
  *
  * @category Parsers
@@ -33,7 +55,7 @@ export type Located<CTX> = {
 };
 
 /**
- * After you have {@link run} you parser, if there is a problem you can recover
+ * After you have {@link Parser.run} you parser if there is a problem you can recover
  * the *context and its type* with this function.
  *
  * @see
@@ -48,8 +70,6 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
 // State
 
 /**
- *
- *
  *
  * @privateRemarks
  * TODO: Can you make it polymorphic over the `src` type?
@@ -100,7 +120,7 @@ export type State<CTX> = {
  * Furthermore, many parsers just put a mark where the problem manifested. By
  * tracking the `row` and `col` of the context, we can show a much larger region
  * as a way of indicating “I thought I was parsing this thing that starts over
- * here.” Otherwise you can get very confusing error messages on a missing `]` or
+ * here.” Otherwise, you can get very confusing error messages on a missing `]` or
  * `}` or `)` because “I need more indentation” on something unrelated.
  *
  * **Note:** Rows and columns are counted like a text editor. The beginning is `row=1`
@@ -110,7 +130,7 @@ export type State<CTX> = {
  * @see
  *
  * - {@link Located}
- * - {@link Deadend!function}
+ * - {@link Deadend:function}
  *
  * @category Parsers
  * @category DeadEnd (All)
@@ -142,7 +162,12 @@ export function Deadend<CTX, PROBLEM>(
 }
 
 /**
- * Keeps track of the context and problem.
+ * Keeps track of the context and problem as they are encountered by the parser.
+ *
+ * - The {@link Empty} type is used to end the recursion, never used on its own.
+ * - The {@link AddRight} type is for when our parser encounters a problem.
+ * - The {@link Append} type is only used by {@link Advanced.oneOfMany} to describe
+ *   errors occurring at the same "level" in the parser.
  *
  * @internal
  */
@@ -159,6 +184,8 @@ export type Bag<CTX, PROBLEM> =
 export type Empty = typeof Empty;
 
 /**
+ *
+ *
  * @internal
  */
 export const Empty = {
@@ -166,6 +193,8 @@ export const Empty = {
 } as const;
 
 /**
+ * Type guard for {@link Empty:type}
+ *
  * @internal
  */
 export function isEmpty(bag: Bag<any, any>): bag is Empty {
@@ -175,6 +204,8 @@ export function isEmpty(bag: Bag<any, any>): bag is Empty {
 // AddRight
 
 /**
+ * TODO
+ *
  * @internal
  */
 export type AddRight<CTX, PROBLEM> = {
@@ -184,6 +215,8 @@ export type AddRight<CTX, PROBLEM> = {
 };
 
 /**
+ * Constructor for {@link AddRight:type}
+ *
  * @internal
  */
 export function AddRight<CTX, PROBLEM>(
@@ -198,6 +231,8 @@ export function AddRight<CTX, PROBLEM>(
 }
 
 /**
+ * Type guard for {@link AddRight:type}
+ *
  * @internal
  */
 export function isAddRight<CTX, PROBLEM>(
@@ -209,6 +244,9 @@ export function isAddRight<CTX, PROBLEM>(
 // Append
 
 /**
+ * When two bags exist on the same "level" in the parser composition we use
+ * this combinator.
+ *
  * @internal
  */
 export type Append<CTX, PROBLEM> = {
@@ -218,6 +256,8 @@ export type Append<CTX, PROBLEM> = {
 };
 
 /**
+ * Constructor for {@link Append:type}
+ *
  * @internal
  */
 export function Append<CTX, PROBLEM>(
@@ -232,6 +272,8 @@ export function Append<CTX, PROBLEM>(
 }
 
 /**
+ * Type guard for {@link Append:type}
+ *
  * @internal
  */
 export function isAppend<CTX, PROBLEM>(
@@ -265,6 +307,8 @@ export function fromState<CTX, PROBLEM>(
 }
 
 /**
+ * Create a {@link Bag} from basic context information.
+ *
  * @internal
  */
 export function fromInfo<CTX, PROBLEM>(
@@ -277,6 +321,8 @@ export function fromInfo<CTX, PROBLEM>(
 }
 
 /**
+ * Turns a bag into an ordinary javascript list
+ *
  * @internal
  */
 export function bagToList<CTX, PROBLEM>(
@@ -305,37 +351,65 @@ export function bagToList<CTX, PROBLEM>(
 // PStep
 
 /**
+ * The internal state of the parser.
+ *
+ * @remarks
+ * - `haveConsumed` is true if the parser "consumed" any characters. This field
+ *  exists to support backtracking.
+ *
+ * Note: "consuming" characters simply mean incrementing row, col, and offset.
+ *
+ * @see
+ * - {@link Good:type}
+ * - {@link Bad:type}
+ *
  * @internal
  */
 export type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
 
 /**
+ * When a parser succeeds they return `Good`.
+ *
+ * @remarks
+ * - `state`: the current state of the parser.
+ * - `value`: the value that has been parsed.
+ *
  * @internal
  */
 export type Good<A, CTX> = {
-  kind: "Good";
-  flag: boolean; // if true, reached an unrecoverable error
-  value: A;
-  ctx: State<CTX>;
+  readonly kind: "Good";
+  readonly haveConsumed: boolean; // if true, reached an unrecoverable error
+  readonly value: A;
+  readonly state: State<CTX>;
 };
 
 /**
+ * Constructor for {@link Good:type}
+ *
+ * @see
+ * - {@link Good:type}
+ *
  * @internal
  */
 export function Good<A, CTX>(
-  flag: boolean, // if true, reached an end state
+  haveConsumed: boolean, // if true, reached an end state
   value: A,
-  ctx: State<CTX>
+  state: State<CTX>
 ): Good<A, CTX> {
   return {
     kind: "Good",
-    flag,
+    haveConsumed: haveConsumed,
     value,
-    ctx,
+    state: state,
   };
 }
 
 /**
+ * Type guard fro {@link Good:type}
+ *
+ * @see
+ * - {@link Good:type}
+ *
  * @internal
  */
 export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
@@ -345,9 +419,6 @@ export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
 /**
  * When something bad happens we return this.
  *
- * flag - TODO
- * bag - TODO
- *
  * @see
  * - {@link Bad:function Bad constructor}
  * - {@link isBad:function}
@@ -355,9 +426,9 @@ export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
  * @internal
  */
 export type Bad<CTX, PROBLEM> = {
-  kind: "Bad";
-  flag: boolean; // if true, reached an end state
-  bag: Bag<CTX, PROBLEM>;
+  readonly kind: "Bad";
+  readonly haveConsumed: boolean;
+  readonly bag: Bag<CTX, PROBLEM>;
 };
 
 /**
@@ -370,12 +441,12 @@ export type Bad<CTX, PROBLEM> = {
  * @internal
  */
 export function Bad<CTX, PROBLEM>(
-  flag: boolean,
+  haveConsumed: boolean,
   bag: Bag<CTX, PROBLEM>
 ): Bad<CTX, PROBLEM> {
   return {
     kind: "Bad",
-    flag,
+    haveConsumed: haveConsumed,
     bag,
   };
 }
@@ -396,7 +467,7 @@ export function isBad<CTX, PROBLEM>(
 }
 
 /**
- * If the type is a function, returns the argument of the function, otherwise it
+ * If the type is a function, return the argument of the function, otherwise it
  * returns a type error
  *
  * @remarks
@@ -412,10 +483,10 @@ export function isBad<CTX, PROBLEM>(
  */
 export type GetArgumentType<Function> = Function extends (arg: infer A) => any
   ? A
-  : "Error: The left hand side must be function";
+  : "Error: The left-hand side must be function";
 
 /**
- * If the type is a function, returns the return type of the function, otherwise it
+ * If the type is a function, return the return type of the function, otherwise it
  * returns a type error
  *
  * @remarks
@@ -431,7 +502,7 @@ export type GetArgumentType<Function> = Function extends (arg: infer A) => any
  */
 export type GetReturnType<Function> = Function extends (arg: any) => any
   ? ReturnType<Function>
-  : "Error: The left hand side must be a function";
+  : "Error: The left-hand side must be a function";
 
 /**
  * An advanced Parser gives two ways to improve your error messages:
@@ -526,11 +597,11 @@ export interface Parser<A, CTX, PROBLEM> {
    *```
    *
    * First we chomp digits `andThen` we check if it is a valid U.S. zip code. We
-   * `succeed` if it has exactly five digits and report a `problem` if not.
+   * `succeed` if it has exactly five digits and reports a `problem` if not.
    *
    *
    * **Note:** If you are using `andThen` recursively and blowing the stack, check
-   * out the {@link loop} function to limit stack usage.
+   * out the {@link Simple!loop} function to limit stack usage.
    *
    * @see
    * - The infix version of {@link Simple!andThen}
@@ -542,7 +613,7 @@ export interface Parser<A, CTX, PROBLEM> {
   ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
-   * Skip the return value of the parser on the right hand side.
+   * Skip the return value of the parser on the right-hand side.
    *
    * @example
    *
@@ -695,7 +766,7 @@ export interface Parser<A, CTX, PROBLEM> {
    * ```
    *
    * This might at first look seem strange, but a good way to think about it is
-   * that our parser is a tree like structure
+   * that our parser is a tree-like structure
    *
    *  withindent(4)___withindent(4)___ parser3
    *               |               |

@@ -2,8 +2,8 @@
  * The result of a computation can either be `Ok` or `Err`
  *
  * @remark
- * If you are familiar functional progamming you will recognize this as you
- * standard `Either` type. I've kept the implmentation very basic. If you want
+ * If you are familiar with functional programming you will recognize this as you
+ * standard `Either` type. I've kept the implementation very basic. If you want
  * a richer type with a bnuch of utility functions you can easily wrap the
  * {@link Simple.run} function yourself.
  *
@@ -62,7 +62,7 @@ export function isOk<A>(x: Result<A, unknown>): x is Ok<A> {
 }
 
 /**
- * When something goes wrong we don't throw an error, instead we return an `Err`.
+ * When something goes wrong we don't throw an error, instead, we return an `Err`.
  *
  * @category Result
  */
