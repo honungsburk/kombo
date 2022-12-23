@@ -10,11 +10,18 @@ import * as Results from "./Result.js";
  * and `col=1`. The `col` increments as characters are chomped. When a `\n` is chomped,
  * `row` is incremented and `col` starts over again at `1`.
  *
+ * @remark
+ *
+ * Note that the `context` is actually untyped! This was a contious decision to
+ * help improve type inference. Use the {@link getContext} function to retreive
+ * the context witht he appropriate type!
+ *
  * @see
  *
  * - {@link DeadEnd}
  * - {@link run}
  * - {@link inContext}
+ * - {@link getContext}
  *
  * @category Parsers
  */
