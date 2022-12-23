@@ -1,6 +1,6 @@
 {
   "name": "@honungsburk/kombo",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Are you tired of complex regex? Do you want good error messages? Use kombo!",
   "author": "Frank Hampus Weslien",
   "license": "MIT",
