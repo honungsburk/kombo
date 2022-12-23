@@ -44,3 +44,12 @@ export * as Helpers from "./Helpers.js";
  * representing success and error.
  */
 export * as Result from "./Result.js";
+
+/**
+ * The {@link Parser:namespace | Parser} defines the generic Parser interface
+ * as well as some internal datastructres and functions.
+ * It is probably not what you are looking for, instead import either the
+ * {@link Simple:namespace | Simple} or {@link Advanced:namespace | Advanced}
+ * modules.
+ */
+export * as Parser from "./Parser.js";

@@ -2,6 +2,7 @@
 import Immutable from "immutable";
 import * as Results from "./Result.js";
 import * as A from "./Advanced.js";
+import * as P from "./Parser.js";
 
 // Exports
 export {
@@ -30,7 +31,7 @@ export {
  *
  * @category Parsers
  */
-export type Parser<A> = A.Parser<A, never, Problem>;
+export type Parser<A> = P.Parser<A, never, Problem>;
 
 // RUN
 
