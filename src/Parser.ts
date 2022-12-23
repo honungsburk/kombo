@@ -36,6 +36,9 @@ export type Located<CTX> = {
  * After you have {@link run} you parser, if there is a problem you can recover
  * the *context and its type* with this function.
  *
+ * @see
+ * - {@link Located}
+ *
  * @category Parsers
  */
 export function getContext<CTX>(located: Located<CTX>): CTX {
@@ -45,6 +48,8 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
 // State
 
 /**
+ *
+ *
  *
  * @privateRemarks
  * TODO: Can you make it polymorphic over the `src` type?
@@ -246,8 +251,8 @@ export function bagToList<CTX, PROBLEM>(
     } else if (isAppend(currentBag)) {
       // Note that the order of these statements are important to the
       // final order of the list
-      workList.push(currentBag.right);
       workList.push(currentBag.left);
+      workList.push(currentBag.right);
     }
     // Ignore Empty bags
   }
