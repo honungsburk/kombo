@@ -26,8 +26,19 @@ import * as immutable from "immutable";
 export type Located<CTX> = {
   row: number;
   col: number;
+  // NOTE: this must be unknown, we recover type information in the run(...) function
   context: unknown;
 };
+
+/**
+ * After you have {@link run} you parser, if there is a problem you can recover
+ * the *context and its type* with this function.
+ *
+ * @category Parsers
+ */
+export function getContext<CTX>(located: Located<CTX>): CTX {
+  return located.context as CTX;
+}
 
 // State
 
@@ -42,7 +53,7 @@ type State<CTX> = {
   src: string;
   offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
   indent: number;
-  context: immutable.Stack<Located<CTX>>;
+  context: immutable.Stack<Located<unknown>>;
   row: number; //in newlines
   col: number; //in UTF-16 characters
 };
@@ -193,7 +204,15 @@ function fromState<CTX, PROBLEM>(
   state: State<CTX>,
   p: PROBLEM
 ): Bag<CTX, PROBLEM> {
-  return AddRight(Empty, Deadend(state.row, state.col, p, state.context));
+  return AddRight(
+    Empty,
+    Deadend(
+      state.row,
+      state.col,
+      p,
+      state.context as immutable.Stack<Located<CTX>>
+    )
+  );
 }
 
 function fromInfo<CTX, PROBLEM>(
@@ -1885,9 +1904,11 @@ function changeContext<CTX>(
  *
  * @category Indentation
  */
-export const getIndent = new ParserImpl<number, never, never>(
-  (s: State<never>): PStep<number, never, never> => Good(false, s.indent, s)
-);
+export const getIndent: Parser<number, never, never> = new ParserImpl<
+  number,
+  never,
+  never
+>((s: State<never>): PStep<number, never, never> => Good(false, s.indent, s));
 
 /**
  * Just like {@link Simple!withIndent | Simple.withIndent}
