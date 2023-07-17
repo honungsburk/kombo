@@ -1449,6 +1449,14 @@ export const chompIf = (isGood: (char: string) => boolean): Parser<P.Unit> => {
 
 // CHOMP WHILE
 
+type ChompWhile = {
+  <A>(
+    isGood: (char: string, state: A) => [boolean, A],
+    init: A
+  ): Parser<P.Unit>;
+  <A>(isGood: (char: string) => boolean): Parser<P.Unit>;
+};
+
 /**
  * Chomp zero or more characters if they pass the test.
  *
@@ -1471,6 +1479,19 @@ export const chompIf = (isGood: (char: string) => boolean): Parser<P.Unit> => {
  *     );
  * ```
  *
+ * You can also keep track of state. This is useful to support things like escaping characters
+ * in strings:
+ *
+ * ```ts
+ *    const string = A.symbol('"')
+ *      .keep(
+ *        A.chompWhile(
+ *          (c, isEscaped) => [c !== '"' || isEscaped, c === "\\"],
+ *          false
+ *        ).getChompedString()
+ *      ).skip(A.symbol('"');
+ * ```
+ *
  * **Note:** a `chompWhile` parser always succeeds! This can lead to tricky
  * situations, especially if you define your whitespace with it. In that case,
  * you could accidentally interpret `letx` as the keyword `let` followed by
@@ -1479,10 +1500,11 @@ export const chompIf = (isGood: (char: string) => boolean): Parser<P.Unit> => {
  *
  * @category Chompers
  */
-export const chompWhile = (
-  isGood: (char: string) => boolean
+export const chompWhile: ChompWhile = (
+  isGood: any,
+  init?: any
 ): Parser<P.Unit> => {
-  return A.chompWhile(isGood);
+  return A.chompWhile(isGood, init);
 };
 
 // CHOMP UNTIL

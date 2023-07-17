@@ -1055,21 +1055,34 @@ export const chompIf =
 
 // CHOMP WHILE
 
+type ChompWhile = {
+  <A>(isGood: (char: string, state: A) => [boolean, A], init: A): Parser<
+    Unit,
+    never,
+    never
+  >;
+  <A>(isGood: (char: string) => boolean): Parser<Unit, never, never>;
+};
+
 /**
  * Just like {@link Simple!chompWhile | Simple.chompWhile}
  *
  * @category Chompers
  */
-export const chompWhile = (
-  isGood: (char: string) => boolean
+export const chompWhile: ChompWhile = (
+  isGood: any,
+  init?: any
 ): Parser<Unit, never, never> => {
   return new ParserImpl((s) =>
-    chompWhileHelp(isGood, s.offset, s.row, s.col, s)
+    chompWhileHelp(isGood, init, s.offset, s.row, s.col, s)
   );
 };
 
-function chompWhileHelp(
-  isGood: (char: string) => boolean,
+function chompWhileHelp<A>(
+  isGood:
+    | ((char: string) => boolean)
+    | ((char: string, state: A) => [boolean, A]),
+  init: any,
   offset: number,
   row: number,
   col: number,
@@ -1079,7 +1092,19 @@ function chompWhileHelp(
   let finalRow = row;
   let finalCol = col;
 
-  let newOffset = Helpers.isSubChar(isGood, offset, s0.src);
+  let state = init;
+
+  const fn =
+    isGood.length === 1
+      ? (isGood as (char: string) => boolean)
+      : (char: string) => {
+          // @ts-ignore
+          const [returnVal, newState] = isGood(char, state);
+          state = newState;
+          return returnVal;
+        };
+
+  let newOffset = Helpers.isSubChar(fn, offset, s0.src);
 
   while (newOffset !== -1) {
     if (newOffset === -2) {
@@ -1091,7 +1116,7 @@ function chompWhileHelp(
       finalCol = finalCol + 1;
     }
 
-    newOffset = Helpers.isSubChar(isGood, finalOffset, s0.src);
+    newOffset = Helpers.isSubChar(fn, finalOffset, s0.src);
   }
 
   return Good(s0.offset < finalOffset, Unit, {

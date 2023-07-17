@@ -524,6 +524,15 @@ const chompWhileAB = A.getChompedString(
   A.chompWhile((c) => c === "a" || c === "b")
 );
 
+const chompEscapedString = A.symbol(A.Token('"', "ExpectedQuote"))
+  .keep(
+    A.chompWhile(
+      (c, isEscaped) => [c !== '"' || isEscaped, c === "\\"],
+      false
+    ).getChompedString()
+  )
+  .skip(A.symbol(A.Token('"', "ExpectedQuote")));
+
 advancedGroup("chompWhile", () => {
   test("empty string", ({ expect }) => {
     const res = A.run(chompWhileAB)("");
@@ -536,6 +545,16 @@ advancedGroup("chompWhile", () => {
   test("partial ab string", ({ expect }) => {
     const res = A.run(chompWhileAB)("abababaäöå");
     expect(res.value).toStrictEqual("abababa");
+  });
+
+  test("non-escaped string", ({ expect }) => {
+    const res = A.run(chompEscapedString)(JSON.stringify("abababa"));
+    expect(res.value).toStrictEqual("abababa");
+  });
+
+  test("escaped string", ({ expect }) => {
+    const res = A.run(chompEscapedString)(JSON.stringify('aba"baba'));
+    expect(res.value).toStrictEqual('aba\\"baba');
   });
 });
 

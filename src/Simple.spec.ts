@@ -348,7 +348,7 @@ parserGroup("php", "@php-parser", () => {
     expect(Results.isErr(res)).toBeTruthy();
   });
   test("Fail on 'asd'", ({ expect }) => {
-    const res = S.run(php)("$");
+    const res = S.run(php)("asd");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
