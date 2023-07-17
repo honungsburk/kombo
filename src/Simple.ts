@@ -1548,6 +1548,9 @@ type ChompWhile1 = {
   <A>(isGood: (char: string) => boolean): Parser<P.Unit>;
 };
 
+/**
+ * Like {@link chompWhile} but requires at least one character to pass the test.
+ */
 export const chompWhile1: ChompWhile1 = (
   isGood: any,
   init?: any
