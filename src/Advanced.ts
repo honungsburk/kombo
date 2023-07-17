@@ -1061,7 +1061,7 @@ type ChompWhile = {
     never,
     never
   >;
-  <A>(isGood: (char: string) => boolean): Parser<Unit, never, never>;
+  (isGood: (char: string) => boolean): Parser<Unit, never, never>;
 };
 
 /**
@@ -1078,7 +1078,37 @@ export const chompWhile: ChompWhile = (
   );
 };
 
-function chompWhileHelp<A>(
+type ChompWhile1 = {
+  <PROBLEM, A>(
+    problem: PROBLEM,
+    isGood: (char: string, state: A) => [boolean, A],
+    init: A
+  ): Parser<Unit, never, PROBLEM>;
+  <PROBLEM>(problem: PROBLEM, isGood: (char: string) => boolean): Parser<
+    Unit,
+    never,
+    PROBLEM
+  >;
+};
+
+/**
+ * Just like {@link Simple!chompWhile1 | Simple.chompWhile1}
+ *
+ * @category Chompers
+ */
+export const chompWhile1: ChompWhile1 = <PROBLEM>(
+  problem: PROBLEM,
+  isGood: any,
+  init?: any
+): Parser<Unit, never, PROBLEM> => {
+  return new ParserImpl((s) =>
+    chompWhileHelp(isGood, init, s.offset, s.row, s.col, s, {
+      chompMinOneProblem: problem,
+    })
+  );
+};
+
+function chompWhileHelp<A, PROBLEM>(
   isGood:
     | ((char: string) => boolean)
     | ((char: string, state: A) => [boolean, A]),
@@ -1086,8 +1116,11 @@ function chompWhileHelp<A>(
   offset: number,
   row: number,
   col: number,
-  s0: State<unknown>
-): PStep<Unit, never, never> {
+  s0: State<unknown>,
+  config?: {
+    chompMinOneProblem: PROBLEM;
+  }
+): PStep<Unit, never, PROBLEM> {
   let finalOffset = offset;
   let finalRow = row;
   let finalCol = col;
@@ -1104,9 +1137,11 @@ function chompWhileHelp<A>(
           return returnVal;
         };
 
-  let newOffset = Helpers.isSubChar(fn, offset, s0.src);
+  let iterations = 0;
 
+  let newOffset = Helpers.isSubChar(fn, offset, s0.src);
   while (newOffset !== -1) {
+    iterations++;
     if (newOffset === -2) {
       finalOffset = finalOffset + 1;
       finalRow = finalRow + 1;
@@ -1117,6 +1152,10 @@ function chompWhileHelp<A>(
     }
 
     newOffset = Helpers.isSubChar(fn, finalOffset, s0.src);
+  }
+
+  if (iterations < 1 && config) {
+    return Bad(false, fromState(s0, config.chompMinOneProblem));
   }
 
   return Good(s0.offset < finalOffset, Unit, {

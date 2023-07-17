@@ -558,6 +558,51 @@ advancedGroup("chompWhile", () => {
   });
 });
 
+// CHOMP WHILE
+
+const chompWhileAB1 = A.getChompedString(
+  A.chompWhile1("fail", (c) => c === "a" || c === "b")
+);
+
+const chompEscapedString1 = A.symbol(A.Token('"', "ExpectedQuote"))
+  .keep(
+    A.chompWhile1(
+      "fail",
+      (c, isEscaped) => [c !== '"' || isEscaped, c === "\\"],
+      false
+    ).getChompedString()
+  )
+  .skip(A.symbol(A.Token('"', "ExpectedQuote")));
+
+advancedGroup("chompWhile1", () => {
+  test("empty string", ({ expect }) => {
+    const res = A.run(chompWhileAB1)("");
+    expect(res.kind).toStrictEqual("Err");
+  });
+  test("full ab string", ({ expect }) => {
+    const res = A.run(chompWhileAB1)("abababa");
+    expect(res.value).toStrictEqual("abababa");
+  });
+  test("partial ab string", ({ expect }) => {
+    const res = A.run(chompWhileAB1)("abababaäöå");
+    expect(res.value).toStrictEqual("abababa");
+  });
+
+  test("empty string", ({ expect }) => {
+    const res = A.run(chompEscapedString1)(JSON.stringify(""));
+    expect(res.kind).toStrictEqual("Err");
+  });
+  test("non-escaped string", ({ expect }) => {
+    const res = A.run(chompEscapedString1)(JSON.stringify("abababa"));
+    expect(res.value).toStrictEqual("abababa");
+  });
+
+  test("escaped string", ({ expect }) => {
+    const res = A.run(chompEscapedString1)(JSON.stringify('aba"baba'));
+    expect(res.value).toStrictEqual('aba\\"baba');
+  });
+});
+
 // CHOMP UNTIL
 
 const ExpectedColon = "ExpectedColon";

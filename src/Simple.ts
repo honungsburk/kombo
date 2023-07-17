@@ -144,6 +144,7 @@ export type Problem =
   | ExpectingSymbol
   | ExpectingKeyword
   | ExpectingEnd
+  | ExpectingOneSuccess
   | UnexpectedChar
   | Generic
   | BadRepeat;
@@ -542,6 +543,38 @@ export const ExpectingEnd: ExpectingEnd = {
  */
 export function isExpectingEnd(x: any): x is ExpectingEnd {
   return typeof x === "object" && x.kind === "ExpectingEnd";
+}
+
+// ExpectingBinary
+
+/**
+ * @see
+ * - {@link Problem}
+ *
+ * @category Problem (All)
+ */
+export type ExpectingOneSuccess = {
+  readonly kind: "ExpectingOneSuccess";
+};
+
+/**
+ * @see
+ * - {@link Problem}
+ *
+ * @category Problem (All)
+ */
+export const ExpectingOneSuccess: ExpectingOneSuccess = {
+  kind: "ExpectingOneSuccess",
+};
+
+/**
+ * @see
+ * - {@link Problem}
+ *
+ * @category Problem (All)
+ */
+export function isExpectingOneSuccess(x: any): x is ExpectingOneSuccess {
+  return typeof x === "object" && x.kind === "ExpectingOneSuccess";
 }
 
 // UnexpectedChar
@@ -1505,6 +1538,21 @@ export const chompWhile: ChompWhile = (
   init?: any
 ): Parser<P.Unit> => {
   return A.chompWhile(isGood, init);
+};
+
+type ChompWhile1 = {
+  <A>(
+    isGood: (char: string, state: A) => [boolean, A],
+    init: A
+  ): Parser<P.Unit>;
+  <A>(isGood: (char: string) => boolean): Parser<P.Unit>;
+};
+
+export const chompWhile1: ChompWhile1 = (
+  isGood: any,
+  init?: any
+): Parser<P.Unit> => {
+  return A.chompWhile1(ExpectingOneSuccess, isGood, init);
 };
 
 // CHOMP UNTIL
