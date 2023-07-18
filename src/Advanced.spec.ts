@@ -892,6 +892,8 @@ advancedGroup("variable", () => {
 
 // SEQUENCES
 
+// IntSet
+
 enum BlockProblem {
   LeftCurlyBrace = "LeftCurlyBrace",
   RightCurlyBrace = "RightCurlyBrace",
@@ -912,6 +914,22 @@ const intSet = (trailing: A.Trailing) =>
 const intSetOptional = A.run(intSet(A.Trailing.Optional));
 const intSetMandatory = A.run(intSet(A.Trailing.Mandatory));
 const intSetForbidden = A.run(intSet(A.Trailing.Forbidden));
+
+// Nesting
+
+type NestingType = NestingType[];
+
+const nesting: P.Parser<NestingType, unknown, BlockProblem> = A.sequence({
+  start: A.Token("{", BlockProblem.LeftCurlyBrace),
+  separator: A.Token(",", BlockProblem.Comma),
+  end: A.Token("}", BlockProblem.RightCurlyBrace),
+  spaces: A.spaces,
+  item: A.lazy(() => nesting),
+  trailing: A.Trailing.Optional,
+}).map((x) => x.toArray());
+
+const testSeqNestingSuccess = testSuccessBuilder(nesting);
+const testSeqNestingFailure = testFailureBuilder(nesting);
 
 advancedGroup("sequence", () => {
   test("can parse a singel item", ({ expect }) => {
@@ -949,6 +967,14 @@ advancedGroup("sequence", () => {
     const res2 = intSetForbidden("{ 1337 \n}");
     expect(res2.value).toStrictEqual(Immutable.List([1337]));
   });
+
+  testSeqNestingSuccess("empty object", "{}", []);
+  testSeqNestingSuccess("nested objects", "{{},{},{}}", [[], [], []]);
+  testSeqNestingSuccess("deeply nested objects", "{{{}, {}},{},{{}}}", [
+    [[], []],
+    [],
+    [[]],
+  ]);
 });
 
 // WHITESPACE
