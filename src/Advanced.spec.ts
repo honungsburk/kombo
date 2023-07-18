@@ -6,6 +6,8 @@ import * as P from "./Parser.js";
 import * as Helpers from "./Helpers.js";
 import Immutable from "immutable";
 
+// Helpers
+
 function advancedGroup(fnName: string, callback: (group: Group) => void) {
   test.group(`Advanced.${fnName}`, (group) => {
     group.tap((test) =>
@@ -25,6 +27,24 @@ function expectProblem<A, CTX>(
     expect(result.value.map((d) => d.problem)).toStrictEqual(toBe);
   }
 }
+
+const testSuccessBuilder =
+  <A>(parser: P.Parser<A, any, any>) =>
+  (description: string, input: string, expected: A) => {
+    return test(description, ({ expect }) => {
+      const result = parser.run(input);
+      expect(result.value).toStrictEqual(expected);
+    });
+  };
+
+const testFailureBuilder =
+  <A>(parser: P.Parser<any, any, A>) =>
+  (description: string, input: string, toBe: A[]) => {
+    return test(description, ({ expect }) => {
+      const result = parser.run(input);
+      expectProblem(expect, result, toBe);
+    });
+  };
 
 // success
 
@@ -1038,4 +1058,41 @@ advancedGroup("multiComment", () => {
     const res = nestableMulti("/* \n Can /* \n Be */ \n Parsed \n */adsasd");
     expect(res.value).toStrictEqual([5, 4]);
   });
+});
+
+// MANY
+
+const manyInts = A.many(A.int("ExpectingInt")("InvalidInt").skip(A.spaces));
+
+const testManyIntsSuccess = testSuccessBuilder(manyInts);
+
+advancedGroup("many", () => {
+  testManyIntsSuccess("empty string", "", []);
+  testManyIntsSuccess("single int", "123", [123]);
+  testManyIntsSuccess("multiple ints", "123 456 789", [123, 456, 789]);
+  testManyIntsSuccess(
+    "multiple ints with spaces",
+    "123  456  789",
+    [123, 456, 789]
+  );
+});
+
+// MANY1
+const manyInts1 = A.many1(
+  A.int("ExpectingInt")("InvalidInt").skip(A.spaces),
+  "ExpectingAtLeastOneInt"
+);
+
+const testManyInts1Success = testSuccessBuilder(manyInts1);
+const testManyInts1Failure = testFailureBuilder(manyInts1);
+
+advancedGroup("many", () => {
+  testManyInts1Success("single int", "123", [123]);
+  testManyInts1Success("multiple ints", "123 456 789", [123, 456, 789]);
+  testManyInts1Success(
+    "multiple ints with spaces",
+    "123  456  789",
+    [123, 456, 789]
+  );
+  testManyInts1Failure("empty string", "", ["ExpectingAtLeastOneInt"]);
 });

@@ -1752,6 +1752,49 @@ const sequenceEndMandatory =
     );
   };
 
+// MANY
+
+/**
+ * Just like {@link Simple!many | Simple.many}
+ *
+ * @category Loops
+ */
+export const many = <A, CTX, PROBLEM>(
+  parseItem: Parser<A, CTX, PROBLEM>
+): Parser<A[], CTX, PROBLEM> => {
+  return loop<immutable.List<A>>(immutable.List())(manyHelp(parseItem)).map(
+    (xs) => xs.toArray()
+  );
+};
+
+const manyHelp =
+  <A, CTX, PROBLEM>(parseItem: Parser<A, CTX, PROBLEM>) =>
+  (
+    state: immutable.List<A>
+  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+    return oneOf(
+      parseItem.map((item) => Loop(state.push(item))),
+      succeed(Unit).map(() => Done(state))
+    );
+  };
+
+// MANY1
+
+/**
+ * Just like {@link Simple!many1 | Simple.many1} but you
+ * provide the problem yourself.
+ *
+ * @category Loops
+ */
+export const many1 = <A, CTX, PROBLEM>(
+  parseItem: Parser<A, CTX, PROBLEM>,
+  p: PROBLEM
+): Parser<A[], CTX, PROBLEM> => {
+  return many(parseItem).andThen((items) =>
+    items.length === 0 ? problem(p) : succeed(items)
+  );
+};
+
 // WHITESPACE
 
 /**

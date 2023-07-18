@@ -658,3 +658,11 @@ const typeVar: S.Parser<string> = S.variable({
   inner: (c: string) => Helpers.isAlphaNum(c) || c === "_",
   reserved: new Set(["let", "in", "case", "of"]),
 });
+
+// Many
+
+// This parser parses an int and then all of the spaces after it.
+const int = S.number({ int: (n) => n }).skip(S.spaces);
+// We then repeat that parser zero or more times.
+const ints: S.Parser<number[]> = S.many(int);
+const ints1: S.Parser<number[]> = S.many1(int);

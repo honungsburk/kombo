@@ -2000,3 +2000,64 @@ export const multiComment =
   (nestable: A.Nestable): Parser<P.Unit> => {
     return A.multiComment(toToken(open))(toToken(close))(nestable);
   };
+
+// MANY
+
+/**
+ * Run a parser zero or more times. So if you wanted to parse a list of
+ * integers, you could say:
+ *
+ * @example
+ * ```ts
+ *    // This parser parses an int and then all of the spaces after it.
+ *    const int = number({ int: (n) => n }).skip(spaces);
+ *    // We then repeat that parser zero or more times.
+ *    const ints: Parser<number[]> = many(int);
+ *
+ *    ints.run("1 2 3")
+ *    // => Ok([1, 2, 3])
+ *
+ *    ints.run("")
+ *    // => Ok([])
+ * ```
+ *
+ * @category Loops
+ */
+export const many = <A>(parseItem: Parser<A>): Parser<A[]> => {
+  return A.many(parseItem);
+};
+
+// MANY1
+
+/**
+ * Similar to {@link many}, apply a parser repeatedly until it fails, but it requires at
+ * least one item to succeed.
+ *
+ * @example
+ * ```ts
+ *    // This parser parses an int and then all of the spaces after it.
+ *    const int = number({ int: (n) => n }).skip(spaces);
+ *    // We then repeat that parser zero or more times.
+ *    const ints: Parser<number[]> = many(int);
+ *
+ *    ints.run("1 2 3")
+ *    // => Ok([1, 2, 3])
+ *
+ *    ints.run("")
+ *    // => Err ...
+ * ```
+ *
+ * @remarks
+ * You can think of it like this:
+ * ```ts
+ *   const many1 = (parseItem) =>
+ *      many(parseItem).andThen((items) =>
+ *           items.length === 0 ? problem("Need to succeed at least once!") : succeed(items)
+ *         );
+ * ```
+ *
+ * @category Loops
+ */
+export const many1 = <A>(parseItem: Parser<A>): Parser<A[]> => {
+  return A.many1(parseItem, ExpectingOneSuccess);
+};
