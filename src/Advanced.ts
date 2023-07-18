@@ -1613,8 +1613,10 @@ export const sequence = <
   CTX1 | CTX2,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
 > => {
-  return skip1st<never, PROBLEM1>(token(args.start))(
-    skip1st(args.spaces)(
+  return succeed(Unit)
+    .skip(token(args.start))
+    .skip(args.spaces)
+    .keep(
       sequenceEnd<
         A,
         CTX1 | CTX2,
@@ -1626,8 +1628,7 @@ export const sequence = <
         token(args.separator),
         args.trailing
       )
-    )
-  );
+    );
 };
 
 /**
@@ -1656,29 +1657,20 @@ const sequenceEnd = <A, CTX, PROBLEM>(
   trailing: Trailing
 ): Parser<immutable.List<A>, CTX, PROBLEM> => {
   const chompRest = (item: A) => {
+    const init = immutable.List([item]);
     if (trailing === Trailing.Forbidden) {
-      const res = loop(immutable.List([item]))(
-        sequenceEndForbidden(ender, ws, parseItem, sep)
-      );
+      const res = loop(init)(sequenceEndForbidden(ender, ws, parseItem, sep));
       return res;
     } else if (trailing === Trailing.Optional) {
-      const res = loop(immutable.List([item]))(
-        sequenceEndOptional(ender, ws, parseItem, sep)
-      );
+      const res = loop(init)(sequenceEndOptional(ender, ws, parseItem, sep));
       return res;
     } else {
-      // TODO: rewrite this with infix notation
-      const res = skip2nd(
-        skip1st(ws)(
-          skip1st(sep)(
-            skip1st(ws)(
-              loop(immutable.List([item]))(
-                sequenceEndMandatory(ws, parseItem, sep)
-              )
-            )
-          )
-        )
-      )(ender);
+      const res = succeed(Unit)
+        .skip(ws)
+        .skip(sep)
+        .skip(ws)
+        .keep(loop(init)(sequenceEndMandatory(ws, parseItem, sep)))
+        .skip(ender);
       return res;
     }
   };
@@ -1697,14 +1689,15 @@ const sequenceEndForbidden =
     sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
-    revItems: immutable.List<A>
+    state: immutable.List<A>
   ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return skip1st(ws)(
+    return ws.keep(
       oneOf(
-        skip1st(sep)(
-          skip1st(ws)(parseItem.map((item) => Loop(revItems.push(item))))
-        ),
-        ender.map(() => Done(revItems))
+        succeed((item: A) => Loop(state.push(item)))
+          .skip(sep)
+          .skip(ws)
+          .apply(parseItem),
+        succeed(Done(state)).skip(ender)
       )
     );
   };
@@ -1717,22 +1710,24 @@ const sequenceEndOptional =
     sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
-    revItems: immutable.List<A>
+    state: immutable.List<A>
   ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    const parseEnd = ender.map(() => Done(revItems));
-    return skip1st(ws)(
-      oneOf(
-        skip1st(sep)(
-          skip1st(ws)(
-            oneOf(
-              parseItem.map((item) => Loop(revItems.push(item))),
-              parseEnd
-            )
-          )
-        ),
-        parseEnd
-      )
-    );
+    return succeed(Unit)
+      .skip(ws)
+      .keep(
+        oneOf(
+          succeed(Unit)
+            .skip(sep)
+            .skip(ws)
+            .keep(
+              oneOf(
+                succeed((item: A) => Loop(state.push(item))).apply(parseItem),
+                succeed(Done(state)).skip(ender)
+              )
+            ),
+          succeed(Done(state)).skip(ender)
+        )
+      );
   };
 
 const sequenceEndMandatory =
@@ -1742,13 +1737,15 @@ const sequenceEndMandatory =
     sep: Parser<Unit, CTX, PROBLEM>
   ) =>
   (
-    revItems: immutable.List<A>
+    state: immutable.List<A>
   ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return oneOf(
-      skip2nd(parseItem)(skip2nd(ws)(skip2nd(sep)(ws))).map((item) =>
-        Loop(revItems.push(item))
-      ),
-      succeed(Unit).map(() => Done(revItems))
+      succeed((item: A) => Loop(state.push(item)))
+        .apply(parseItem)
+        .skip(ws)
+        .skip(sep)
+        .skip(ws),
+      succeed(Done(state))
     );
   };
 
