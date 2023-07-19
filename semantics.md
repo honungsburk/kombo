@@ -140,7 +140,7 @@ const backtrackExample = P.oneOf(
     .skip(P.backtrackable(P.spaces()))
     .skip(P.symbol(","))
     .skip(P.spaces())
-    .keep(P.int()),
+    .apply(P.int()),
   P.succeed(undefined).skip(P.spaces()).skip(P.symbol("]"))
 );
 ```
@@ -173,12 +173,12 @@ So we can rewrite that last example to never backtrack:
 ```ts
 const parser: Parser<number | undefind> = succeed(identity)
   .skip(spaces)
-  .take(
+  .apply(
     oneOf(
       succeed((x: number) => x)
         .skip(symbol(","))
         .skip(spaces)
-        .take(int),
+        .apply(int),
       succeed(undefined).skip(symbol("]"))
     )
   );
