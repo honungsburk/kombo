@@ -970,11 +970,27 @@ advancedGroup("sequence", () => {
 
   testSeqNestingSuccess("empty object", "{}", []);
   testSeqNestingSuccess("nested objects", "{{},{},{}}", [[], [], []]);
-  testSeqNestingSuccess("deeply nested objects", "{{{}, {}},{},{{}}}", [
-    [[], []],
+  testSeqNestingSuccess("deeply nested objects", "{{{}, {{}}}, {}, {{}}}", [
+    [[], [[]]],
     [],
     [[]],
   ]);
+
+  testSeqNestingFailure("Fail when curly braces are missing", "{{{}, ", [
+    BlockProblem.LeftCurlyBrace,
+    BlockProblem.RightCurlyBrace,
+  ]);
+  testSeqNestingFailure(
+    "Fail when curly braces are missing, 2nd variation",
+    "{{{}}, ",
+    [BlockProblem.LeftCurlyBrace, BlockProblem.RightCurlyBrace]
+  );
+
+  testSeqNestingFailure(
+    "Fail when there are random characters inserted",
+    "{{{}, {{}}}, d{}, {{}}}",
+    [BlockProblem.LeftCurlyBrace, BlockProblem.RightCurlyBrace]
+  );
 });
 
 // WHITESPACE
@@ -1121,4 +1137,17 @@ advancedGroup("many", () => {
     [123, 456, 789]
   );
   testManyInts1Failure("empty string", "", ["ExpectingAtLeastOneInt"]);
+});
+
+// OPTIONAL
+
+const optionalInt = A.optional(A.int("ExpectingInt")("InvalidInt"));
+
+const testOptionalIntSuccess = testSuccessBuilder(optionalInt);
+
+advancedGroup("optional", () => {
+  testOptionalIntSuccess("empty string", "", undefined);
+  testOptionalIntSuccess("single int", "123", 123);
+  testOptionalIntSuccess("multiple ints", "123 456 789", 123);
+  testOptionalIntSuccess("gibberish", "asdasd", undefined);
 });

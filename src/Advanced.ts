@@ -78,6 +78,10 @@ class ParserImpl<A, CTX = never, PROBLEM = never>
     return oneOf(this, other);
   }
 
+  optional(): Parser<A | undefined, CTX, PROBLEM> {
+    return optional(this);
+  }
+
   backtrackable(): Parser<A, CTX, PROBLEM> {
     return backtrackable(this);
   }
@@ -546,7 +550,7 @@ export const loop =
 const loopHelp = <STATE, A, CTX, PROBLEM>(
   state: STATE,
   fn: (state: STATE) => Parser<Step<STATE, A>, CTX, PROBLEM>,
-  s: State<unknown>
+  s: State<CTX>
 ): PStep<A, CTX, PROBLEM> => {
   let tmpState = state;
   let tmpS = s;
@@ -563,7 +567,7 @@ const loopHelp = <STATE, A, CTX, PROBLEM>(
         tmpState = val.value;
         tmpS = res.state;
       } else {
-        return Good(p, val.value, tmpS);
+        return Good(p, val.value, res.state);
       }
     } else {
       return Bad(p, res.bag);
@@ -1376,6 +1380,19 @@ function changeIndent<CTX>(
   };
 }
 
+// Optional
+
+/**
+ * Just like {@link Simple!optional | Simple.optional}
+ *
+ * @category Branches
+ */
+export const optional = <A, CTX, PROBLEM>(
+  parser: Parser<A, CTX, PROBLEM>
+): Parser<A | undefined, CTX, PROBLEM> => {
+  return parser.or(succeed(undefined));
+};
+
 // SYMBOL
 
 /**
@@ -1592,6 +1609,89 @@ const varHelp = <CTX>(
  * @category Loops
  * @category Sequence (All)
  */
+export const sequence2 = <
+  A,
+  CTX1,
+  CTX2,
+  PROBLEM1,
+  PROBLEM2,
+  PROBLEM3,
+  PROBLEM4,
+  PROBLEM5
+>(args: {
+  start: Token<PROBLEM1>;
+  separator: Token<PROBLEM2>;
+  end: Token<PROBLEM3>;
+  spaces: Parser<Unit, CTX1, PROBLEM4>;
+  item: Parser<A, CTX2, PROBLEM5>;
+  trailing: Trailing;
+}): Parser<
+  immutable.List<A>,
+  CTX1 | CTX2,
+  PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
+> => {
+  type CTX = CTX1 | CTX2;
+  type PROBLEM = PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5;
+
+  let itemParser: Parser<immutable.List<A>, CTX, PROBLEM>;
+  const init = immutable.List<A>();
+
+  if (args.trailing === Trailing.Forbidden) {
+    // Must end with a trailing separator
+    itemParser = loop(init)((state) =>
+      succeed(
+        (item: A) => (loop: boolean) =>
+          loop ? Loop(state.push(item)) : Done(state.push(item))
+      )
+        .skip(args.spaces)
+        .apply(args.item)
+        .skip(args.spaces)
+        .apply(token(args.separator).or(succeed(true)))
+    );
+  } else if (args.trailing === Trailing.Optional) {
+    // Optionally end with a trailing separator
+    itemParser = loop(init)((state) =>
+      oneOf(
+        succeed(
+          (item: A) => (loop: boolean) =>
+            loop ? Loop(state.push(item)) : Done(state.push(item))
+        )
+          .skip(args.spaces)
+          .apply(args.item)
+          .skip(args.spaces)
+          .apply(token(args.separator).or(succeed(true))),
+        succeed(Done(state))
+      )
+    );
+  } else {
+    // Must end with a trailing separator
+    itemParser = loop(init)((state) =>
+      oneOf(
+        succeed((item: A) => Loop(state.push(item)))
+          .skip(args.spaces)
+          .apply(args.item)
+          .skip(args.spaces)
+          .skip(token(args.separator)),
+        succeed(Done(state))
+      )
+    );
+  }
+
+  return succeed(Unit)
+    .skip(token(args.start))
+    .keep(itemParser)
+    .skip(args.spaces)
+    .skip(token(args.end));
+};
+
+/**
+ * Just like {@link Simple!sequence | Simple.sequence} except with a `Token` for
+ * the start, separator, and end. That way you can specify your custom type of
+ * problem for when something is not found.
+ *
+ * @category Loops
+ * @category Sequence (All)
+ */
 export const sequence = <
   A,
   CTX1,
@@ -1659,22 +1759,18 @@ const sequenceEnd = <A, CTX, PROBLEM>(
   const chompRest = (item: A) => {
     const init = immutable.List([item]);
     if (trailing === Trailing.Forbidden) {
-      const res = loop(init)(sequenceEndForbidden(ender, ws, parseItem, sep));
-      return res;
+      return loop(init)(sequenceEndForbidden(ender, ws, parseItem, sep));
     } else if (trailing === Trailing.Optional) {
-      const res = loop(init)(sequenceEndOptional(ender, ws, parseItem, sep));
-      return res;
+      return loop(init)(sequenceEndOptional(ender, ws, parseItem, sep));
     } else {
-      const res = succeed(Unit)
+      return succeed(Unit)
         .skip(ws)
         .skip(sep)
         .skip(ws)
         .keep(loop(init)(sequenceEndMandatory(ws, parseItem, sep)))
         .skip(ender);
-      return res;
     }
   };
-
   return oneOf(
     parseItem.andThen(chompRest),
     ender.map(() => immutable.List())
@@ -1691,15 +1787,17 @@ const sequenceEndForbidden =
   (
     state: immutable.List<A>
   ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return ws.keep(
-      oneOf(
-        succeed((item: A) => Loop(state.push(item)))
-          .skip(sep)
-          .skip(ws)
-          .apply(parseItem),
-        succeed(Done(state)).skip(ender)
-      )
-    );
+    return succeed(Unit)
+      .skip(ws)
+      .keep(
+        oneOf(
+          succeed((item: A) => Loop(state.push(item)))
+            .skip(sep)
+            .skip(ws)
+            .apply(parseItem),
+          succeed(Done(state)).skip(ender)
+        )
+      );
   };
 
 const sequenceEndOptional =

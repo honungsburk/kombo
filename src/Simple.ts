@@ -1098,6 +1098,17 @@ export const commit = <A>(value: A): Parser<A> => {
   return A.commit(value);
 };
 
+// OPTIONAL
+
+/**
+ * Make a parser optional. If the parser fails, it will return `undefined`.
+ *
+ * @category Branches
+ */
+export const optional = <A>(parser: Parser<A>): Parser<A | undefined> => {
+  return A.optional(parser);
+};
+
 // SYMBOL
 
 /**
