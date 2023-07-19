@@ -1871,7 +1871,7 @@ export const variable = (args: {
  * const block: Parser<Stmt[]> =
  *       sequence({
  *         start: "{",
- *         seperator: ";",
+ *         separator: ";",
  *         end: "}",
  *         spaces: spaces,
  *         item: statement,
@@ -1892,7 +1892,7 @@ export const variable = (args: {
  */
 export const sequence = <A>(args: {
   start: string;
-  seperator: string;
+  separator: string;
   end: string;
   spaces: Parser<P.Unit>;
   item: Parser<A>;
@@ -1900,7 +1900,7 @@ export const sequence = <A>(args: {
 }): Parser<Immutable.List<A>> => {
   return A.sequence({
     start: toToken(args.start),
-    separator: toToken(args.seperator),
+    separator: toToken(args.separator),
     end: toToken(args.end),
     spaces: args.spaces,
     item: args.item,
