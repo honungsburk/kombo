@@ -171,17 +171,17 @@ Notice that in the previous example, we parsed `spaces` twice in some cases. Thi
 So we can rewrite that last example to never backtrack:
 
 ```ts
-const parser: Parser<number | undefind> =
-  succeed(identity)
-  	.skip(spaces)
-  	.take(oneOf(
-        [ succeed(x => x)
-            .skip(symbol(",")
-            .skip(spaces)
-            .take(int)
-        , succeed(undefined)
-            .skip(symbol "]")
-        ]))
+const parser: Parser<number | undefind> = succeed(identity)
+  .skip(spaces)
+  .take(
+    oneOf(
+      succeed((x: number) => x)
+        .skip(symbol(","))
+        .skip(spaces)
+        .take(int),
+      succeed(undefined).skip(symbol("]"))
+    )
+  );
 ```
 
 Now we are guaranteed to consume the spaces only one time. After that, we decide if we are looking at a `,` or `]`, so we never backtrack and reparse things.
