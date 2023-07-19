@@ -1,6 +1,6 @@
 {
   "name": "@honungsburk/kombo",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Are you tired of complex regex? Do you want good error messages? Use kombo!",
   "author": "Frank Hampus Weslien (https://honungsburk.github.io/)",
   "license": "BSD-3-Clause",
@@ -67,6 +67,10 @@
     "./Result": {
       "import": "./dist/mjs/Result.js",
       "require": "./dist/cjs/Result.js"
+    },
+    "./Parser": {
+      "import": "./dist/mjs/Parser.js",
+      "require": "./dist/cjs/Parser.js"
     }
   }
 }
