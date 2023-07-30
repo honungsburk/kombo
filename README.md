@@ -10,6 +10,13 @@ The particular goals of this library are:
 - Make writing parsers as simple and fun as possible.
 - Produce excellent error messages.
 - Go pretty fast.
+- Works with CommonJS and ESM. Browser or node.
+
+## Installation
+
+```bash
+npm install @honungsburk/kombo
+```
 
 ## Parser Pipelines
 
@@ -41,6 +48,21 @@ const point: Parser<Point> = succeed((x: number) => (y: number) => {
   .apply(float)
   .skip(spaces)
   .skip(symbol(")"));
+
+// Running the parser returns a Result wrapper that can either be OK or Err
+const pointResult = point.run("( 123.09, 23.123)");
+
+// If it is Ok the parsing succeeded
+if (pointResult.isOk) {
+  console.log("x:", pointResult.value.x);
+  console.log("y:", pointResult.value.y);
+}
+
+// If there was an error can deal with it accordingly
+if(pointResult.isErr){
+  ...
+}
+
 ```
 
 All the interesting stuff is happening in point. It uses two operators:
@@ -51,6 +73,8 @@ All the interesting stuff is happening in point. It uses two operators:
 So the `point` function only gets the result of the two `float` parsers.
 
 I recommend having one line per operator in your parser pipeline. If you need multiple lines for some reason, use a let or make a helper function.
+
+If you want to have look at a larger example head over to the [Kombo-Json repository](https://github.com/honungsburk/kombo-json)
 
 ## Backtracking
 
@@ -65,17 +89,18 @@ So the defaults are nice, but sometimes the easiest way to write a parser is to 
 Most parsers tell you the row and column of the problem:
 
 ```txt
-    Something went wrong at (4:17)
+Something went wrong at (4:17)
 ```
 
 That may be true, but it is not how humans think. It is how text editors think! It would be better to say:
 
 ```txt
-    I found a problem with this list:
+I found a problem with this list:
 
-        [ 1, 23zm5, 3 ]
-             ^
-    I wanted an integer, like 6 or 90219.
+      [ 1, 23zm5, 3 ]
+           ^
+
+I wanted an integer, like 6 or 90219.
 ```
 
 Notice that the error messages says `this list`. That is context! That is the language my brain speaks, not rows and columns.
@@ -93,16 +118,12 @@ This technique is used by the parser in the Elm compiler to give more helpful er
 - [npm](https://github.com/honungsburk/kombo)
 - [personal website](https://honungsburk.github.io/)
 
-## Installation
-
-Works with CommonJS and ESM. Browser or node.
-
-```bash
-npm install @honungsburk/kombo
-```
-
 ## FAQ
 
 ### Why did you name this library _Kombo_?
 
 This is a parser _combinator_ library, and the Swedish word for _combo_ is , you guessed it, _kombo_.
+
+### Do you have any large examples on how to build a real parser using Kombo?
+
+Checkout the [Kombo JSON Parser](https://github.com/honungsburk/kombo-json)
