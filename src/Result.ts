@@ -40,6 +40,8 @@ export type Result<A, E> = Ok<A> | Err<E>;
 export type Ok<A> = {
   readonly kind: "Ok";
   readonly value: A;
+  readonly isOk: true;
+  readonly isErr: false;
 };
 
 /**
@@ -49,6 +51,8 @@ export function Ok<A>(value: A): Ok<A> {
   return {
     kind: "Ok",
     value,
+    isOk: true,
+    isErr: false,
   };
 }
 
@@ -69,6 +73,8 @@ export function isOk<A>(x: Result<A, unknown>): x is Ok<A> {
 export type Err<E> = {
   readonly kind: "Err";
   readonly value: E;
+  readonly isOk: false;
+  readonly isErr: true;
 };
 
 /**
@@ -78,6 +84,8 @@ export function Err<E>(value: E): Err<E> {
   return {
     kind: "Err",
     value,
+    isOk: false,
+    isErr: true,
   };
 }
 

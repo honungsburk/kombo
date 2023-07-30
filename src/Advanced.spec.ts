@@ -23,7 +23,7 @@ function expectProblem<A, CTX>(
   toBe: A[]
 ): void {
   expect(Results.isErr(result)).toBeTruthy();
-  if (Results.isErr(result)) {
+  if (result.isErr) {
     expect(result.value.map((d) => d.problem)).toStrictEqual(toBe);
   }
 }
