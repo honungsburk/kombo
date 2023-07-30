@@ -64,15 +64,19 @@ So the defaults are nice, but sometimes the easiest way to write a parser is to 
 
 Most parsers tell you the row and column of the problem:
 
+```txt
     Something went wrong at (4:17)
+```
 
 That may be true, but it is not how humans think. It is how text editors think! It would be better to say:
 
+```txt
     I found a problem with this list:
 
         [ 1, 23zm5, 3 ]
              ^
     I wanted an integer, like 6 or 90219.
+```
 
 Notice that the error messages says `this list`. That is context! That is the language my brain speaks, not rows and columns.
 
