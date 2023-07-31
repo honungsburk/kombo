@@ -7,7 +7,9 @@
   "tsconfig": "./tsconfig.json",
   "cleanOutputDir": true,
   "sidebarLinks": {
-    "github": "https://github.com/honungsburk/kombo"
+    "github": "https://github.com/honungsburk/kombo",
+    "kombo-json": "https://github.com/honungsburk/kombo-json",
+    "kombo-workshop": "https://github.com/honungsburk/kombo-workshop"
   },
   "categorizeByGroup": false,
   "categoryOrder": [

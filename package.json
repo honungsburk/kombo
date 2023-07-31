@@ -31,7 +31,8 @@
   "keywords": [
     "parser",
     "parser combinators",
-    "typescript"
+    "typescript",
+    "kombo"
   ],
   "devDependencies": {
     "@japa/expect": "^2.0.2",

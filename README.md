@@ -74,7 +74,8 @@ So the `point` function only gets the result of the two `float` parsers.
 
 I recommend having one line per operator in your parser pipeline. If you need multiple lines for some reason, use a let or make a helper function.
 
-If you want to have look at a larger example head over to the [Kombo-Json repository](https://github.com/honungsburk/kombo-json)
+If you want to have look at a larger example head over to the [Kombo-Json repository](https://github.com/honungsburk/kombo-json), and if you still feel unsure you can clone the [Kombo Workshop repository](https://github.com/honungsburk/kombo-workshop) and
+go through the exercises.
 
 ## Backtracking
 
@@ -88,13 +89,13 @@ So the defaults are nice, but sometimes the easiest way to write a parser is to 
 
 Most parsers tell you the row and column of the problem:
 
-```txt
+```text
 Something went wrong at (4:17)
 ```
 
 That may be true, but it is not how humans think. It is how text editors think! It would be better to say:
 
-```txt
+```text
 I found a problem with this list:
 
       [ 1, 23zm5, 3 ]
@@ -105,18 +106,9 @@ I wanted an integer, like 6 or 90219.
 
 Notice that the error messages says `this list`. That is context! That is the language my brain speaks, not rows and columns.
 
-Once you get comfortable with the `Simple` module, you can switch over to `Advanced` and use [`inContext`](https://example.com#inContext) to track exactly what your parser thinks it is doing at the moment. You can let the parser know “I am trying to parse a `"list"` right now” so if an error happens anywhere in that context, you get the hand annotation!
+Once you get comfortable with the [`Simple`](https://frankhampusweslien.com/kombo/modules/Simple.html) module, you can switch over to [`Advanced`](https://frankhampusweslien.com/kombo/modules/Advanced.html) and use [`inContext`](https://frankhampusweslien.com/kombo/functions/Advanced.inContext.html) to track exactly what your parser thinks it is doing at the moment. You can let the parser know “I am trying to parse a `"list"` right now” so if an error happens anywhere in that context, you get the hand annotation!
 
 This technique is used by the parser in the Elm compiler to give more helpful error messages.
-
-## Links
-
-- [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
-- [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
-- [Kombo docs](https://honungsburk.github.io/kombo)
-- [github](https://github.com/honungsburk/kombo)
-- [npm](https://github.com/honungsburk/kombo)
-- [personal website](https://honungsburk.github.io/)
 
 ## FAQ
 
@@ -127,3 +119,17 @@ This is a parser _combinator_ library, and the Swedish word for _combo_ is , you
 ### Do you have any large examples on how to build a real parser using Kombo?
 
 Checkout the [Kombo JSON Parser](https://github.com/honungsburk/kombo-json)
+
+### I still don't know how to use it!
+
+Don't fret! Clone the [Kombo Workshop repository](https://github.com/honungsburk/kombo-workshop) and
+go through the exercises.
+
+## Links
+
+- [Comparison with Prior Work](https://github.com/honungsburk/kombo/blob/master/comparison.md)
+- [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
+- [Kombo docs](https://honungsburk.github.io/kombo)
+- [github](https://github.com/honungsburk/kombo)
+- [npm](https://github.com/honungsburk/kombo)
+- [personal website](https://honungsburk.github.io/)

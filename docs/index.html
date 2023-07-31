@@ -48,7 +48,8 @@ This library provides a coherent alternative that handles more cases and produce
 </ul>
 <p>So the <code>point</code> function only gets the result of the two <code>float</code> parsers.</p>
 <p>I recommend having one line per operator in your parser pipeline. If you need multiple lines for some reason, use a let or make a helper function.</p>
-<p>If you want to have look at a larger example head over to the <a href="https://github.com/honungsburk/kombo-json">Kombo-Json repository</a></p>
+<p>If you want to have look at a larger example head over to the <a href="https://github.com/honungsburk/kombo-json">Kombo-Json repository</a>, and if you still feel unsure you can clone the <a href="https://github.com/honungsburk/kombo-workshop">Kombo Workshop repository</a> and
+go through the exercises.</p>
 
 <a href="#backtracking" id="backtracking" style="color: inherit; text-decoration: none;">
   <h2>Backtracking</h2>
@@ -61,10 +62,10 @@ This library provides a coherent alternative that handles more cases and produce
   <h2>Tracking Context</h2>
 </a>
 <p>Most parsers tell you the row and column of the problem:</p>
-<pre><code class="language-txt">Something went wrong at (4:17)
+<pre><code class="language-text">Something went wrong at (4:17)
 </code></pre>
 <p>That may be true, but it is not how humans think. It is how text editors think! It would be better to say:</p>
-<pre><code class="language-txt">I found a problem with this list:
+<pre><code class="language-text">I found a problem with this list:
 
       [ 1, 23zm5, 3 ]
            ^
@@ -72,20 +73,8 @@ This library provides a coherent alternative that handles more cases and produce
 I wanted an integer, like 6 or 90219.
 </code></pre>
 <p>Notice that the error messages says <code>this list</code>. That is context! That is the language my brain speaks, not rows and columns.</p>
-<p>Once you get comfortable with the <code>Simple</code> module, you can switch over to <code>Advanced</code> and use <a href="https://example.com#inContext"><code>inContext</code></a> to track exactly what your parser thinks it is doing at the moment. You can let the parser know “I am trying to parse a <code>&quot;list&quot;</code> right now” so if an error happens anywhere in that context, you get the hand annotation!</p>
+<p>Once you get comfortable with the <a href="https://frankhampusweslien.com/kombo/modules/Simple.html"><code>Simple</code></a> module, you can switch over to <a href="https://frankhampusweslien.com/kombo/modules/Advanced.html"><code>Advanced</code></a> and use <a href="https://frankhampusweslien.com/kombo/functions/Advanced.inContext.html"><code>inContext</code></a> to track exactly what your parser thinks it is doing at the moment. You can let the parser know “I am trying to parse a <code>&quot;list&quot;</code> right now” so if an error happens anywhere in that context, you get the hand annotation!</p>
 <p>This technique is used by the parser in the Elm compiler to give more helpful error messages.</p>
-
-<a href="#links" id="links" style="color: inherit; text-decoration: none;">
-  <h2>Links</h2>
-</a>
-<ul>
-<li><a href="https://github.com/honungsburk/kombo/blob/master/comparison.md">Comparison with Prior Work</a></li>
-<li><a href="https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/">Parse, don&#39;t validate</a></li>
-<li><a href="https://honungsburk.github.io/kombo">Kombo docs</a></li>
-<li><a href="https://github.com/honungsburk/kombo">github</a></li>
-<li><a href="https://github.com/honungsburk/kombo">npm</a></li>
-<li><a href="https://honungsburk.github.io/">personal website</a></li>
-</ul>
 
 <a href="#faq" id="faq" style="color: inherit; text-decoration: none;">
   <h2>FAQ</h2>
@@ -100,9 +89,27 @@ I wanted an integer, like 6 or 90219.
   <h3>Do you have any large examples on how to build a real parser using Kombo?</h3>
 </a>
 <p>Checkout the <a href="https://github.com/honungsburk/kombo-json">Kombo JSON Parser</a></p>
+
+<a href="#i-still-don39t-know-how-to-use-it" id="i-still-don39t-know-how-to-use-it" style="color: inherit; text-decoration: none;">
+  <h3>I still don&#39;t know how to use it!</h3>
+</a>
+<p>Don&#39;t fret! Clone the <a href="https://github.com/honungsburk/kombo-workshop">Kombo Workshop repository</a> and
+go through the exercises.</p>
+
+<a href="#links" id="links" style="color: inherit; text-decoration: none;">
+  <h2>Links</h2>
+</a>
+<ul>
+<li><a href="https://github.com/honungsburk/kombo/blob/master/comparison.md">Comparison with Prior Work</a></li>
+<li><a href="https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/">Parse, don&#39;t validate</a></li>
+<li><a href="https://honungsburk.github.io/kombo">Kombo docs</a></li>
+<li><a href="https://github.com/honungsburk/kombo">github</a></li>
+<li><a href="https://github.com/honungsburk/kombo">npm</a></li>
+<li><a href="https://honungsburk.github.io/">personal website</a></li>
+</ul>
 </div></div>
 <div class="col-4 col-menu menu-sticky-wrap menu-highlight">
-<nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/honungsburk/kombo" target="_blank">github</a></nav>
+<nav id="tsd-sidebar-links" class="tsd-navigation"><a href="https://github.com/honungsburk/kombo" target="_blank">github</a><a href="https://github.com/honungsburk/kombo-json" target="_blank">kombo-json</a><a href="https://github.com/honungsburk/kombo-workshop" target="_blank">kombo-workshop</a></nav>
 <div class="tsd-navigation settings">
 <details class="tsd-index-accordion"><summary class="tsd-accordion-summary">
 <h3><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4.93896 8.531L12 15.591L19.061 8.531L16.939 6.409L12 11.349L7.06098 6.409L4.93896 8.531Z" fill="var(--color-text)"></path></svg> Settings</h3></summary>
