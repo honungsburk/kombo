@@ -71,10 +71,12 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
 
 /**
  *
- * @privateRemarks
- * TODO: Can you make it polymorphic over the `src` type?
- * Then you might be able to write parsers for bytestrings and other stringlike
- * objects
+ * The state is the current state of the parser. It contains the source string,
+ * offest, indent, row and column. It tells the parser where it is.
+ *
+ * Important: The offset is in BYTES because some UTF-16 characters are TWO bytes such as
+ * emojis.
+ *
  */
 export type State<CTX> = {
   src: string;
@@ -368,7 +370,12 @@ export function bagToList<CTX, PROBLEM>(
 export type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
 
 /**
- * When a parser succeeds they return `Good`.
+ * If a step is Good it means the parser succeeded and returned a value.
+ * It contains the new state of the parser, and whether or not the parser
+ * is allowed to backtrack.
+ *
+ * Backtraking means that if the parser fails, it can try another path. You
+ * can read more [here](https://github.com/honungsburk/kombo/blob/master/semantics.md).
  *
  * @remarks
  * - `state`: the current state of the parser.
@@ -417,7 +424,11 @@ export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
 }
 
 /**
- * When something bad happens we return this.
+ * If a step is Bad it means the parser failed. It contains the new state of the parser,
+ * and a problem that describes what went wrong.
+ *
+ * The bag is a data structure that contains all the problems that happened during the
+ * parsing and what order. It is used to generate error messages.
  *
  * @see
  * - {@link Bad:function Bad constructor}
