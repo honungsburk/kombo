@@ -248,7 +248,7 @@ const append = <A>(as: A[], a: A): A[] => {
   return as;
 };
 
-A.succeed((_c: false) => A.Loop(append([], "c"))).apply(
+A.succeed((_c: P.Unit) => A.Loop(append([], "c"))).apply(
   A.token(A.Token("c", "Expected a 'c'"))
 );
 

@@ -6,13 +6,13 @@ import * as Results from "./Result.js";
 /**
  * When you want to return a value but have no information. Typescript/Javascript
  * has no direct support for this but we can emulate it by creating a type alias
- * for false.
+ * for Symbol.
  *
  * @see {@link Unit:var | The Unit constant}
  *
  * @category Helper Types
  */
-export type Unit = false;
+export type Unit = Symbol;
 
 /**
  * {@inheritDoc Unit:type}
@@ -21,7 +21,7 @@ export type Unit = false;
  *
  * @category Helper Types
  */
-export const Unit: Unit = false;
+export const Unit: Unit = Symbol("Unit");
 
 // Located
 

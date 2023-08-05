@@ -228,43 +228,6 @@ parserGroup("zipCode", "@zipCode-parser", () => {
   });
 });
 
-// Token
-
-const isVarChar = (char: string) => {
-  return Helpers.isAlphaNum(char) || char === "_";
-};
-
-const checkEnding =
-  (kwd: string) =>
-  (isBadEnding: boolean): S.Parser<P.Unit> => {
-    if (isBadEnding) {
-      return S.problem("expecting the `" + kwd + "` keyword");
-    } else {
-      return S.commit(P.Unit);
-    }
-  };
-
-const keyword = (kwd: string): S.Parser<P.Unit> => {
-  return S.succeed((v: P.Unit) => v)
-    .skip(S.backtrackable(S.token(kwd)))
-    .keep(S.oneOf(S.backtrackable(S.chompIf(isVarChar)), S.succeed(false)))
-    .andThen(checkEnding(kwd));
-};
-
-parserGroup("keyword", "@keyword-parser", () => {
-  test("Succeed on correct keyword", ({ expect }, value) => {
-    //@ts-ignore
-    const res = S.run(keyword("let"))(value);
-    expect(Results.isOk(res)).toBeTruthy();
-  }).with(["let"]);
-
-  test("fail on incorrect keyword", ({ expect }, value) => {
-    //@ts-ignore
-    const res = S.run(keyword("let"))(value);
-    expect(Results.isErr(res)).toBeTruthy();
-  }).with(["llet"]);
-});
-
 // NUMBERS
 
 type Number = IntE | FloatE;
