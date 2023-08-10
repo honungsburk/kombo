@@ -34,7 +34,7 @@ group("isSubChunk", () => {
   test("incorrect in a simple array", ({ expect }) => {
     const src = fromString("let x = 4 in x");
     expect(src.isSubChunk("let".split(""), 1, 1, 2)).toStrictEqual([-1, 1, 2]);
-  }).pin();
+  });
 
   test("malformed input", ({ expect }) => {
     const src = fromString("lee x = 4 in x");
@@ -46,7 +46,9 @@ group("isSubChunk", () => {
 const isA = (c: string) => c === "a" || c === "\n" || c === "🙊";
 
 group("isSubToken", () => {
-  test("check that a char is an 'a' and increment the offset", ({ expect }) => {
+  test("check that a token is an 'a' and increment the offset", ({
+    expect,
+  }) => {
     expect(fromString("a").isSubToken(isA, 0)).toStrictEqual(1);
     expect(fromString("bbbbabbbb").isSubToken(isA, 4)).toStrictEqual(5);
   });
@@ -56,9 +58,9 @@ group("isSubToken", () => {
     expect(fromString("bbbbäbbbb").isSubToken(isA, 4)).toStrictEqual(-1);
   });
 
-  test("return -1 when newline", ({ expect }) => {
-    expect(fromString("\n").isSubToken(isA, 0)).toStrictEqual(-1);
-    expect(fromString("bbbb\nbbbb").isSubToken(isA, 4)).toStrictEqual(-1);
+  test("no special behavior on newlines", ({ expect }) => {
+    expect(fromString("\n").isSubToken(isA, 0)).toStrictEqual(1);
+    expect(fromString("bbbb\nbbbb").isSubToken(isA, 4)).toStrictEqual(5);
   });
 
   test("return +1 on '🙊'", ({ expect }) => {
@@ -75,25 +77,32 @@ group("isSubToken", () => {
 // findSubChunk
 
 group("findSubChunk", () => {
-  test("offset is on start of substring", ({ expect }) => {
+  test("subchunk was found", ({ expect }) => {
     const src = fromString("Is 42 the answer?");
     expect(src.findSubChunk("42".split(""), 0, 1, 1)).toStrictEqual([3, 1, 4]);
   });
 
-  test("offset is on after substring", ({ expect }) => {
+  test("subchunk not found", ({ expect }) => {
     const src = fromString("Is 42 the answer?");
     expect(src.findSubChunk("42".split(""), 7, 1, 8)).toStrictEqual([
       -1, 1, 18,
     ]);
   });
 
-  test("offset in '🙈🙉🙊'", ({ expect }) => {
+  test("offset in '['🙈','🙉','🙊']", ({ expect }) => {
     const src = fromStrings("🙈", "🙉", "🙊");
-    expect(src.findSubChunk(["🙉"], 0, 1, 1)).toStrictEqual([2, 1, 2]);
+    expect(src.findSubChunk(["🙉"], 0, 1, 1)).toStrictEqual([1, 1, 2]);
   });
 
   test("offset with newlines", ({ expect }) => {
     const src = fromStrings("🙈", "\n", "\n", "\n", "1", "🙊", "🙉", "🙊");
-    expect(src.findSubChunk(["🙉"], 0, 1, 1)).toStrictEqual([7, 1, 8]);
+    expect(src.findSubChunk(["🙉"], 0, 1, 1)).toStrictEqual([6, 1, 7]);
+  });
+
+  test("can find subChunk at the end", ({ expect }) => {
+    const src = fromString("abcdefghijklmnopqrstuvxyz");
+    expect(src.findSubChunk(["x", "y", "z"], 0, 1, 1)).toStrictEqual([
+      22, 1, 23,
+    ]);
   });
 });

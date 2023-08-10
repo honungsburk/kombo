@@ -68,12 +68,12 @@ group("isSubToken", () => {
 // findSubChunk
 
 group("findSubChunk", () => {
-  test("offset is on start of substring", ({ expect }) => {
+  test("substring was found", ({ expect }) => {
     const src = new StringSource("Is 42 the answer?");
     expect(src.findSubChunk("42", 0, 1, 1)).toStrictEqual([3, 1, 4]);
   });
 
-  test("offset is on after substring", ({ expect }) => {
+  test("substring was not found", ({ expect }) => {
     const src = new StringSource("Is 42 the answer?");
     expect(src.findSubChunk("42", 7, 1, 8)).toStrictEqual([-1, 1, 18]);
   });

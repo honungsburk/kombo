@@ -7,7 +7,9 @@ export default class ArraySource<A> implements ISource<A, A[]> {
   ) {}
 
   isSubToken(predicate: (token: A) => boolean, offset: number): number {
-    return offset < this.src.length && predicate(this.src[offset]) ? 1 : -1;
+    return offset < this.src.length && predicate(this.src[offset])
+      ? offset + 1
+      : -1;
   }
   isSubChunk = (
     subChunk: A[],
@@ -21,10 +23,12 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     for (let i = 0; isGood && i < smallLength; ) {
       isGood = this.eqToken(subChunk[i++], this.src[offset++]);
       // We ignore row for arrays, since we are always on the same line
-      col++;
+      if (isGood) {
+        col++;
+      }
     }
 
-    return [isGood ? offset : -1, row, col];
+    return [isGood ? offset : -1, 1, col];
   };
 
   findSubChunk(
@@ -33,18 +37,23 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     row: number,
     col: number
   ): [number, number, number] {
-    for (let i = offset; i < this.src.length; i++) {
-      const [newOffset, newRow, newCol] = this.isSubChunk(
+    // We need to check each possible starting point
+    // But when the subchunk is longer than what is left of the source, we can
+    // stop early
+    const interations = this.src.length - subChunk.length + 1;
+
+    for (let i = offset; i < interations; i++) {
+      const [newOffset, _newRow, newCol] = this.isSubChunk(
         subChunk,
         i,
-        row,
-        col
+        1,
+        col + i
       );
       if (newOffset !== -1) {
-        return [newOffset, newRow, newCol];
+        return [i, 1, col + i];
       }
     }
 
-    return [this.src.length, 1, this.src.length + 1];
+    return [-1, 1, this.src.length + 1];
   }
 }
