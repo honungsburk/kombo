@@ -17,10 +17,9 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     row: number,
     col: number
   ): [number, number, number] => {
-    const smallLength = subChunk.length;
-    let isGood: boolean | number = offset + smallLength <= this.src.length;
+    let isGood: boolean | number = offset + subChunk.length <= this.src.length;
 
-    for (let i = 0; isGood && i < smallLength; ) {
+    for (let i = 0; isGood && i < subChunk.length; ) {
       isGood = this.eqToken(subChunk[i++], this.src[offset++]);
       // We ignore row for arrays, since we are always on the same line
       if (isGood) {
