@@ -39,13 +39,13 @@ group("isSubChunk", () => {
   });
 });
 
-// isSubChunk
+// isSubToken
 
 const isA = (c: string) => c === "a" || c === "\n" || c === "🙊";
 
 group("isSubToken", () => {
   test("check that a char is an 'a' and increment the offset", ({ expect }) => {
-    expect(new StringSource("").isSubToken(isA, 0)).toStrictEqual(1);
+    expect(new StringSource("a").isSubToken(isA, 0)).toStrictEqual(1);
     expect(new StringSource("bbbbabbbb").isSubToken(isA, 4)).toStrictEqual(5);
   });
 
@@ -55,8 +55,8 @@ group("isSubToken", () => {
   });
 
   test("return -2 when newline", ({ expect }) => {
-    expect(new StringSource("ä").isSubToken(isA, 0)).toStrictEqual(-2);
-    expect(new StringSource("bbbbäbbbb").isSubToken(isA, 4)).toStrictEqual(-2);
+    expect(new StringSource("\n").isSubToken(isA, 0)).toStrictEqual(-2);
+    expect(new StringSource("bbbb\nbbbb").isSubToken(isA, 4)).toStrictEqual(-2);
   });
 
   test("return +2 on '🙊'", ({ expect }) => {

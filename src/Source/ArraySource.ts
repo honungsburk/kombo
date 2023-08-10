@@ -1,6 +1,6 @@
 import ISource from "./ISource.js";
 
-export class ArraySource<A> implements ISource<A, A[]> {
+export default class ArraySource<A> implements ISource<A, A[]> {
   constructor(
     private src: ReadonlyArray<A>,
     private eqToken: (l: A, r: A) => boolean
