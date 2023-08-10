@@ -3,16 +3,14 @@
 // - If we take streams in, we also need to return a stream as output in the parser.
 // - No backtracking larger then the chunk size of the stream. Otherwise we need to
 //   buffer the entire stream in memory.
-import * as fs from "fs";
+import Stream from "stream";
 import ISource from "./ISource.js";
-
-const stream = fs.createReadStream("file.txt", { encoding: "utf8" });
 
 // streams can operate on strings, buffers or Uint8Arrays
 // stream can work on arbitrary objects, if they are put in object mode
 // streams can not emit null. If you want to emit null, use undefined.
 
-export class NodeStreamSource implements ISource<string, string> {
+export default class NodeStreamSource implements ISource<string, string> {
   // keep track of the last N chunks in memory, anything before that is
   // discarded.
   private lastNChunks: string[] = [];
@@ -24,7 +22,7 @@ export class NodeStreamSource implements ISource<string, string> {
   // Settings
   private maxChunks: number;
 
-  constructor(private src: fs.ReadStream, _config?: { maxChunks: number }) {
+  constructor(private src: Stream.Readable, _config?: { maxChunks: number }) {
     this.maxChunks = _config?.maxChunks ?? 2;
   }
 

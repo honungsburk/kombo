@@ -41,6 +41,7 @@ group("isSubChunk", () => {
     expect(src.isSubChunk("let".split(""), 0, 1, 1)).toStrictEqual([-1, 1, 3]);
   });
 });
+
 // isSubToken
 
 const isA = (c: string) => c === "a" || c === "\n" || c === "🙊";
