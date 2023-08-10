@@ -7,10 +7,7 @@ import * as Ordering from "./Ordering.js";
  *
  * NOTE: I'm 100% confident we need to sprinkle some promises for this to work.
  */
-export type Stream<
-  TOKEN extends Ordering.IComparable,
-  CHUNK extends Ordering.IComparable
-> = {
+export type Stream<TOKEN, CHUNK> = {
   // The offset we are at
   // offset: number;
   tokenToChunk: (token: TOKEN) => CHUNK;
@@ -23,48 +20,54 @@ export type Stream<
    * Extract a singel token from the stream. Return undefined if the
    * stream is empty.
    */
-  take1: () => [TOKEN, Stream<TOKEN, CHUNK>] | undefined;
+  take1: (s: Stream<TOKEN, CHUNK>) => [TOKEN, Stream<TOKEN, CHUNK>] | undefined;
 
   /**
    * Extract a chunk from the stream.
    */
-  takeN: (n: number) => [CHUNK, Stream<TOKEN, CHUNK>] | undefined;
+  takeN: (
+    n: number
+  ) => (s: Stream<TOKEN, CHUNK>) => [CHUNK, Stream<TOKEN, CHUNK>] | undefined;
 
   /**
    * Take tokens from a stream while the provided predicate returns `true`
    */
   takeWhile: (
     predicate: (token: TOKEN) => boolean
-  ) => [CHUNK, Stream<TOKEN, CHUNK>];
+  ) => (s: Stream<TOKEN, CHUNK>) => [CHUNK, Stream<TOKEN, CHUNK>];
 };
 
-export abstract class BaseStream<
-  TOKEN extends Ordering.IComparable,
-  CHUNK extends Ordering.IComparable
-> implements Stream<TOKEN, CHUNK>
-{
-  // Stream manipulation
-  abstract tokensToChunk: (tokens: TOKEN[]) => CHUNK;
-  abstract chunkToTokens: (chunk: CHUNK) => TOKEN[];
-  abstract chunkLength: (chunk: CHUNK) => number;
+// export abstract class BaseStream<
+//   TOKEN extends Ordering.IComparable,
+//   CHUNK extends Ordering.IComparable
+// > implements Stream<TOKEN, CHUNK>
+// {
+//   // Stream manipulation
+//   abstract tokensToChunk: (tokens: TOKEN[]) => CHUNK;
+//   abstract chunkToTokens: (chunk: CHUNK) => TOKEN[];
+//   abstract chunkLength: (chunk: CHUNK) => number;
 
-  abstract take1: () => [TOKEN, Stream<TOKEN, CHUNK>] | undefined;
+//   abstract take1: (
+//     s: Stream<TOKEN, CHUNK>
+//   ) => [TOKEN, Stream<TOKEN, CHUNK>] | undefined;
 
-  abstract takeN: (n: number) => [CHUNK, Stream<TOKEN, CHUNK>] | undefined;
+//   abstract takeN: (
+//     n: number
+//   ) => (s: Stream<TOKEN, CHUNK>) => [CHUNK, Stream<TOKEN, CHUNK>] | undefined;
 
-  abstract takeWhile: (
-    predicate: (token: TOKEN) => boolean
-  ) => [CHUNK, Stream<TOKEN, CHUNK>];
+//   abstract takeWhile: (
+//     predicate: (token: TOKEN) => boolean
+//   ) => (s: Stream<TOKEN, CHUNK>) => [CHUNK, Stream<TOKEN, CHUNK>];
 
-  // Default implementations
-  chunkEmpty(chunk: CHUNK) {
-    return this.chunkLength(chunk) === 0;
-  }
+//   // Default implementations
+//   chunkEmpty(chunk: CHUNK) {
+//     return this.chunkLength(chunk) === 0;
+//   }
 
-  tokenToChunk(token: TOKEN) {
-    return this.tokensToChunk([token]);
-  }
-}
+//   tokenToChunk(token: TOKEN) {
+//     return this.tokensToChunk([token]);
+//   }
+// }
 
 // import * as fs from "fs";
 // const stream = fs.createReadStream("file.txt");
