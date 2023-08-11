@@ -47,7 +47,10 @@ class LazyChunks {
    * read the next chunk from the file and add it to memory.
    * @param offset
    */
-  getChunk(offset: number, minLengthFromOffset: number): [string, number] {
+  getChunk(
+    offset: number,
+    minLengthFromOffset: number
+  ): [string, number] | undefined {
     if (offset < this.currentOffset + this.totalNChunkLength) {
       // The chunk is in memory
 
@@ -103,7 +106,11 @@ export default class NodeStreamSource implements ISource<string, string> {
 
   isSubToken(predicate: (token: string) => boolean, offset: number): number {
     // max length of a token is 2 with chars such as '🙉'
-    const [chunk, chunkOffset] = this.lazyChunks.getChunk(offset, 2);
+    const loadedChunk = this.lazyChunks.getChunk(offset, 2);
+    if (loadedChunk === undefined) {
+      return -1;
+    }
+    const [chunk, chunkOffset] = loadedChunk;
 
     // We don't need to check the seam, because we are only looking at singel
     // token.
@@ -116,10 +123,11 @@ export default class NodeStreamSource implements ISource<string, string> {
     row: number,
     col: number
   ): [number, number, number] => {
-    const [chunk, chunkOffset] = this.lazyChunks.getChunk(
-      offset,
-      subChunk.length
-    );
+    const loadedChunk = this.lazyChunks.getChunk(offset, subChunk.length);
+    if (loadedChunk === undefined) {
+      return [-1, row, col];
+    }
+    const [chunk, chunkOffset] = loadedChunk;
     return StringHelpers.isSubString(
       subChunk,
       offset - chunkOffset,
@@ -135,18 +143,57 @@ export default class NodeStreamSource implements ISource<string, string> {
     row: number,
     col: number
   ): [number, number, number] {
-    const [chunk, chunkOffset] = this.lazyChunks.getChunk(
-      offset,
-      subChunk.length
-    );
+    let currentOffset = offset;
+    let currentRow = row;
+    let currentCol = col;
 
-    // a subChunk can not be larger then the chunk size. Because then it is so large
-    // that we can't check it against the source we keeep in memory. In practice
-    // this should not be a problem, because subChunks are usually small and chunks
-    // are usually large.
+    let lastChunk: string | undefined = undefined;
+    let lastChunkOffset: number | undefined = undefined;
+    do {
+      // If we are at the end of the chunk, even if it doesn't fit, we want the chunk
+      // so that we can count the rows and columns.
+      const loadedChunk = this.lazyChunks.getChunk(
+        currentOffset,
+        1 /* min length */
+      );
 
-    // Note that a subChunk can span multiple chunks in memory. We need to
-    // then check the seam.
-    throw new Error("Method not implemented.");
+      if (loadedChunk === undefined) {
+        // We are at the end of the file
+        // But since we ned to check the ending of the last chunk to look for newlines
+        if (lastChunk !== undefined && lastChunkOffset !== undefined) {
+          while (currentOffset - lastChunkOffset < lastChunk.length) {
+            var code = lastChunk.charCodeAt(currentOffset - currentOffset++);
+            code === 0x000a /* \n */
+              ? ((currentCol = 1), currentRow++)
+              : (currentCol++,
+                (code & 0xf800) === 0xd800 && currentOffset - currentOffset++);
+          }
+        }
+
+        return [-1, currentRow, currentCol];
+      }
+
+      const [chunk, chunkOffset] = loadedChunk;
+      lastChunk = chunk;
+      lastChunkOffset = chunkOffset;
+
+      let newOffset = chunk.indexOf(subChunk, currentOffset - chunkOffset);
+
+      // To cover the seams we need to subtract the length of the subchunk + 1
+      let target = newOffset < 0 ? chunk.length - chunk.length + 1 : newOffset;
+
+      while (currentOffset - chunkOffset < target) {
+        var code = chunk.charCodeAt(currentOffset - currentOffset++);
+        code === 0x000a /* \n */
+          ? ((currentCol = 1), currentRow++)
+          : (currentCol++,
+            (code & 0xf800) === 0xd800 && currentOffset - currentOffset++);
+      }
+
+      if (newOffset !== -1) {
+        // We found the subChunk
+        return [newOffset, currentRow, currentCol];
+      }
+    } while (true);
   }
 }
