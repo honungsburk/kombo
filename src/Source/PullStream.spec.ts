@@ -25,7 +25,7 @@ function assertIsBuffer(x: any): asserts x is Buffer {
 }
 
 group("pull", () => {
-  test("pull onace from a stream", async ({ expect }) => {
+  test("pull once from a stream", async ({ expect }) => {
     const r = new Stream.PassThrough({
       highWaterMark: undefined,
       encoding: "utf8",
