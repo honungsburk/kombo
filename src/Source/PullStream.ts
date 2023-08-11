@@ -42,11 +42,8 @@ export default class PullStream<A> {
       if (this.err) {
         reject(this.err);
       }
-      if (this.src.destroyed) {
-        reject(new Error("Stream is destroyed"));
-      }
 
-      if (this.src.closed || this.src.readableEnded) {
+      if (this.src.destroyed || this.src.closed || this.src.readableEnded) {
         resolve(null);
       }
 
