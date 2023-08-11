@@ -54,6 +54,16 @@ export default class PullStream<A> {
           this.assertFn(res);
           resolve(res);
         });
+        this.src.once("end", () => {
+          resolve(null);
+        });
+        this.src.once("error", (err) => {
+          this.err = err;
+          reject(err);
+        });
+        this.src.once("close", () => {
+          resolve(null);
+        });
       } else {
         this.assertFn(res);
         resolve(res);

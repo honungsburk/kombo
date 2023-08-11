@@ -25,19 +25,38 @@ function assertIsBuffer(x: any): asserts x is Buffer {
 }
 
 group("pull", () => {
-  test("pulls from a stream", async ({ expect }) => {
-    const r = new Stream.Readable({
+  test("pull onace from a stream", async ({ expect }) => {
+    const r = new Stream.PassThrough({
       highWaterMark: undefined,
       encoding: "utf8",
       objectMode: false,
     });
     r.push("hello");
-    r.push("world");
     r.push(null);
     const src = new PullStream(r, assertIsBuffer);
     const pullS = () =>
       src.pull().then((res) => (res === null ? null : res.toString("utf-8")));
-    expect(await pullS()).toStrictEqual("helloworld");
+    expect(await pullS()).toStrictEqual("hello");
+    expect(await pullS()).toStrictEqual(null);
+  });
+
+  test("pull multiple times from a stream", async ({ expect }) => {
+    const r = new Stream.PassThrough({
+      highWaterMark: undefined,
+      encoding: "utf8",
+      objectMode: false,
+    });
+    const src = new PullStream(r, assertIsBuffer);
+    const pullS = () =>
+      src.pull().then((res) => (res === null ? null : res.toString("utf-8")));
+
+    r.push("hello");
+    expect(await pullS()).toStrictEqual("hello");
+
+    r.push("world");
+    expect(await pullS()).toStrictEqual("world");
+
+    r.push(null);
     expect(await pullS()).toStrictEqual(null);
   });
 });
