@@ -1,3 +1,4 @@
+import { remove } from "immutable";
 import Stream from "stream";
 
 /**
@@ -20,6 +21,7 @@ export default class PullStream<A> {
   ) {
     // Should create a copy of the stream, so others don't interfere with it.
     this.src = new Stream.PassThrough();
+    // We pause the stream, so we can control when we read from it.
     this.src.pause();
     Stream.pipeline(
       input,
@@ -35,6 +37,8 @@ export default class PullStream<A> {
   /**
    * Pull the next chunk from the stream. Returns null if the stream is done.
    *
+   * Note: DO NOT CALL IN PARALLEL. THIS WILL CAUSE UNDEFINED BEHAVIOR.
+   *
    * @returns A or null if the stream is done
    */
   async pull(): Promise<A | null> {
@@ -49,21 +53,36 @@ export default class PullStream<A> {
 
       const res: any = this.src.read();
       if (res === null) {
-        this.src.once("readable", () => {
+        // To avoid space leaks we need to remove the listeners when we are done.
+        // We can not use removeAllListeners because that will remove the
+        // listeners for calls to pull that are in progress.
+        // Instead we only remove the listeners that are relevant for this call.
+        const removeListeners = () => {
+          this.src.removeListener("readable", read);
+          this.src.removeListener("end", resolveNull);
+          this.src.removeListener("close", resolveNull);
+          this.src.removeListener("error", rejectErr);
+        };
+
+        const read = () => {
           const res = this.src.read();
           this.assertFn(res);
           resolve(res);
-        });
-        this.src.once("end", () => {
+          removeListeners();
+        };
+        const resolveNull = () => {
           resolve(null);
-        });
-        this.src.once("error", (err) => {
+          removeListeners();
+        };
+        const rejectErr = (err: NodeJS.ErrnoException) => {
           this.err = err;
           reject(err);
-        });
-        this.src.once("close", () => {
-          resolve(null);
-        });
+          removeListeners();
+        };
+        this.src.on("readable", read);
+        this.src.on("end", resolveNull);
+        this.src.on("close", resolveNull);
+        this.src.on("error", rejectErr);
       } else {
         this.assertFn(res);
         resolve(res);
