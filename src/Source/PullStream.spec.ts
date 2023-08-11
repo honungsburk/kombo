@@ -1,7 +1,7 @@
 import { test, Group } from "@japa/runner";
-import NodeStreamSource from "./NodeStreamSource.js";
 import Stream from "stream";
 import PullStream from "./PullStream.js";
+import * as Assert from "./Assert.js";
 
 function group(fnName: string, callback: (group: Group) => void) {
   test.group(`PullStream.${fnName}`, (group) => {
@@ -10,18 +10,6 @@ function group(fnName: string, callback: (group: Group) => void) {
     );
     callback(group);
   });
-}
-
-function assertIsString(x: any): asserts x is string {
-  if (typeof x !== "string") {
-    throw new Error("Expected string");
-  }
-}
-
-function assertIsBuffer(x: any): asserts x is Buffer {
-  if (!(x instanceof Buffer)) {
-    throw new Error("Expected a buffer");
-  }
 }
 
 group("pull", () => {
@@ -33,7 +21,7 @@ group("pull", () => {
     });
     r.push("hello");
     r.push(null);
-    const src = new PullStream(r, assertIsBuffer);
+    const src = new PullStream(r, Assert.isBuffer);
     const pullS = () =>
       src.pull().then((res) => (res === null ? null : res.toString("utf-8")));
     expect(await pullS()).toStrictEqual("hello");
@@ -46,7 +34,7 @@ group("pull", () => {
       encoding: "utf8",
       objectMode: false,
     });
-    const src = new PullStream(r, assertIsBuffer);
+    const src = new PullStream(r, Assert.isBuffer);
     const pullS = () =>
       src.pull().then((res) => (res === null ? null : res.toString("utf-8")));
 
@@ -66,7 +54,7 @@ group("pull", () => {
       encoding: "utf8",
       objectMode: false,
     });
-    const src = new PullStream(r, assertIsBuffer);
+    const src = new PullStream(r, Assert.isBuffer);
     const pullS = () =>
       src.pull().then((res) => (res === null ? null : res.toString("utf-8")));
 

@@ -7,7 +7,7 @@ import Stream from "stream";
  *
  * This is an abstraction over a NodeJS stream that allows us to pull
  * chunks from the stream. We need this because NodeJS streams are
- * push based, which doesn't work with out parser architecture.
+ * push based, which doesn't work with Kombo's parser architecture.
  *
  * Node streams are untyped, so we need to assert that the values
  * we get from the stream are of the correct type.
