@@ -35,6 +35,22 @@ export default class PullStream<A> {
   }
 
   /**
+   * Check if the stream has a space leak.
+   *
+   * Note: Only used for testing. This is not a public API.
+   *
+   * @returns true if the stream has a space leak
+   */
+  _hasSpaceLeak(): boolean {
+    return (
+      this.src.listenerCount("end") > 20 ||
+      this.src.listenerCount("close") > 20 ||
+      this.src.listenerCount("error") > 20 ||
+      this.src.listenerCount("readable") > 20
+    );
+  }
+
+  /**
    * Pull the next chunk from the stream. Returns null if the stream is done.
    *
    * Note: DO NOT CALL IN PARALLEL. THIS WILL CAUSE UNDEFINED BEHAVIOR.
@@ -56,6 +72,7 @@ export default class PullStream<A> {
         // To avoid space leaks we need to remove the listeners when we are done.
         // We can not use removeAllListeners because that will remove the
         // listeners for calls to pull that are in progress.
+        // (Though we don't allow pull to be called in parallel, so there isn't actually a problem)
         // Instead we only remove the listeners that are relevant for this call.
         const removeListeners = () => {
           this.src.removeListener("readable", read);
