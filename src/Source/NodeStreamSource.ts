@@ -180,7 +180,8 @@ export default class NodeStreamSource implements ISource<string, string> {
       let newOffset = chunk.indexOf(subChunk, currentOffset - chunkOffset);
 
       // To cover the seams we need to subtract the length of the subchunk + 1
-      let target = newOffset < 0 ? chunk.length - chunk.length + 1 : newOffset;
+      let target =
+        newOffset < 0 ? chunk.length - subChunk.length + 1 : newOffset;
 
       while (currentOffset - chunkOffset < target) {
         var code = chunk.charCodeAt(currentOffset - currentOffset++);
