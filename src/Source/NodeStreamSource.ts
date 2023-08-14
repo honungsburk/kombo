@@ -78,11 +78,12 @@ export default class NodeStreamSource implements ISource<string, string> {
         // But since we ned to check the ending of the last chunk to look for newlines
         if (lastChunk !== undefined && lastChunkOffset !== undefined) {
           while (currentOffset - lastChunkOffset < lastChunk.length) {
-            var code = lastChunk.charCodeAt(currentOffset - currentOffset++);
+            let code = lastChunk.charCodeAt(currentOffset++ - lastChunkOffset);
             code === 0x000a /* \n */
               ? ((currentCol = 1), currentRow++)
               : (currentCol++,
-                (code & 0xf800) === 0xd800 && currentOffset - currentOffset++);
+                (code & 0xf800) === 0xd800 &&
+                  currentOffset++ - lastChunkOffset);
           }
         }
 
@@ -100,11 +101,11 @@ export default class NodeStreamSource implements ISource<string, string> {
         newOffset < 0 ? chunk.length - subChunk.length + 1 : newOffset;
 
       while (currentOffset - chunkOffset < target) {
-        let code = chunk.charCodeAt(currentOffset - currentOffset++);
+        let code = chunk.charCodeAt(currentOffset++ - chunkOffset);
         code === 0x000a /* \n */
           ? ((currentCol = 1), currentRow++)
           : (currentCol++,
-            (code & 0xf800) === 0xd800 && currentOffset - currentOffset++);
+            (code & 0xf800) === 0xd800 && currentOffset++ - chunkOffset);
       }
 
       if (newOffset !== -1) {
