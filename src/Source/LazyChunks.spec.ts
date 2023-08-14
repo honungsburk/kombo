@@ -71,5 +71,25 @@ group("getChunk", () => {
     r.push(null);
     res = await lazy.getChunk(a.length + b.length + 1, 1);
     expect(res).toStrictEqual([b + c, a.length]);
-  }).pin();
+  });
+
+  test("can fetch a seam", async ({ expect }) => {
+    const r = createStream();
+    const lazy = createLazyChunks(r);
+    let a = "aaaaaaaaaaa";
+    let b = "bbbbbbbbbbb";
+    let c = "ccccccccccc";
+    r.push(a);
+
+    let res = await lazy.getChunk(a.length - 3, 1);
+    expect(res).toStrictEqual([a, 0]);
+    r.push(b);
+
+    res = await lazy.getChunk(a.length - 3, 6);
+    expect(res).toStrictEqual([a + b, 0]);
+    r.push(c);
+    r.push(null);
+    res = await lazy.getChunk(a.length + b.length - 3, 6);
+    expect(res).toStrictEqual([b + c, a.length]);
+  });
 });

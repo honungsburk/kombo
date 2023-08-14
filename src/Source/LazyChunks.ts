@@ -89,7 +89,8 @@ export default class LazyChunks {
         // The offset is after the current loaded chunks
         offset >= this.currentOffset + this.totalChunk.length ||
         // the chunk is to short, but we can load the next chunk and see if it is long enough
-        offset > this.currentOffset + this.chunk1Length
+        offset > this.currentOffset + this.chunk1Length ||
+        this.chunk2 === undefined
       ) {
         const loadResult = await this.loadNextChunk();
         if (!loadResult) {
