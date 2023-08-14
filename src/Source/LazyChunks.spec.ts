@@ -92,4 +92,28 @@ group("getChunk", () => {
     res = await lazy.getChunk(a.length + b.length - 3, 6);
     expect(res).toStrictEqual([b + c, a.length]);
   });
+
+  test("can fetch a seam when there are multiple chunks", async ({
+    expect,
+  }) => {
+    const r = createStream();
+    const lazy = createLazyChunks(r);
+    const characters = "abcdefghijklmnopqrstuvwxyz";
+
+    let offset = 0;
+    let lastS = "          ";
+
+    r.push(lastS);
+    await lazy.getChunk(0, 1);
+
+    for (const char of characters) {
+      const s = char.repeat(10);
+      r.push(s);
+      const res = await lazy.getChunk(offset + s.length - 3, 6);
+      expect(res).toStrictEqual([lastS + s, offset]);
+      offset += s.length;
+      lastS = s;
+    }
+    r.push(null);
+  });
 });
