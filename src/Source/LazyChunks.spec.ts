@@ -56,12 +56,12 @@ group("getChunk", () => {
   test("can fetch when there are multiple chunks", async ({ expect }) => {
     const r = createStream();
     const lazy = createLazyChunks(r);
-    let res = await lazy.getChunk(0, 1);
     let a = "aaaaaaaaaaa";
     let b = "bbbbbbbbbbb";
     let c = "ccccccccccc";
-
     r.push(a);
+
+    let res = await lazy.getChunk(0, 1);
     expect(res).toStrictEqual([a, 0]);
     r.push(b);
 
