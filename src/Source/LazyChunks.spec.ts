@@ -23,7 +23,7 @@ group("getChunk", () => {
     r.push(null);
     const lazy = new LazeChunks(new PullStream(r, Assert.isBuffer));
 
-    const res = lazy.getChunk(0, 1);
+    const res = await lazy.getChunk(0, 1);
     expect(res).toStrictEqual(["Hello, world!", 0]);
   });
 
@@ -37,7 +37,7 @@ group("getChunk", () => {
     r.push(null);
     const lazy = new LazeChunks(new PullStream(r, Assert.isBuffer));
 
-    const res = lazy.getChunk(3, 1);
+    const res = await lazy.getChunk(3, 1);
     expect(res).toStrictEqual(["Hello, world!", 0]);
   });
 });

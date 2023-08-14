@@ -38,7 +38,10 @@ export default interface ISource<TOKEN, CHUNK> {
    * @param offset -  the offset of the token to look at
    * @returns the new offset if the predicate returns true (or -2), otherwise -1 if it was false
    */
-  isSubToken(predicate: (token: TOKEN) => boolean, offset: number): number;
+  isSubToken(
+    predicate: (token: TOKEN) => boolean,
+    offset: number
+  ): Promise<number> | number;
 
   /**
    * Just like `isSubToken`, but for chunks.
@@ -60,7 +63,7 @@ export default interface ISource<TOKEN, CHUNK> {
     offset: number,
     row: number,
     col: number
-  ) => [number, number, number];
+  ) => Promise<[number, number, number]> | [number, number, number];
 
   /**
    * Searches for a subchunk in the source from a given offset.
@@ -82,5 +85,5 @@ export default interface ISource<TOKEN, CHUNK> {
     offset: number,
     row: number,
     col: number
-  ): [number, number, number];
+  ): Promise<[number, number, number]> | [number, number, number];
 }

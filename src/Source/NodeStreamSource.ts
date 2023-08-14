@@ -11,9 +11,12 @@ export default class NodeStreamSource implements ISource<string, string> {
     this.lazyChunks = new LazyChunks(new PullStream(src, Assert.isBuffer));
   }
 
-  isSubToken(predicate: (token: string) => boolean, offset: number): number {
+  async isSubToken(
+    predicate: (token: string) => boolean,
+    offset: number
+  ): Promise<number> {
     // max length of a token is 2 with chars such as '🙉'
-    const loadedChunk = this.lazyChunks.getChunk(offset, 2);
+    const loadedChunk = await this.lazyChunks.getChunk(offset, 2);
     if (loadedChunk === undefined) {
       return -1;
     }
@@ -24,13 +27,13 @@ export default class NodeStreamSource implements ISource<string, string> {
     return StringHelpers.isSubChar(predicate, offset - chunkOffset, chunk);
   }
 
-  isSubChunk = (
+  async isSubChunk(
     subChunk: string,
     offset: number,
     row: number,
     col: number
-  ): [number, number, number] => {
-    const loadedChunk = this.lazyChunks.getChunk(offset, subChunk.length);
+  ): Promise<[number, number, number]> {
+    const loadedChunk = await this.lazyChunks.getChunk(offset, subChunk.length);
     if (loadedChunk === undefined) {
       return [-1, row, col];
     }
@@ -42,14 +45,14 @@ export default class NodeStreamSource implements ISource<string, string> {
       col,
       chunk
     );
-  };
+  }
 
-  findSubChunk(
+  async findSubChunk(
     subChunk: string,
     offset: number,
     row: number,
     col: number
-  ): [number, number, number] {
+  ): Promise<[number, number, number]> {
     let currentOffset = offset;
     let currentRow = row;
     let currentCol = col;
@@ -59,7 +62,7 @@ export default class NodeStreamSource implements ISource<string, string> {
     do {
       // If we are at the end of the chunk, even if it doesn't fit, we want the chunk
       // so that we can count the rows and columns.
-      const loadedChunk = this.lazyChunks.getChunk(
+      const loadedChunk = await this.lazyChunks.getChunk(
         currentOffset,
         1 /* min length */
       );
@@ -91,7 +94,7 @@ export default class NodeStreamSource implements ISource<string, string> {
         newOffset < 0 ? chunk.length - subChunk.length + 1 : newOffset;
 
       while (currentOffset - chunkOffset < target) {
-        var code = chunk.charCodeAt(currentOffset - currentOffset++);
+        let code = chunk.charCodeAt(currentOffset - currentOffset++);
         code === 0x000a /* \n */
           ? ((currentCol = 1), currentRow++)
           : (currentCol++,

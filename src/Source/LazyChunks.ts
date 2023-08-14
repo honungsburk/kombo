@@ -64,17 +64,17 @@ export default class LazyChunks {
    * read the next chunk from the file and add it to memory.
    * @param offset
    */
-  getChunk(
+  async getChunk(
     offset: number,
     minLengthFromOffset: number
-  ): [string, number] | undefined {
+  ): Promise<[string, number] | undefined> {
     if (offset < this.currentOffset) {
       throw new Error(
         `Chunk is forgotten. Wants offset ${offset} but current offset is ${this.currentOffset}`
       );
     }
 
-    this.loadIfEmpty();
+    await this.loadIfEmpty();
 
     do {
       if (
@@ -91,7 +91,8 @@ export default class LazyChunks {
         // the chunk is to short, but we can load the next chunk and see if it is long enough
         offset > this.currentOffset + this.chunk1Length
       ) {
-        if (!this.loadNextChunk()) {
+        const loadResult = await this.loadNextChunk();
+        if (!loadResult) {
           // if we can't load the next chunk, we are at the end of the stream.
           return undefined;
         }
