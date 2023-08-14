@@ -74,7 +74,11 @@ export default class LazyChunks {
       );
     }
 
-    await this.loadIfEmpty();
+    const didLoad = await this.loadIfEmpty();
+
+    if (!didLoad) {
+      return undefined;
+    }
 
     do {
       if (

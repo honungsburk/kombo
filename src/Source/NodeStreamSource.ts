@@ -16,7 +16,13 @@ export default class NodeStreamSource implements ISource<string, string> {
     offset: number
   ): Promise<number> {
     // max length of a token is 2 with chars such as '🙉'
-    const loadedChunk = await this.lazyChunks.getChunk(offset, 2);
+    // So to make sure we have enough data we need to load 2 charcodes
+    let loadedChunk = await this.lazyChunks.getChunk(offset, 2);
+    if (loadedChunk === undefined) {
+      // It is still possible that we can load 1 charcode
+      loadedChunk = await this.lazyChunks.getChunk(offset, 1);
+    }
+
     if (loadedChunk === undefined) {
       return -1;
     }
