@@ -116,4 +116,16 @@ group("getChunk", () => {
     }
     r.push(null);
   });
+
+  test("can overFetch and then underfetch", async ({ expect }) => {
+    const r = createStream();
+    const lazy = createLazyChunks(r);
+    r.push("a");
+    r.push(null);
+
+    let res = await lazy.getChunk(0, 2);
+    expect(res).toStrictEqual(undefined);
+    res = await lazy.getChunk(0, 1);
+    expect(res).toStrictEqual(["a", 0]);
+  });
 });

@@ -1,5 +1,11 @@
 import PullStream from "./PullStream.js";
 
+enum Loaded {
+  YES,
+  NO,
+  ALREADY_LOADED,
+}
+
 /**
  *  Lazy chunks is a wrapper around a pull stream that keeps the last N chunks in
  *  memory. This allows us to do backtracking within the last N chunks, and allow
@@ -25,30 +31,18 @@ export default class LazyChunks {
   constructor(private pullStream: PullStream<Buffer>) {}
 
   // Returns true if a chunk was loaded
-  private async loadIfEmpty(): Promise<boolean> {
-    if (this.chunk1 === undefined) {
-      const chunk = await this.pullStream.pull();
-      if (chunk === null) {
-        return false;
-      }
-      //TODO: We can't just assume utf8 here.
-      this.chunk1 = chunk.toString("utf8");
-      this.totalChunk = this.chunk1;
-      return true;
-    }
-    return false;
-  }
-
-  // Returns true if a chunk was loaded
   private async loadNextChunk(): Promise<boolean> {
-    if (this.chunk1 === undefined) {
-      throw new Error("loadNextChunk called before loadIfEmpty");
-    }
-
     const chunk = await this.pullStream.pull();
     if (chunk === null) {
       return false;
     }
+
+    if (this.chunk1 === undefined) {
+      this.chunk1 = chunk.toString("utf8");
+      this.totalChunk = this.chunk1;
+      return true;
+    }
+
     if (this.chunk2 !== undefined) {
       this.currentOffset += this.chunk1.length;
       this.chunk1 = this.chunk2;
@@ -74,10 +68,12 @@ export default class LazyChunks {
       );
     }
 
-    const didLoad = await this.loadIfEmpty();
-
-    if (!didLoad) {
-      return undefined;
+    // If we never loaded a chunk, we need to load one.
+    if (this.chunk1 === undefined) {
+      const didLoad = await this.loadNextChunk();
+      if (!didLoad) {
+        return undefined;
+      }
     }
 
     do {
