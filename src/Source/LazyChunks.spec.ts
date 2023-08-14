@@ -158,4 +158,17 @@ group("getChunk", () => {
     res = await lazy.getChunk(a.length + b.length - 1, 2);
     expect(res).toStrictEqual([b + c, a.length]);
   });
+
+  test("receive undefined if you try to fetch more then there exists", async ({
+    expect,
+  }) => {
+    const r = createStream();
+    const lazy = createLazyChunks(r);
+    let a = "aaaaaaaaaaa";
+    r.push(a);
+    r.push(null);
+
+    let res = await lazy.getChunk(2, 100);
+    expect(res).toStrictEqual(undefined);
+  });
 });
