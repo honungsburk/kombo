@@ -86,4 +86,14 @@ export default interface ISource<TOKEN, CHUNK> {
     row: number,
     col: number
   ): Promise<[number, number, number]> | [number, number, number];
+
+  /**
+   * Checks if the source is at the end.
+   *
+   * @param offset - the offset to check
+   * @returns true if the source is at the end, otherwise false
+   *
+   * @category Uses offset
+   */
+  isEnd(offset: number): Promise<boolean> | boolean;
 }

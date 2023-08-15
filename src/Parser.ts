@@ -1,5 +1,6 @@
 import * as immutable from "immutable";
 import * as Results from "./Result.js";
+import ISource from "./Source/ISource.js";
 
 // Unit
 
@@ -78,8 +79,8 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
  * emojis.
  *
  */
-export type State<CTX> = {
-  src: string;
+export type State<SRC extends ISource<any, any>, CTX> = {
+  src: SRC;
   offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
   indent: number; // starts from 0
   context: immutable.Stack<Located<CTX>>;
@@ -293,8 +294,8 @@ export function isAppend<CTX, PROBLEM>(
  *
  * @internal
  */
-export function fromState<CTX, PROBLEM>(
-  state: State<CTX>,
+export function fromState<SRC extends ISource<any, any>, CTX, PROBLEM>(
+  state: State<SRC, CTX>,
   p: PROBLEM
 ): Bag<CTX, PROBLEM> {
   return AddRight(
@@ -367,7 +368,9 @@ export function bagToList<CTX, PROBLEM>(
  *
  * @internal
  */
-export type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
+export type PStep<SRC extends ISource<any, any>, A, CTX, PROBLEM> =
+  | Good<SRC, A, CTX>
+  | Bad<CTX, PROBLEM>;
 
 /**
  * If a step is Good it means the parser succeeded and returned a value.
@@ -383,11 +386,11 @@ export type PStep<A, CTX, PROBLEM> = Good<A, CTX> | Bad<CTX, PROBLEM>;
  *
  * @internal
  */
-export type Good<A, CTX> = {
+export type Good<SRC extends ISource<any, any>, A, CTX> = {
   readonly kind: "Good";
   readonly haveConsumed: boolean; // if true, reached an unrecoverable error
   readonly value: A;
-  readonly state: State<CTX>;
+  readonly state: State<SRC, CTX>;
 };
 
 /**
@@ -398,11 +401,11 @@ export type Good<A, CTX> = {
  *
  * @internal
  */
-export function Good<A, CTX>(
+export function Good<SRC extends ISource<any, any>, A, CTX>(
   haveConsumed: boolean, // if true, reached an end state
   value: A,
-  state: State<CTX>
-): Good<A, CTX> {
+  state: State<SRC, CTX>
+): Good<SRC, A, CTX> {
   return {
     kind: "Good",
     haveConsumed: haveConsumed,
@@ -419,7 +422,9 @@ export function Good<A, CTX>(
  *
  * @internal
  */
-export function isGood<A, CTX>(x: PStep<A, CTX, any>): x is Good<A, CTX> {
+export function isGood<SRC extends ISource<any, any>, A, CTX>(
+  x: PStep<SRC, A, CTX, any>
+): x is Good<SRC, A, CTX> {
   return typeof x === "object" && x.kind === "Good";
 }
 
@@ -472,7 +477,7 @@ export function Bad<CTX, PROBLEM>(
  * @internal
  */
 export function isBad<CTX, PROBLEM>(
-  x: PStep<any, CTX, PROBLEM>
+  x: PStep<any, any, CTX, PROBLEM>
 ): x is Bad<CTX, PROBLEM> {
   return typeof x === "object" && x.kind === "Bad";
 }
@@ -548,13 +553,13 @@ export type GetReturnType<Function> = Function extends (arg: any) => any
  *
  * @category Parsers
  */
-export interface Parser<A, CTX, PROBLEM> {
+export interface Parser<SRC extends ISource<any, any>, A, CTX, PROBLEM> {
   /**
    * **WARNING:** Do not use directly, it is used by the library
    *
    * @internal
    */
-  exec: (s: State<unknown>) => PStep<A, CTX, PROBLEM>;
+  exec: (s: State<SRC, unknown>) => Promise<PStep<SRC, A, CTX, PROBLEM>>;
 
   /**
    * Transform the result of a parser.
@@ -579,7 +584,7 @@ export interface Parser<A, CTX, PROBLEM> {
    *
    * @category Mapping
    */
-  map<B>(fn: (v: A) => B): Parser<B, CTX, PROBLEM>;
+  map<B>(fn: (v: A) => B): Parser<SRC, B, CTX, PROBLEM>;
 
   /**
    *
@@ -620,8 +625,8 @@ export interface Parser<A, CTX, PROBLEM> {
    * @category Mapping
    */
   andThen<B, CTX2, PROBLEM2>(
-    fn: (v: A) => Parser<B, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2>;
+    fn: (v: A) => Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Skip the return value of the parser on the right-hand side.
@@ -642,8 +647,8 @@ export interface Parser<A, CTX, PROBLEM> {
    * @category Mapping
    */
   skip<CTX2, PROBLEM2>(
-    other: Parser<unknown, CTX2, PROBLEM2>
-  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2>;
+    other: Parser<SRC, unknown, CTX2, PROBLEM2>
+  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Keep the return value of the parser it is given, and ignore the previous value.
@@ -662,8 +667,8 @@ export interface Parser<A, CTX, PROBLEM> {
    * @category Mapping
    */
   keep<B, CTX2, PROBLEM2>(
-    other: Parser<B, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2>;
+    other: Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Apply values to a function in a parser pipeline.
@@ -705,8 +710,8 @@ export interface Parser<A, CTX, PROBLEM> {
    * @category Mapping
    */
   apply<CTX2, PROBLEM2>(
-    parser: Parser<GetArgumentType<A>, CTX2, PROBLEM2>
-  ): Parser<GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2>;
+    parser: Parser<SRC, GetArgumentType<A>, CTX2, PROBLEM2>
+  ): Parser<SRC, GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Just like {@link Simple!oneOf | Simple.oneOf} but only between **two** parsers.
@@ -720,36 +725,36 @@ export interface Parser<A, CTX, PROBLEM> {
    * @category Branches
    */
   or<B, CTX2, PROBLEM2>(
-    other: Parser<B, CTX2, PROBLEM2>
-  ): Parser<A | B, CTX | CTX2, PROBLEM | PROBLEM2>;
+    other: Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, A | B, CTX | CTX2, PROBLEM | PROBLEM2>;
 
   /**
    * Just like {@link Simple!run | Simple.run}
    *
    * @category Parsers
    */
-  run(src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]>;
+  run(src: SRC): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>>;
 
   /**
    * Just like {@link Simple!backtrackable | Simple.backtrackable}
    *
    * @category Branches
    */
-  backtrackable(): Parser<A, CTX, PROBLEM>;
+  backtrackable(): Parser<SRC, A, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getChompedString | Simple.getChompedString}
    *
    * @category Chompers
    */
-  getChompedString(): Parser<string, CTX, PROBLEM>;
+  getChompedString(): Parser<SRC, string, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
    *
    * @category Chompers
    */
-  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, CTX, PROBLEM>;
+  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<SRC, B, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getIndent | Simple.getIndent}
@@ -759,7 +764,7 @@ export interface Parser<A, CTX, PROBLEM> {
    *
    * @category Indentation
    */
-  getIndent(): Parser<number, CTX, PROBLEM>;
+  getIndent(): Parser<SRC, number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!withIndent | Simple.withIndent}
@@ -793,39 +798,39 @@ export interface Parser<A, CTX, PROBLEM> {
    *
    * @category Indentation
    */
-  withIndent(newIndent: number): Parser<A, CTX, PROBLEM>;
+  withIndent(newIndent: number): Parser<SRC, A, CTX, PROBLEM>;
 
   /**
    *  Just like {@link Simple!getPosition | Simple.getPosition}
    *
    * @category Positions
    */
-  getPosition(): Parser<[number, number], CTX, PROBLEM>;
+  getPosition(): Parser<SRC, [number, number], CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getRow | Simple.getRow}
    *
    * @category Positions
    */
-  getRow(): Parser<number, CTX, PROBLEM>;
+  getRow(): Parser<SRC, number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getCol  | Simple.getCol}
    * @category Positions
    */
-  getCol(): Parser<number, CTX, PROBLEM>;
+  getCol(): Parser<SRC, number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getOffset}
    *
    * @category Positions
    */
-  getOffset(): Parser<number, CTX, PROBLEM>;
+  getOffset(): Parser<SRC, number, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getSource}
    *
    * @category Positions
    */
-  getSource(): Parser<string, CTX, PROBLEM>;
+  getSource(): Parser<SRC, string, CTX, PROBLEM>;
 }

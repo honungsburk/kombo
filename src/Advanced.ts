@@ -21,6 +21,9 @@ import {
   Append,
   Located,
 } from "./Parser.js";
+import ISource from "./Source/ISource.js";
+import IStringSource from "./Source/IStringSource.js";
+import StringSource from "./Source/StringSource.js";
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internals
@@ -29,38 +32,43 @@ import {
 /**
  * @hidden
  */
-class ParserImpl<A, CTX = never, PROBLEM = never>
-  implements Parser<A, CTX, PROBLEM>
+class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
+  implements Parser<SRC, A, CTX, PROBLEM>
 {
-  constructor(public exec: (s: State<unknown>) => PStep<A, CTX, PROBLEM>) {}
+  constructor(
+    public exec: (
+      s: State<SRC, unknown>
+    ) => Promise<PStep<SRC, A, CTX, PROBLEM>>
+  ) {}
 
-  map<B>(fn: (v: A) => B): Parser<B, CTX, PROBLEM> {
+  map<B>(fn: (v: A) => B): Parser<SRC, B, CTX, PROBLEM> {
     return map(fn)(this);
   }
 
   andThen<B, CTX2, PROBLEM2>(
-    fn: (v: A) => Parser<B, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    fn: (v: A) => Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return andThen(fn)(this);
   }
 
   skip<CTX2, PROBLEM2>(
-    other: Parser<unknown, CTX2, PROBLEM2>
-  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> {
+    other: Parser<SRC, unknown, CTX2, PROBLEM2>
+  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> {
     return skip2nd(this)(other);
   }
 
   keep<B, CTX2, PROBLEM2>(
-    other: Parser<B, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    other: Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return this.andThen(() => other);
   }
 
   apply<CTX2, PROBLEM2>(
-    parser: Parser<GetArgumentType<A>, CTX2, PROBLEM2>
-  ): Parser<GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2> {
+    parser: Parser<SRC, GetArgumentType<A>, CTX2, PROBLEM2>
+  ): Parser<SRC, GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2> {
     return apply(
       this as Parser<
+        SRC,
         (a: GetArgumentType<A>) => GetReturnType<A>,
         CTX | CTX2,
         PROBLEM
@@ -68,53 +76,55 @@ class ParserImpl<A, CTX = never, PROBLEM = never>
     )(parser);
   }
 
-  run(src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]> {
+  run(src: SRC): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> {
     return run(this)(src);
   }
 
   or<B, CTX2, PROBLEM2>(
-    other: Parser<B, CTX2, PROBLEM2>
-  ): Parser<A | B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    other: Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, A | B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return oneOf(this, other);
   }
 
-  optional(): Parser<A | undefined, CTX, PROBLEM> {
+  optional(): Parser<SRC, A | undefined, CTX, PROBLEM> {
     return optional(this);
   }
 
-  backtrackable(): Parser<A, CTX, PROBLEM> {
+  backtrackable(): Parser<SRC, A, CTX, PROBLEM> {
     return backtrackable(this);
   }
 
-  getChompedString(): Parser<string, CTX, PROBLEM> {
+  getChompedString(): Parser<SRC, string, CTX, PROBLEM> {
     return getChompedString(this);
   }
 
-  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<B, CTX, PROBLEM> {
+  mapChompedString<B>(
+    fn: (s: string, v: A) => B
+  ): Parser<SRC, B, CTX, PROBLEM> {
     return mapChompedString(fn)(this);
   }
 
-  getIndent(): Parser<number, CTX, PROBLEM> {
+  getIndent(): Parser<SRC, number, CTX, PROBLEM> {
     return this.keep(getIndent);
   }
 
-  withIndent(newIndent: number): Parser<A, CTX, PROBLEM> {
+  withIndent(newIndent: number): Parser<SRC, A, CTX, PROBLEM> {
     return withIndent(newIndent)(this);
   }
 
-  getPosition(): Parser<[number, number], CTX, PROBLEM> {
+  getPosition(): Parser<SRC, [number, number], CTX, PROBLEM> {
     return this.keep(getPosition);
   }
-  getRow(): Parser<number, CTX, PROBLEM> {
+  getRow(): Parser<SRC, number, CTX, PROBLEM> {
     return this.keep(getRow);
   }
-  getCol(): Parser<number, CTX, PROBLEM> {
+  getCol(): Parser<SRC, number, CTX, PROBLEM> {
     return this.keep(getCol);
   }
-  getOffset(): Parser<number, CTX, PROBLEM> {
+  getOffset(): Parser<SRC, number, CTX, PROBLEM> {
     return this.keep(getOffset);
   }
-  getSource(): Parser<string, CTX, PROBLEM> {
+  getSource(): Parser<SRC, string, CTX, PROBLEM> {
     return this.keep(getSource);
   }
 }
@@ -132,9 +142,11 @@ class ParserImpl<A, CTX = never, PROBLEM = never>
  * @category Parsers
  */
 export const run =
-  <A, CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>) =>
-  (src: string): Results.Result<A, DeadEnd<CTX, PROBLEM>[]> => {
-    const res = parser.exec({
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    parser: Parser<SRC, A, CTX, PROBLEM>
+  ) =>
+  async (src: SRC): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> => {
+    const res = await parser.exec({
       src: src,
       offset: 0,
       indent: 0,
@@ -158,8 +170,8 @@ export const run =
  *
  * @category Primitives
  */
-export function succeed<A>(a: A): Parser<A, never, never> {
-  return new ParserImpl((s) => Good(false, a, s));
+export function succeed<A>(a: A): Parser<any, A, never, never> {
+  return new ParserImpl(async (s) => Good(false, a, s));
 }
 
 /**
@@ -169,8 +181,10 @@ export function succeed<A>(a: A): Parser<A, never, never> {
  *
  * @category Primitives
  */
-export function problem<PROBLEM>(p: PROBLEM): Parser<never, never, PROBLEM> {
-  return new ParserImpl((s) => Bad(false, fromState(s, p)));
+export function problem<PROBLEM>(
+  p: PROBLEM
+): Parser<any, never, never, PROBLEM> {
+  return new ParserImpl(async (s) => Bad(false, fromState(s, p)));
 }
 
 // MAPPING
@@ -185,9 +199,11 @@ export function problem<PROBLEM>(p: PROBLEM): Parser<never, never, PROBLEM> {
  */
 export const map =
   <A, B>(fn: (a: A) => B) =>
-  <CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<B, CTX, PROBLEM> => {
-    return new ParserImpl((s) => {
-      const res = parser.exec(s);
+  <SRC extends ISource<any, any>, CTX, PROBLEM>(
+    parser: Parser<SRC, A, CTX, PROBLEM>
+  ): Parser<SRC, B, CTX, PROBLEM> => {
+    return new ParserImpl(async (s) => {
+      const res = await parser.exec(s);
       if (isGood(res)) {
         return Good(res.haveConsumed, fn(res.value), res.state);
       } else {
@@ -203,27 +219,31 @@ export const map =
  */
 export const map2 =
   <A, B, C>(fn: (a: A, b: B) => C) =>
-  <CTX, PROBLEM>(parserA: Parser<A, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, CTX, PROBLEM>(
+    parserA: Parser<SRC, A, CTX, PROBLEM>
+  ) =>
   <CTX2, PROBLEM2>(
-    parserB: Parser<B, CTX2, PROBLEM2>
-  ): Parser<C, CTX | CTX2, PROBLEM | PROBLEM2> => {
-    return new ParserImpl((s0): PStep<C, CTX | CTX2, PROBLEM | PROBLEM2> => {
-      const res0 = parserA.exec(s0);
-      if (isBad(res0)) {
-        return res0;
-      } else {
-        const res1 = parserB.exec(res0.state);
-        if (isBad(res1)) {
-          return Bad(res0.haveConsumed || res1.haveConsumed, res1.bag);
+    parserB: Parser<SRC, B, CTX2, PROBLEM2>
+  ): Parser<SRC, C, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return new ParserImpl(
+      async (s0): Promise<PStep<SRC, C, CTX | CTX2, PROBLEM | PROBLEM2>> => {
+        const res0 = await parserA.exec(s0);
+        if (isBad(res0)) {
+          return res0;
         } else {
-          return Good(
-            res0.haveConsumed || res1.haveConsumed,
-            fn(res0.value, res1.value),
-            res1.state
-          );
+          const res1 = await parserB.exec(res0.state);
+          if (isBad(res1)) {
+            return Bad(res0.haveConsumed || res1.haveConsumed, res1.bag);
+          } else {
+            return Good(
+              res0.haveConsumed || res1.haveConsumed,
+              fn(res0.value, res1.value),
+              res1.state
+            );
+          }
         }
       }
-    });
+    );
   };
 
 /**
@@ -235,10 +255,12 @@ export const map2 =
  * @category Mapping
  */
 export const apply =
-  <A, B, CTX, PROBLEM>(parseFunc: Parser<(a: A) => B, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, A, B, CTX, PROBLEM>(
+    parseFunc: Parser<SRC, (a: A) => B, CTX, PROBLEM>
+  ) =>
   <CTX2, PROBLEM2>(
-    parseArg: Parser<A, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    parseArg: Parser<SRC, A, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((fn: (a: A) => B, arg: A) => fn(arg))(parseFunc)(parseArg);
   };
 
@@ -252,10 +274,12 @@ export const apply =
  * @category Mapping
  */
 export const skip1st =
-  <CTX, PROBLEM>(first: Parser<unknown, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, CTX, PROBLEM>(
+    first: Parser<SRC, unknown, CTX, PROBLEM>
+  ) =>
   <A, CTX2, PROBLEM2>(
-    second: Parser<A, CTX2, PROBLEM2>
-  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    second: Parser<SRC, A, CTX2, PROBLEM2>
+  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((a, b: A) => b)(first)(second);
   };
 
@@ -269,10 +293,12 @@ export const skip1st =
  * @category Mapping
  */
 export const skip2nd =
-  <A, CTX, PROBLEM>(keepParser: Parser<A, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    keepParser: Parser<SRC, A, CTX, PROBLEM>
+  ) =>
   <CTX2, PROBLEM2>(
-    ignoreParser: Parser<unknown, CTX2, PROBLEM2>
-  ): Parser<A, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    ignoreParser: Parser<SRC, unknown, CTX2, PROBLEM2>
+  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return map2((a: A, b) => a)(keepParser)(ignoreParser);
   };
 
@@ -287,28 +313,32 @@ export const skip2nd =
  * @category Mapping
  */
 export const andThen =
-  <A, B, CTX, PROBLEM>(fn: (a: A) => Parser<B, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, A, B, CTX, PROBLEM>(
+    fn: (a: A) => Parser<SRC, B, CTX, PROBLEM>
+  ) =>
   <CTX2, PROBLEM2>(
-    p: Parser<A, CTX2, PROBLEM2>
-  ): Parser<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
-    return new ParserImpl((ctx0): PStep<B, CTX | CTX2, PROBLEM | PROBLEM2> => {
-      const res1 = p.exec(ctx0);
+    p: Parser<SRC, A, CTX2, PROBLEM2>
+  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return new ParserImpl(
+      async (ctx0): Promise<PStep<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>> => {
+        const res1 = await p.exec(ctx0);
 
-      if (isBad(res1)) {
-        return res1;
-      } else {
-        const res2 = fn(res1.value).exec(res1.state);
-        if (isBad(res2)) {
-          return Bad(res1.haveConsumed || res2.haveConsumed, res2.bag);
+        if (isBad(res1)) {
+          return res1;
         } else {
-          return Good(
-            res1.haveConsumed || res2.haveConsumed,
-            res2.value,
-            res2.state
-          );
+          const res2 = await fn(res1.value).exec(res1.state);
+          if (isBad(res2)) {
+            return Bad(res1.haveConsumed || res2.haveConsumed, res2.bag);
+          } else {
+            return Good(
+              res1.haveConsumed || res2.haveConsumed,
+              res2.value,
+              res2.state
+            );
+          }
         }
       }
-    });
+    );
   };
 
 // LAZY
@@ -318,9 +348,9 @@ export const andThen =
  *
  * @category Helpers
  */
-export const lazy = <A, CTX, PROBLEM>(
-  thunk: () => Parser<A, CTX, PROBLEM>
-): Parser<A, CTX, PROBLEM> => {
+export const lazy = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  thunk: () => Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, A, CTX, PROBLEM> => {
   return new ParserImpl((ctx) => {
     return thunk().exec(ctx);
   });
@@ -337,22 +367,42 @@ export const lazy = <A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOf<A, CTX, PROBLEM>(
-  one: Parser<A, CTX, PROBLEM>
-): Parser<A, CTX, PROBLEM>;
-
-export function oneOf<A, B, CTX1, CTX2, PROBLEM1, PROBLEM2>(
-  one: Parser<A, CTX1, PROBLEM1>,
-  two: Parser<B, CTX2, PROBLEM2>
-): Parser<A | B, CTX1 | CTX2, PROBLEM1 | PROBLEM2>;
-
-export function oneOf<A, B, C, CTX1, CTX2, CTX3, PROBLEM1, PROBLEM2, PROBLEM3>(
-  one: Parser<A, CTX1, PROBLEM1>,
-  two: Parser<B, CTX2, PROBLEM2>,
-  three: Parser<C, CTX3, PROBLEM3>
-): Parser<A | B | C, CTX1 | CTX2 | CTX3, PROBLEM1 | PROBLEM2 | PROBLEM3>;
+export function oneOf<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  one: Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, A, CTX, PROBLEM>;
 
 export function oneOf<
+  SRC extends ISource<any, any>,
+  A,
+  B,
+  CTX1,
+  CTX2,
+  PROBLEM1,
+  PROBLEM2
+>(
+  one: Parser<SRC, A, CTX1, PROBLEM1>,
+  two: Parser<SRC, B, CTX2, PROBLEM2>
+): Parser<SRC, A | B, CTX1 | CTX2, PROBLEM1 | PROBLEM2>;
+
+export function oneOf<
+  SRC extends ISource<any, any>,
+  A,
+  B,
+  C,
+  CTX1,
+  CTX2,
+  CTX3,
+  PROBLEM1,
+  PROBLEM2,
+  PROBLEM3
+>(
+  one: Parser<SRC, A, CTX1, PROBLEM1>,
+  two: Parser<SRC, B, CTX2, PROBLEM2>,
+  three: Parser<SRC, C, CTX3, PROBLEM3>
+): Parser<SRC, A | B | C, CTX1 | CTX2 | CTX3, PROBLEM1 | PROBLEM2 | PROBLEM3>;
+
+export function oneOf<
+  SRC extends ISource<any, any>,
   A,
   B,
   C,
@@ -366,17 +416,19 @@ export function oneOf<
   PROBLEM3,
   PROBLEM4
 >(
-  one: Parser<A, CTX1, PROBLEM1>,
-  two: Parser<B, CTX2, PROBLEM2>,
-  three: Parser<C, CTX3, PROBLEM3>,
-  four: Parser<D, CTX4, PROBLEM4>
+  one: Parser<SRC, A, CTX1, PROBLEM1>,
+  two: Parser<SRC, B, CTX2, PROBLEM2>,
+  three: Parser<SRC, C, CTX3, PROBLEM3>,
+  four: Parser<SRC, D, CTX4, PROBLEM4>
 ): Parser<
+  SRC,
   A | B | C | D,
   CTX1 | CTX2 | CTX3 | CTX4,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4
 >;
 
 export function oneOf<
+  SRC extends ISource<any, any>,
   A,
   B,
   C,
@@ -393,20 +445,21 @@ export function oneOf<
   PROBLEM4,
   PROBLEM5
 >(
-  one: Parser<A, CTX1, PROBLEM1>,
-  two: Parser<B, CTX2, PROBLEM2>,
-  three: Parser<C, CTX3, PROBLEM3>,
-  four: Parser<D, CTX4, PROBLEM4>,
-  five: Parser<E, CTX5, PROBLEM5>
+  one: Parser<SRC, A, CTX1, PROBLEM1>,
+  two: Parser<SRC, B, CTX2, PROBLEM2>,
+  three: Parser<SRC, C, CTX3, PROBLEM3>,
+  four: Parser<SRC, D, CTX4, PROBLEM4>,
+  five: Parser<SRC, E, CTX5, PROBLEM5>
 ): Parser<
+  SRC,
   A | B | C | D | E,
   CTX1 | CTX2 | CTX3 | CTX4 | CTX5,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
 >;
 
-export function oneOf<A, CTX, PROBLEM>(
-  ...parsers: Parser<A, CTX, PROBLEM>[]
-): Parser<A, CTX, PROBLEM> {
+export function oneOf<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  ...parsers: Parser<SRC, A, CTX, PROBLEM>[]
+): Parser<SRC, A, CTX, PROBLEM> {
   return oneOfMany(...parsers);
 }
 
@@ -418,21 +471,21 @@ export function oneOf<A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOfMany<A, CTX, PROBLEM>(
-  ...parsers: Parser<A, CTX, PROBLEM>[]
-): Parser<A, CTX, PROBLEM> {
+export function oneOfMany<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  ...parsers: Parser<SRC, A, CTX, PROBLEM>[]
+): Parser<SRC, A, CTX, PROBLEM> {
   return new ParserImpl((ctx) => oneOfHelp(ctx, Empty, parsers));
 }
 
-function oneOfHelp<A, CTX, PROBLEM>(
-  ctx0: State<unknown>,
+async function oneOfHelp<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  ctx0: State<SRC, unknown>,
   bag: Bag<CTX, PROBLEM>,
-  parsers: Parser<A, CTX, PROBLEM>[]
-): PStep<A, CTX, PROBLEM> {
+  parsers: Parser<SRC, A, CTX, PROBLEM>[]
+): Promise<PStep<SRC, A, CTX, PROBLEM>> {
   let localBag = bag;
 
   for (const parser of parsers) {
-    const res = parser.exec(ctx0);
+    const res = await parser.exec(ctx0);
     if (isGood(res) || res.haveConsumed) {
       return res;
     }
@@ -541,24 +594,24 @@ export function isDone<A>(x: Step<unknown, A>): x is Done<A> {
  */
 export const loop =
   <STATE>(state: STATE) =>
-  <A, CTX, PROBLEM>(
-    fn: (state: STATE) => Parser<Step<STATE, A>, CTX, PROBLEM>
-  ): Parser<A, CTX, PROBLEM> => {
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    fn: (state: STATE) => Parser<SRC, Step<STATE, A>, CTX, PROBLEM>
+  ): Parser<SRC, A, CTX, PROBLEM> => {
     return new ParserImpl((s) => loopHelp(state, fn, s));
   };
 
-const loopHelp = <STATE, A, CTX, PROBLEM>(
+const loopHelp = async <SRC extends ISource<any, any>, STATE, A, CTX, PROBLEM>(
   state: STATE,
-  fn: (state: STATE) => Parser<Step<STATE, A>, CTX, PROBLEM>,
-  s: State<CTX>
-): PStep<A, CTX, PROBLEM> => {
+  fn: (state: STATE) => Parser<SRC, Step<STATE, A>, CTX, PROBLEM>,
+  s: State<SRC, CTX>
+): Promise<PStep<SRC, A, CTX, PROBLEM>> => {
   let tmpState = state;
   let tmpS = s;
   let p = false;
 
   while (true) {
     let parse = fn(tmpState);
-    let res = parse.exec(tmpS);
+    let res = await parse.exec(tmpS);
 
     if (isGood(res)) {
       const val = res.value;
@@ -582,11 +635,11 @@ const loopHelp = <STATE, A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export const backtrackable = <A, CTX, PROBLEM>(
-  parser: Parser<A, CTX, PROBLEM>
-): Parser<A, CTX, PROBLEM> => {
-  return new ParserImpl((ctx) => {
-    const res = parser.exec(ctx);
+export const backtrackable = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  parser: Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, A, CTX, PROBLEM> => {
+  return new ParserImpl(async (ctx) => {
+    const res = await parser.exec(ctx);
     if (isBad(res)) {
       return Bad(false, res.bag);
     } else {
@@ -600,11 +653,11 @@ export const backtrackable = <A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export const commit = <A>(a: A): Parser<A, never, never> => {
+export const commit = <A>(a: A): Parser<never, A, never, never> => {
   return new ParserImpl((s) => Good(true, a, s));
 };
 
-// Token
+// Token TODO: Rename to CHUNK
 
 /**
  * With the simpler `Parser` module, you could just say `symbol(",")` and
@@ -634,8 +687,8 @@ export const commit = <A>(a: A): Parser<A, never, never> => {
  *
  * @category Token (All)
  */
-export type Token<PROBLEM> = {
-  value: string;
+export type Token<CHUNK, PROBLEM> = {
+  value: CHUNK;
   problem: PROBLEM;
 };
 
@@ -647,10 +700,10 @@ export type Token<PROBLEM> = {
  *
  * @category Token (All)
  */
-export function Token<PROBLEM>(
-  value: string,
+export function Token<CHUNK, PROBLEM>(
+  value: CHUNK,
   problem: PROBLEM
-): Token<PROBLEM> {
+): Token<CHUNK, PROBLEM> {
   return {
     value: value,
     problem: problem,
@@ -658,6 +711,7 @@ export function Token<PROBLEM>(
 }
 
 /**
+ *
  * Just like {@link Simple!token | Simple.token} except you provide a {@link Token:type}
  * specifying your custom type of problems.
  *
@@ -668,18 +722,18 @@ export function Token<PROBLEM>(
  * @category Branches
  * @category Token (All)
  */
-export function token<PROBLEM>(
-  token: Token<PROBLEM>
-): Parser<Unit, never, PROBLEM> {
+export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
+  token: Token<CHUNK, PROBLEM>
+): Parser<SRC, Unit, never, PROBLEM> {
   const progress = token.value.length !== 0;
-  return new ParserImpl((s) => {
-    const [newOffset, newRow, newCol] = Helpers.isSubString(
+  return new ParserImpl(async (s) => {
+    const [newOffset, newRow, newCol] = await s.src.isSubChunk(
       token.value,
       s.offset,
       s.row,
-      s.col,
-      s.src
+      s.col
     );
+
     if (newOffset === -1) {
       return Bad(false, fromState(s, token.problem));
     } else {
@@ -723,7 +777,9 @@ export function token<PROBLEM>(
  */
 export const int =
   <PROBLEM>(expecting: PROBLEM) =>
-  (invalid: PROBLEM): Parser<number, never, PROBLEM> => {
+  <SRC extends IStringSource>(
+    invalid: PROBLEM
+  ): Parser<SRC, number, never, PROBLEM> => {
     return number({
       hex: Results.Err(invalid),
       int: Results.Ok((id: number) => id),
@@ -759,7 +815,9 @@ export const int =
  */
 export const float =
   <PROBLEM>(expecting: PROBLEM) =>
-  (invalid: PROBLEM): Parser<number, never, PROBLEM> => {
+  <SRC extends IStringSource>(
+    invalid: PROBLEM
+  ): Parser<SRC, number, never, PROBLEM> => {
     return number({
       int: Results.Ok((id: number) => id),
       hex: Results.Err(invalid),
@@ -782,7 +840,7 @@ export const float =
  *
  * @category Building Blocks
  */
-export function number<A, PROBLEM>(args: {
+export function number<SRC extends IStringSource, A, PROBLEM>(args: {
   int: Results.Result<(n: number) => A, PROBLEM>;
   hex: Results.Result<(n: number) => A, PROBLEM>;
   octal: Results.Result<(n: number) => A, PROBLEM>;
@@ -790,42 +848,42 @@ export function number<A, PROBLEM>(args: {
   float: Results.Result<(n: number) => A, PROBLEM>;
   invalid: PROBLEM;
   expecting: PROBLEM;
-}): Parser<A, never, PROBLEM> {
-  return new ParserImpl((s) => {
+}): Parser<SRC, A, never, PROBLEM> {
+  return new ParserImpl(async (s) => {
     // 0x30 => 0
-    if (Helpers.isCharCode(0x30, s.offset, s.src)) {
+    if (s.src.isCharCode(0x30, s.offset)) {
       const zeroOffset = s.offset + 1;
       const baseOffset = zeroOffset + 1;
 
       // 0x78 => x
-      if (Helpers.isCharCode(0x78, zeroOffset, s.src)) {
+      if (s.src.isCharCode(0x78, zeroOffset)) {
         // HEX
         return finalizeInt(
           args.invalid,
           args.hex,
           baseOffset,
-          Helpers.consumeBase16(baseOffset, s.src),
+          await s.src.consumeBase16(baseOffset),
           s
         );
 
         // 0x6f => o
-      } else if (Helpers.isCharCode(0x6f, zeroOffset, s.src)) {
+      } else if (s.src.isCharCode(0x6f, zeroOffset)) {
         // OCTAL
         return finalizeInt(
           args.invalid,
           args.octal,
           baseOffset,
-          Helpers.consumeBase(8, baseOffset, s.src),
+          await s.src.consumeBase(8, baseOffset),
           s
         );
         // 0x62 => b
-      } else if (Helpers.isCharCode(0x62, zeroOffset, s.src)) {
+      } else if (s.src.isCharCode(0x62, zeroOffset)) {
         // BINARY
         return finalizeInt(
           args.invalid,
           args.binary,
           baseOffset,
-          Helpers.consumeBase(2, baseOffset, s.src),
+          await s.src.consumeBase(2, baseOffset),
           s
         );
       } else {
@@ -846,19 +904,19 @@ export function number<A, PROBLEM>(args: {
       args.expecting,
       args.int,
       args.float,
-      Helpers.consumeBase(10, s.offset, s.src),
+      await s.src.consumeBase(10, s.offset),
       s
     );
   });
 }
 
-function finalizeInt<A, PROBLEM>(
+function finalizeInt<SRC extends IStringSource, A, PROBLEM>(
   invalid: PROBLEM,
   handler: Results.Result<(n: number) => A, PROBLEM>,
   startOffset: number,
   [endOffset, n]: [number, number],
-  s: State<unknown>
-): PStep<A, never, PROBLEM> {
+  s: State<SRC, unknown>
+): PStep<SRC, A, never, PROBLEM> {
   if (Results.isErr(handler)) {
     return Bad(true, fromState(s, handler.value));
   } else {
@@ -870,7 +928,10 @@ function finalizeInt<A, PROBLEM>(
   }
 }
 
-function bumpOffset<CTX>(newOffset: number, s: State<CTX>): State<CTX> {
+function bumpOffset<SRC extends IStringSource, CTX>(
+  newOffset: number,
+  s: State<SRC, CTX>
+): State<SRC, CTX> {
   return {
     src: s.src,
     offset: newOffset,
@@ -881,14 +942,14 @@ function bumpOffset<CTX>(newOffset: number, s: State<CTX>): State<CTX> {
   };
 }
 
-function finalizeFloat<A, PROBLEM>(
+function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
   invalid: PROBLEM,
   expecting: PROBLEM,
   intSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatPair: [number, number],
-  s: State<unknown>
-): PStep<A, never, PROBLEM> {
+  s: State<SRC, unknown>
+): PStep<SRC, A, never, PROBLEM> {
   const intOffset = floatPair[0];
   const floatOffset = consumeDotAndExp(intOffset, s.src);
 
@@ -919,10 +980,13 @@ function finalizeFloat<A, PROBLEM>(
  * On a failure, returns negative index of problem.
  *
  */
-function consumeDotAndExp(offset: number, src: string): number {
+function consumeDotAndExp<SRC extends IStringSource>(
+  offset: number,
+  src: SRC
+): number {
   // 0x2e => '.'
-  if (Helpers.isCharCode(0x2e, offset, src)) {
-    return consumeExp(Helpers.chompBase10(offset + 1, src), src);
+  if (src.isCharCode(0x2e, offset)) {
+    return consumeExp(src.chompBase10(offset + 1), src);
   } else {
     return consumeExp(offset, src);
   }
@@ -932,23 +996,22 @@ function consumeDotAndExp(offset: number, src: string): number {
  * On a failure, returns a negative index of the problem.
  *
  */
-function consumeExp(offset: number, src: string): number {
+function consumeExp<SRC extends IStringSource>(
+  offset: number,
+  src: SRC
+): number {
   // 0x65 => 'e'
   // 0x45 => 'E'
-  if (
-    Helpers.isCharCode(0x65, offset, src) ||
-    Helpers.isCharCode(0x45, offset, src)
-  ) {
+  if (src.isCharCode(0x65, offset) || src.isCharCode(0x45, offset)) {
     const eOffset = offset + 1;
     // 0x2b => '+'
     // 0x2d => '-'
     const expOffset =
-      Helpers.isCharCode(0x2b, offset, src) ||
-      Helpers.isCharCode(0x2d, offset, src)
+      src.isCharCode(0x2b, offset) || src.isCharCode(0x2d, offset)
         ? eOffset + 1
         : eOffset;
 
-    const newOffset = Helpers.chompBase10(expOffset, src);
+    const newOffset = src.chompBase10(expOffset);
     if (expOffset === newOffset) {
       return -newOffset;
     } else {
@@ -967,11 +1030,11 @@ function consumeExp(offset: number, src: string): number {
  *
  * @category Building Blocks
  */
-export const end = <PROBLEM>(
+export const end = <SRC extends ISource<any, any>, PROBLEM>(
   problem: PROBLEM
-): Parser<Unit, never, PROBLEM> => {
+): Parser<SRC, Unit, never, PROBLEM> => {
   return new ParserImpl((s) => {
-    if (s.src.length === s.offset) {
+    if (s.src.isEnd(s.offset)) {
       return Good(false, Unit, s);
     } else {
       return Bad(false, fromState(s, problem));
@@ -989,9 +1052,14 @@ export const end = <PROBLEM>(
  *
  * @category Chompers
  */
-export const getChompedString = <A, CTX, PROBLEM>(
-  parser: Parser<A, CTX, PROBLEM>
-): Parser<string, CTX, PROBLEM> => {
+export const getChompedString = <
+  SRC extends ISource<any, any>,
+  A,
+  CTX,
+  PROBLEM
+>(
+  parser: Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, string, CTX, PROBLEM> => {
   return mapChompedString((a) => a)(parser);
 };
 
@@ -1005,9 +1073,11 @@ export const getChompedString = <A, CTX, PROBLEM>(
  */
 export const mapChompedString =
   <A, B>(fn: (s: string, v: A) => B) =>
-  <CTX, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<B, CTX, PROBLEM> => {
-    return new ParserImpl((s) => {
-      const res = parser.exec(s);
+  <SRC extends ISource<any, any>, CTX, PROBLEM>(
+    parser: Parser<SRC, A, CTX, PROBLEM>
+  ): Parser<SRC, B, CTX, PROBLEM> => {
+    return new ParserImpl(async (s) => {
+      const res = await parser.exec(s);
       if (isBad(res)) {
         return res;
       } else {
@@ -1029,10 +1099,12 @@ export const mapChompedString =
  * @category Chompers
  */
 export const chompIf =
-  (isGood: (char: string) => boolean) =>
-  <PROBLEM>(expecting: PROBLEM): Parser<Unit, never, PROBLEM> => {
-    return new ParserImpl((s) => {
-      const newOffset = Helpers.isSubChar(isGood, s.offset, s.src);
+  <TOKEN>(isGood: (token: TOKEN) => boolean) =>
+  <SRC extends ISource<TOKEN, any>, PROBLEM>(
+    expecting: PROBLEM
+  ): Parser<SRC, Unit, never, PROBLEM> => {
+    return new ParserImpl(async (s) => {
+      const newOffset = await s.src.isSubToken(isGood, s.offset);
       if (newOffset === -1) {
         return Bad(false, fromState(s, expecting));
       } else if (newOffset === -2) {
@@ -1060,12 +1132,13 @@ export const chompIf =
 // CHOMP WHILE
 
 type ChompWhile = {
-  <A>(isGood: (char: string, state: A) => [boolean, A], init: A): Parser<
-    Unit,
-    never,
-    never
-  >;
-  (isGood: (char: string) => boolean): Parser<Unit, never, never>;
+  <SRC extends ISource<TOKEN, any>, TOKEN, A>(
+    isGood: (token: TOKEN, state: A) => [boolean, A],
+    init: A
+  ): Parser<SRC, Unit, never, never>;
+  <SRC extends ISource<TOKEN, any>, TOKEN>(
+    isGood: (token: TOKEN) => boolean
+  ): Parser<SRC, Unit, never, never>;
 };
 
 /**
@@ -1073,26 +1146,25 @@ type ChompWhile = {
  *
  * @category Chompers
  */
-export const chompWhile: ChompWhile = (
+export const chompWhile: ChompWhile = <SRC extends ISource<TOKEN, any>, TOKEN>(
   isGood: any,
   init?: any
-): Parser<Unit, never, never> => {
+): Parser<SRC, Unit, never, never> => {
   return new ParserImpl((s) =>
     chompWhileHelp(isGood, init, s.offset, s.row, s.col, s)
   );
 };
 
 type ChompWhile1 = {
-  <PROBLEM, A>(
+  <SRC extends ISource<TOKEN, any>, TOKEN, PROBLEM, A>(
     problem: PROBLEM,
     isGood: (char: string, state: A) => [boolean, A],
     init: A
-  ): Parser<Unit, never, PROBLEM>;
-  <PROBLEM>(problem: PROBLEM, isGood: (char: string) => boolean): Parser<
-    Unit,
-    never,
-    PROBLEM
-  >;
+  ): Parser<SRC, Unit, never, PROBLEM>;
+  <SRC extends ISource<TOKEN, any>, TOKEN, PROBLEM>(
+    problem: PROBLEM,
+    isGood: (char: string) => boolean
+  ): Parser<SRC, Unit, never, PROBLEM>;
 };
 
 /**
@@ -1100,11 +1172,15 @@ type ChompWhile1 = {
  *
  * @category Chompers
  */
-export const chompWhile1: ChompWhile1 = <PROBLEM>(
+export const chompWhile1: ChompWhile1 = <
+  SRC extends ISource<TOKEN, any>,
+  TOKEN,
+  PROBLEM
+>(
   problem: PROBLEM,
   isGood: any,
   init?: any
-): Parser<Unit, never, PROBLEM> => {
+): Parser<SRC, Unit, never, PROBLEM> => {
   return new ParserImpl((s) =>
     chompWhileHelp(isGood, init, s.offset, s.row, s.col, s, {
       chompMinOneProblem: problem,
@@ -1112,19 +1188,24 @@ export const chompWhile1: ChompWhile1 = <PROBLEM>(
   );
 };
 
-function chompWhileHelp<A, PROBLEM>(
+async function chompWhileHelp<
+  SRC extends ISource<TOKEN, any>,
+  TOKEN,
+  A,
+  PROBLEM
+>(
   isGood:
-    | ((char: string) => boolean)
-    | ((char: string, state: A) => [boolean, A]),
+    | ((token: TOKEN) => boolean)
+    | ((token: TOKEN, state: A) => [boolean, A]),
   init: any,
   offset: number,
   row: number,
   col: number,
-  s0: State<unknown>,
+  s0: State<SRC, unknown>,
   config?: {
     chompMinOneProblem: PROBLEM;
   }
-): PStep<Unit, never, PROBLEM> {
+): Promise<PStep<SRC, Unit, never, PROBLEM>> {
   let finalOffset = offset;
   let finalRow = row;
   let finalCol = col;
@@ -1133,8 +1214,8 @@ function chompWhileHelp<A, PROBLEM>(
 
   const fn =
     isGood.length === 1
-      ? (isGood as (char: string) => boolean)
-      : (char: string) => {
+      ? (isGood as (token: TOKEN) => boolean)
+      : (token: TOKEN) => {
           // @ts-ignore
           const [returnVal, newState] = isGood(char, state);
           state = newState;
@@ -1143,7 +1224,7 @@ function chompWhileHelp<A, PROBLEM>(
 
   let iterations = 0;
 
-  let newOffset = Helpers.isSubChar(fn, offset, s0.src);
+  let newOffset = await s0.src.isSubToken(fn, offset);
   while (newOffset !== -1) {
     iterations++;
     if (newOffset === -2) {
@@ -1155,7 +1236,7 @@ function chompWhileHelp<A, PROBLEM>(
       finalCol = finalCol + 1;
     }
 
-    newOffset = Helpers.isSubChar(fn, finalOffset, s0.src);
+    newOffset = await s0.src.isSubToken(fn, finalOffset);
   }
 
   if (iterations < 1 && config) {
@@ -1181,26 +1262,24 @@ function chompWhileHelp<A, PROBLEM>(
  *
  * @category Chompers
  */
-export const chompUntil = <PROBLEM>(
-  token: Token<PROBLEM>
-): Parser<Unit, never, PROBLEM> => {
-  return new ParserImpl((s) => {
-    const [newOffset, newRow, newCol] = Helpers.findSubString(
+export const chompUntil = <SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
+  token: Token<CHUNK, PROBLEM>
+): Parser<SRC, Unit, never, PROBLEM> => {
+  return new ParserImpl(async (s) => {
+    const [newOffset, newRow, newCol] = await s.src.findSubChunk(
       token.value,
       s.offset,
       s.row,
-      s.col,
-      s.src
+      s.col
     );
     if (newOffset === -1) {
       return Bad(false, fromInfo(newRow, newCol, token.problem, s.context));
     } else {
-      const [finalOffset, finalRow, finalCol] = Helpers.isSubString(
+      const [finalOffset, finalRow, finalCol] = await s.src.isSubChunk(
         token.value,
         newOffset,
         newRow,
-        newCol,
-        s.src
+        newCol
       );
       return Good(s.offset < newOffset, Unit, {
         src: s.src,
@@ -1219,21 +1298,21 @@ export const chompUntil = <PROBLEM>(
  *
  * @category Chompers
  */
-export const chompUntilEndOr = (str: string): Parser<Unit, never, never> => {
-  return new ParserImpl((s) => {
-    const [newOffset, newRow, newCol] = Helpers.findSubString(
-      str,
+export const chompUntilEndOr = <SRC extends ISource<any, CHUNK>, CHUNK>(
+  chunk: CHUNK
+): Parser<SRC, Unit, never, never> => {
+  return new ParserImpl(async (s) => {
+    const [newOffset, newRow, newCol] = await s.src.findSubChunk(
+      chunk,
       s.offset,
       s.row,
-      s.col,
-      s.src
+      s.col
     );
-    const [finalOffset, finalRow, finalCol] = Helpers.isSubString(
-      str,
+    const [finalOffset, finalRow, finalCol] = await s.src.isSubChunk(
+      chunk,
       newOffset,
       newRow,
-      newCol,
-      s.src
+      newCol
     );
     const adjustedOffset = finalOffset < 0 ? s.src.length : finalOffset;
     return Good(s.offset < adjustedOffset, Unit, {
@@ -1298,10 +1377,12 @@ export const chompUntilEndOr = (str: string): Parser<Unit, never, never> => {
  */
 export const inContext =
   <CTX>(ctx: CTX) =>
-  <A, PROBLEM>(parser: Parser<A, CTX, PROBLEM>): Parser<A, CTX, PROBLEM> => {
-    return new ParserImpl((s0) => {
+  <SRC extends ISource<any, any>, A, PROBLEM>(
+    parser: Parser<SRC, A, CTX, PROBLEM>
+  ): Parser<SRC, A, CTX, PROBLEM> => {
+    return new ParserImpl(async (s0) => {
       // This must use a immutable list!!!
-      const res = parser.exec(
+      const res = await parser.exec(
         changeContext(
           s0.context.push({ context: ctx, row: s0.row, col: s0.col }),
           s0
@@ -1320,10 +1401,10 @@ export const inContext =
     });
   };
 
-function changeContext<CTX>(
+function changeContext<SRC extends ISource<any, any>, CTX>(
   newContext: immutable.Stack<Located<CTX>>,
-  { context, ...rest }: State<unknown>
-): State<CTX> {
+  { context, ...rest }: State<SRC, unknown>
+): State<SRC, CTX> {
   return {
     context: newContext,
     ...rest,
@@ -1337,11 +1418,17 @@ function changeContext<CTX>(
  *
  * @category Indentation
  */
-export const getIndent: Parser<number, never, never> = new ParserImpl<
+export const getIndent: Parser<
+  ISource<any, any>,
   number,
   never,
   never
->((s: State<never>): PStep<number, never, never> => Good(false, s.indent, s));
+> = new ParserImpl<ISource<any, any>, number, never, never>(
+  async (
+    s: State<ISource<any, any>, never>
+  ): Promise<PStep<ISource<any, any>, number, never, never>> =>
+    Good(false, s.indent, s)
+);
 
 /**
  * Just like {@link Simple!withIndent | Simple.withIndent}
@@ -1352,11 +1439,11 @@ export const withIndent = (newIndent: number) => {
   if (newIndent < 0) {
     throw Error(`Indentation was smaller then 1, value: ${newIndent}`);
   }
-  return <A, CTX, PROBLEM>(
-    parse: Parser<A, CTX, PROBLEM>
-  ): Parser<A, CTX, PROBLEM> => {
-    return new ParserImpl((s) => {
-      const res = parse.exec(changeIndent(newIndent + s.indent, s));
+  return <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    parse: Parser<SRC, A, CTX, PROBLEM>
+  ): Parser<SRC, A, CTX, PROBLEM> => {
+    return new ParserImpl(async (s) => {
+      const res = await parse.exec(changeIndent(newIndent + s.indent, s));
       if (isGood(res)) {
         return Good(
           res.haveConsumed,
@@ -1370,10 +1457,10 @@ export const withIndent = (newIndent: number) => {
   };
 };
 
-function changeIndent<CTX>(
+function changeIndent<SRC extends ISource<any, any>, CTX>(
   newIndent: number,
-  { indent, ...rest }: State<CTX>
-): State<CTX> {
+  { indent, ...rest }: State<SRC, CTX>
+): State<SRC, CTX> {
   return {
     indent: newIndent, // we must remove one so that that withIndent(4) => 4 and not 5
     ...rest,
@@ -1387,9 +1474,9 @@ function changeIndent<CTX>(
  *
  * @category Branches
  */
-export const optional = <A, CTX, PROBLEM>(
-  parser: Parser<A, CTX, PROBLEM>
-): Parser<A | undefined, CTX, PROBLEM> => {
+export const optional = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  parser: Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, A | undefined, CTX, PROBLEM> => {
   return parser.or(succeed(undefined));
 };
 
@@ -1426,30 +1513,28 @@ export const symbol = token;
  *
  * @category Building Blocks
  */
-export const keyword = <PROBLEM>(
-  token: Token<PROBLEM>
-): Parser<Unit, never, PROBLEM> => {
+export const keyword = <SRC extends ISource<any, string>, PROBLEM>(
+  token: Token<string, PROBLEM>
+): Parser<SRC, Unit, never, PROBLEM> => {
   const kwd = token.value;
 
   const progress = kwd.length > 0;
 
-  return new ParserImpl((s) => {
-    const [newOffset, newRow, newCol] = Helpers.isSubString(
+  return new ParserImpl(async (s) => {
+    const [newOffset, newRow, newCol] = await s.src.isSubChunk(
       kwd,
       s.offset,
       s.row,
-      s.col,
-      s.src
+      s.col
     );
 
     if (
       newOffset === -1 ||
       0 <=
-        Helpers.isSubChar(
+        (await s.src.isSubToken(
           (c) => Helpers.isAlphaNum(c) || c === "_",
-          newOffset,
-          s.src
-        )
+          newOffset
+        ))
     ) {
       return Bad(false, fromState(s, token.problem));
     } else {
@@ -1466,15 +1551,18 @@ export const keyword = <PROBLEM>(
 };
 
 // POSITION
+// TODO: Remove the unnecessary promises. It causes unnecessary allocations.
 
 /**
  *  Just like {@link Simple!getPosition | Simple.getPositions}
  *
  * @category Positions
  */
-export const getPosition: Parser<[number, number], never, never> =
+export const getPosition: Parser<any, [number, number], never, never> =
   new ParserImpl(
-    (s: State<unknown>): PStep<[number, number], never, never> =>
+    async (
+      s: State<any, unknown>
+    ): Promise<PStep<any, [number, number], never, never>> =>
       Good(false, [s.row, s.col], s)
   );
 
@@ -1483,8 +1571,9 @@ export const getPosition: Parser<[number, number], never, never> =
  *
  * @category Positions
  */
-export const getRow: Parser<number, never, never> = new ParserImpl(
-  (s: State<unknown>): PStep<number, never, never> => Good(false, s.row, s)
+export const getRow: Parser<any, number, never, never> = new ParserImpl(
+  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
+    Good(false, s.row, s)
 );
 
 /**
@@ -1492,8 +1581,9 @@ export const getRow: Parser<number, never, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getCol: Parser<number, never, never> = new ParserImpl(
-  (s: State<unknown>): PStep<number, never, never> => Good(false, s.col, s)
+export const getCol: Parser<any, number, never, never> = new ParserImpl(
+  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
+    Good(false, s.col, s)
 );
 
 /**
@@ -1501,17 +1591,22 @@ export const getCol: Parser<number, never, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getOffset: Parser<number, never, never> = new ParserImpl(
-  (s: State<unknown>): PStep<number, never, never> => Good(false, s.offset, s)
+export const getOffset: Parser<any, number, never, never> = new ParserImpl(
+  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
+    Good(false, s.offset, s)
 );
 
 /**
+ * TODO: This is not implemented yet.
+ *
  * Just like {@link Simple!getSource | Simple.getSource}
  *
  * @category Positions
  */
-export const getSource: Parser<string, never, never> = new ParserImpl(
-  (s: State<unknown>): PStep<string, never, never> => Good(false, s.src, s)
+export const getSource = new ParserImpl(
+  async <SRC extends ISource<any, CHUNK>, CHUNK>(
+    s: State<SRC, unknown>
+  ): Promise<PStep<SRC, SRC, never, never>> => Good(false, s.src, s)
 );
 
 // VARIABLES
@@ -1522,14 +1617,14 @@ export const getSource: Parser<string, never, never> = new ParserImpl(
  *
  * @category Building Blocks
  */
-export const variable = <PROBLEM>(args: {
-  start: (char: string) => boolean;
-  inner: (char: string) => boolean;
+export const variable = <TOKEN, PROBLEM>(args: {
+  start: (char: TOKEN) => boolean;
+  inner: (char: TOKEN) => boolean;
   reserved: Set<string>;
   expecting: PROBLEM;
-}): Parser<string, never, PROBLEM> => {
-  return new ParserImpl((s) => {
-    const firstOffset = Helpers.isSubChar(args.start, s.offset, s.src);
+}): Parser<ISource<TOKEN, any>, string, never, PROBLEM> => {
+  return new ParserImpl(async (s) => {
+    const firstOffset = await s.src.isSubToken(args.start, s.offset);
 
     if (firstOffset === -1) {
       return Bad(false, fromState(s, args.expecting));
@@ -1537,7 +1632,7 @@ export const variable = <PROBLEM>(args: {
 
     const s1 =
       firstOffset === -2
-        ? varHelp(
+        ? await varHelp(
             args.inner,
             s.offset + 1,
             s.row + 1,
@@ -1546,7 +1641,7 @@ export const variable = <PROBLEM>(args: {
             s.indent,
             s.context
           )
-        : varHelp(
+        : await varHelp(
             args.inner,
             firstOffset,
             s.row,
@@ -1564,21 +1659,21 @@ export const variable = <PROBLEM>(args: {
   });
 };
 
-const varHelp = <CTX>(
-  isGood: (s: string) => boolean,
+const varHelp = async <SRC extends ISource<TOKEN, any>, TOKEN, CTX>(
+  isGood: (s: TOKEN) => boolean,
   offset: number,
   row: number,
   col: number,
-  src: string,
+  src: SRC,
   indent: number,
   context: immutable.Stack<Located<CTX>>
-): State<CTX> => {
+): Promise<State<SRC, CTX>> => {
   let currentOffset = offset;
   let currentRow = row;
   let currentCol = col;
 
   while (true) {
-    const newOffset = Helpers.isSubChar(isGood, currentOffset, src);
+    const newOffset = await src.isSubToken(isGood, currentOffset);
     if (newOffset === -1) {
       return {
         src: src,
@@ -1610,6 +1705,8 @@ const varHelp = <CTX>(
  * @category Sequence (All)
  */
 export const sequence = <
+  SRC extends ISource<any, CHUNK>,
+  CHUNK,
   A,
   CTX1,
   CTX2,
@@ -1619,13 +1716,14 @@ export const sequence = <
   PROBLEM4,
   PROBLEM5
 >(args: {
-  start: Token<PROBLEM1>;
-  separator: Token<PROBLEM2>;
-  end: Token<PROBLEM3>;
-  spaces: Parser<Unit, CTX1, PROBLEM4>;
-  item: Parser<A, CTX2, PROBLEM5>;
+  start: Token<CHUNK, PROBLEM1>;
+  separator: Token<CHUNK, PROBLEM2>;
+  end: Token<CHUNK, PROBLEM3>;
+  spaces: Parser<SRC, Unit, CTX1, PROBLEM4>;
+  item: Parser<SRC, A, CTX2, PROBLEM5>;
   trailing: Trailing;
 }): Parser<
+  SRC,
   immutable.List<A>,
   CTX1 | CTX2,
   PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
@@ -1635,6 +1733,7 @@ export const sequence = <
     .skip(args.spaces)
     .keep(
       sequenceEnd<
+        SRC,
         A,
         CTX1 | CTX2,
         PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
@@ -1666,13 +1765,13 @@ export const Trailing = {
  */
 export type Trailing = "Forbidden" | "Optional" | "Mandatory";
 
-const sequenceEnd = <A, CTX, PROBLEM>(
-  ender: Parser<Unit, CTX, PROBLEM>,
-  ws: Parser<Unit, CTX, PROBLEM>,
-  parseItem: Parser<A, CTX, PROBLEM>,
-  sep: Parser<Unit, CTX, PROBLEM>,
+const sequenceEnd = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  ender: Parser<SRC, Unit, CTX, PROBLEM>,
+  ws: Parser<SRC, Unit, CTX, PROBLEM>,
+  parseItem: Parser<SRC, A, CTX, PROBLEM>,
+  sep: Parser<SRC, Unit, CTX, PROBLEM>,
   trailing: Trailing
-): Parser<immutable.List<A>, CTX, PROBLEM> => {
+): Parser<SRC, immutable.List<A>, CTX, PROBLEM> => {
   const chompRest = (item: A) => {
     const init = immutable.List([item]);
     if (trailing === Trailing.Forbidden) {
@@ -1695,15 +1794,15 @@ const sequenceEnd = <A, CTX, PROBLEM>(
 };
 
 const sequenceEndForbidden =
-  <A, CTX, PROBLEM>(
-    ender: Parser<Unit, CTX, PROBLEM>,
-    ws: Parser<Unit, CTX, PROBLEM>,
-    parseItem: Parser<A, CTX, PROBLEM>,
-    sep: Parser<Unit, CTX, PROBLEM>
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    ender: Parser<SRC, Unit, CTX, PROBLEM>,
+    ws: Parser<SRC, Unit, CTX, PROBLEM>,
+    parseItem: Parser<SRC, A, CTX, PROBLEM>,
+    sep: Parser<SRC, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return succeed(Unit)
       .skip(ws)
       .keep(
@@ -1718,15 +1817,15 @@ const sequenceEndForbidden =
   };
 
 const sequenceEndOptional =
-  <A, CTX, PROBLEM>(
-    ender: Parser<Unit, CTX, PROBLEM>,
-    ws: Parser<Unit, CTX, PROBLEM>,
-    parseItem: Parser<A, CTX, PROBLEM>,
-    sep: Parser<Unit, CTX, PROBLEM>
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    ender: Parser<SRC, Unit, CTX, PROBLEM>,
+    ws: Parser<SRC, Unit, CTX, PROBLEM>,
+    parseItem: Parser<SRC, A, CTX, PROBLEM>,
+    sep: Parser<SRC, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return succeed(Unit)
       .skip(ws)
       .keep(
@@ -1746,14 +1845,14 @@ const sequenceEndOptional =
   };
 
 const sequenceEndMandatory =
-  <A, CTX, PROBLEM>(
-    ws: Parser<Unit, CTX, PROBLEM>,
-    parseItem: Parser<A, CTX, PROBLEM>,
-    sep: Parser<Unit, CTX, PROBLEM>
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    ws: Parser<SRC, Unit, CTX, PROBLEM>,
+    parseItem: Parser<SRC, A, CTX, PROBLEM>,
+    sep: Parser<SRC, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return oneOf(
       succeed((item: A) => Loop(state.push(item)))
         .apply(parseItem)
@@ -1771,19 +1870,21 @@ const sequenceEndMandatory =
  *
  * @category Loops
  */
-export const many = <A, CTX, PROBLEM>(
-  parseItem: Parser<A, CTX, PROBLEM>
-): Parser<A[], CTX, PROBLEM> => {
+export const many = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  parseItem: Parser<SRC, A, CTX, PROBLEM>
+): Parser<SRC, A[], CTX, PROBLEM> => {
   return loop<immutable.List<A>>(immutable.List())(manyHelp(parseItem)).map(
     (xs) => xs.toArray()
   );
 };
 
 const manyHelp =
-  <A, CTX, PROBLEM>(parseItem: Parser<A, CTX, PROBLEM>) =>
+  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+    parseItem: Parser<SRC, A, CTX, PROBLEM>
+  ) =>
   (
     state: immutable.List<A>
-  ): Parser<Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
     return oneOf(
       parseItem.map((item) => Loop(state.push(item))),
       succeed(Unit).map(() => Done(state))
@@ -1798,10 +1899,10 @@ const manyHelp =
  *
  * @category Loops
  */
-export const many1 = <A, CTX, PROBLEM>(
-  parseItem: Parser<A, CTX, PROBLEM>,
+export const many1 = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
+  parseItem: Parser<SRC, A, CTX, PROBLEM>,
   p: PROBLEM
-): Parser<A[], CTX, PROBLEM> => {
+): Parser<SRC, A[], CTX, PROBLEM> => {
   return many(parseItem).andThen((items) =>
     items.length === 0 ? problem(p) : succeed(items)
   );
@@ -1814,12 +1915,16 @@ export const many1 = <A, CTX, PROBLEM>(
  *
  * @category Whitespace
  */
-export const spaces: Parser<Unit, never, never> = new ParserImpl<
+export const spaces: Parser<
+  ISource<string, any>,
   Unit,
   never,
   never
->((s: State<unknown>) =>
-  chompWhile((c) => c === " " || c === "\n" || c === "\r").exec(s)
+> = new ParserImpl<ISource<string, any>, Unit, never, never>(
+  (s: State<ISource<string, any>, unknown>) =>
+    chompWhile<ISource<string, any>, string>(
+      (c) => c === " " || c === "\n" || c === "\r"
+    ).exec(s)
 );
 
 // LINE COMMENT
@@ -1831,9 +1936,11 @@ export const spaces: Parser<Unit, never, never> = new ParserImpl<
  * @category Whitespace
  */
 export const lineComment = <PROBLEM>(
-  start: Token<PROBLEM>
-): Parser<Unit, never, PROBLEM> =>
-  skip2nd<Unit, never, PROBLEM>(token(start))(chompUntilEndOr("\n"));
+  start: Token<string, PROBLEM>
+): Parser<ISource<string, any>, Unit, never, PROBLEM> =>
+  skip2nd<ISource<string, any>, Unit, never, PROBLEM>(token(start))(
+    chompUntilEndOr("\n")
+  );
 
 // Multiline Comment
 
@@ -1879,9 +1986,9 @@ export function isNotNestable(x: any): x is typeof Nestable.NotNestable {
  * @category Multiline Comment (All)
  */
 export const multiComment =
-  <PROBLEM>(open: Token<PROBLEM>) =>
-  (close: Token<PROBLEM>) =>
-  (nestable: Nestable): Parser<Unit, never, PROBLEM> => {
+  <PROBLEM>(open: Token<string, PROBLEM>) =>
+  (close: Token<string, PROBLEM>) =>
+  (nestable: Nestable): Parser<ISource<any, string>, Unit, never, PROBLEM> => {
     if (isNotNestable(nestable)) {
       return skip2nd(token(open))(chompUntil(close));
     } else {
@@ -1890,9 +1997,9 @@ export const multiComment =
   };
 
 function nestableComment<PROBELM>(
-  open: Token<PROBELM>,
-  close: Token<PROBELM>
-): Parser<Unit, never, PROBELM> {
+  open: Token<string, PROBELM>,
+  close: Token<string, PROBELM>
+): Parser<ISource<any, string>, Unit, never, PROBELM> {
   const openChar = open.value.at(0);
   const closeChar = close.value.at(0);
   if (openChar === undefined) {
@@ -1913,11 +2020,11 @@ function nestableComment<PROBELM>(
 
 function nestableHelp<CTX, PROBLEM>(
   isNotRelevant: (c: string) => boolean,
-  open: Parser<Unit, CTX, PROBLEM>,
-  close: Parser<Unit, CTX, PROBLEM>,
+  open: Parser<ISource<any, string>, Unit, CTX, PROBLEM>,
+  close: Parser<ISource<any, string>, Unit, CTX, PROBLEM>,
   expectingClose: PROBLEM,
   nestLevel: number
-): Parser<Unit, CTX, PROBLEM> {
+): Parser<ISource<any, string>, Unit, CTX, PROBLEM> {
   return skip1st(chompWhile(isNotRelevant))(
     oneOf(
       nestLevel === 1

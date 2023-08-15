@@ -6,6 +6,10 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     private eqToken: (l: A, r: A) => boolean
   ) {}
 
+  isEnd(offset: number): boolean {
+    return offset >= this.src.length;
+  }
+
   isSubToken(predicate: (token: A) => boolean, offset: number): number {
     return offset < this.src.length && predicate(this.src[offset])
       ? offset + 1

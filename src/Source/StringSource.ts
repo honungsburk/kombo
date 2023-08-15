@@ -1,8 +1,20 @@
 import * as StringHelpers from "../Helpers.js";
-import ISource from "./ISource.js";
+import IStringSource from "./IStringSource.js";
 
-export default class StringSource implements ISource<string, string> {
+export default class StringSource implements IStringSource {
   constructor(private src: string) {}
+  chompBase10(offset: number): number {
+    return StringHelpers.chompBase10(offset, this.src);
+  }
+  isCharCode(code: number, offset: number): boolean {
+    return StringHelpers.isCharCode(code, offset, this.src);
+  }
+  consumeBase16(offset: number): [number, number] {
+    return StringHelpers.consumeBase16(offset, this.src);
+  }
+  consumeBase(base: number, offset: number): [number, number] {
+    return StringHelpers.consumeBase(base, offset, this.src);
+  }
 
   isSubToken(predicate: (token: string) => boolean, offset: number): number {
     return StringHelpers.isSubChar(predicate, offset, this.src);
@@ -23,5 +35,9 @@ export default class StringSource implements ISource<string, string> {
     col: number
   ): [number, number, number] {
     return StringHelpers.findSubString(subChunk, offset, row, col, this.src);
+  }
+
+  isEnd(offset: number): boolean {
+    return offset >= this.src.length;
   }
 }

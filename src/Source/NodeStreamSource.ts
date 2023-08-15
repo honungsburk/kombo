@@ -11,6 +11,14 @@ export default class NodeStreamSource implements ISource<string, string> {
     this.lazyChunks = new LazyChunks(new PullStream(src, Assert.isBuffer));
   }
 
+  /**
+   * TODO: Needs tests
+   */
+  async isEnd(offset: number): Promise<boolean> {
+    const res = this.lazyChunks.getChunk(offset, 1);
+    return res === undefined;
+  }
+
   async isSubToken(
     predicate: (token: string) => boolean,
     offset: number
