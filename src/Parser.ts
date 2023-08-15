@@ -832,5 +832,5 @@ export interface Parser<SRC extends ISource<any, any>, A, CTX, PROBLEM> {
    *
    * @category Positions
    */
-  getSource(): Parser<SRC, string, CTX, PROBLEM>;
+  getSource(): Parser<SRC, SRC, CTX, PROBLEM>;
 }

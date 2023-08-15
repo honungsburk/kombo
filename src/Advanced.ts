@@ -105,7 +105,7 @@ class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
   }
 
   getIndent(): Parser<SRC, number, CTX, PROBLEM> {
-    return this.keep(getIndent);
+    return this.keep(getIndent());
   }
 
   withIndent(newIndent: number): Parser<SRC, A, CTX, PROBLEM> {
@@ -124,8 +124,8 @@ class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
   getOffset(): Parser<SRC, number, CTX, PROBLEM> {
     return this.keep(getOffset);
   }
-  getSource(): Parser<SRC, string, CTX, PROBLEM> {
-    return this.keep(getSource);
+  getSource(): Parser<SRC, SRC, CTX, PROBLEM> {
+    return this.keep(getSource());
   }
 }
 
@@ -320,8 +320,8 @@ export const andThen =
     p: Parser<SRC, A, CTX2, PROBLEM2>
   ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return new ParserImpl(
-      async (ctx0): Promise<PStep<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>> => {
-        const res1 = await p.exec(ctx0);
+      async (state): Promise<PStep<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>> => {
+        const res1 = await p.exec(state);
 
         if (isBad(res1)) {
           return res1;
@@ -654,7 +654,7 @@ export const backtrackable = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
  * @category Branches
  */
 export const commit = <A>(a: A): Parser<never, A, never, never> => {
-  return new ParserImpl((s) => Good(true, a, s));
+  return new ParserImpl(async (s) => Good(true, a, s));
 };
 
 // Token TODO: Rename to CHUNK
@@ -1033,7 +1033,7 @@ function consumeExp<SRC extends IStringSource>(
 export const end = <SRC extends ISource<any, any>, PROBLEM>(
   problem: PROBLEM
 ): Parser<SRC, Unit, never, PROBLEM> => {
-  return new ParserImpl((s) => {
+  return new ParserImpl(async (s) => {
     if (s.src.isEnd(s.offset)) {
       return Good(false, Unit, s);
     } else {
@@ -1418,17 +1418,11 @@ function changeContext<SRC extends ISource<any, any>, CTX>(
  *
  * @category Indentation
  */
-export const getIndent: Parser<
-  ISource<any, any>,
-  number,
-  never,
-  never
-> = new ParserImpl<ISource<any, any>, number, never, never>(
-  async (
-    s: State<ISource<any, any>, never>
-  ): Promise<PStep<ISource<any, any>, number, never, never>> =>
-    Good(false, s.indent, s)
-);
+export const getIndent = <SRC extends ISource<any, any>>() =>
+  new ParserImpl<SRC, number, never, never>(
+    async (s: State<SRC, never>): Promise<PStep<SRC, number, never, never>> =>
+      Good(false, s.indent, s)
+  );
 
 /**
  * Just like {@link Simple!withIndent | Simple.withIndent}
@@ -1603,11 +1597,11 @@ export const getOffset: Parser<any, number, never, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getSource = new ParserImpl(
-  async <SRC extends ISource<any, CHUNK>, CHUNK>(
-    s: State<SRC, unknown>
-  ): Promise<PStep<SRC, SRC, never, never>> => Good(false, s.src, s)
-);
+export const getSource = <SRC extends ISource<any, CHUNK>, CHUNK>() =>
+  new ParserImpl(
+    async (s: State<SRC, unknown>): Promise<PStep<SRC, SRC, never, never>> =>
+      Good(false, s.src, s)
+  );
 
 // VARIABLES
 
