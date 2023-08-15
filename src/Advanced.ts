@@ -736,6 +736,11 @@ export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
     if (newOffset === -1) {
       return Bad(false, fromState(s, token.problem));
     } else {
+      // NOTE: I changed "token.value.length !== 0" to "s.offset !== newOffset"
+      // because I think it should be impossible for the offset to not change
+      // when the token is non-empty. But I'm not 100% sure.
+      //
+      // TODO: Add a test for this.
       return Good(s.offset !== newOffset, Unit, {
         src: s.src,
         offset: newOffset,
