@@ -21,7 +21,7 @@ import {
   Append,
   Located,
 } from "./Parser.js";
-import ISource from "./Source/ISource.js";
+import ISource, { GetChunk } from "./Source/ISource.js";
 import IStringSource from "./Source/IStringSource.js";
 import StringSource from "./Source/StringSource.js";
 
@@ -94,12 +94,12 @@ class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
     return backtrackable(this);
   }
 
-  getChompedString(): Parser<SRC, string, CTX, PROBLEM> {
+  getChompedString(): Parser<SRC, GetChunk<SRC>, CTX, PROBLEM> {
     return getChompedString(this);
   }
 
   mapChompedString<B>(
-    fn: (s: string, v: A) => B
+    fn: (s: GetChunk<SRC>, v: A) => B
   ): Parser<SRC, B, CTX, PROBLEM> {
     return mapChompedString(fn)(this);
   }
@@ -1057,15 +1057,14 @@ export const end = <SRC extends ISource<any, any>, PROBLEM>(
  * @category Chompers
  */
 export const getChompedString = <
-  SRC extends ISource<any, CHUNK>,
-  CHUNK,
+  SRC extends ISource<any, any>,
   A,
   CTX,
   PROBLEM
 >(
   parser: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, CHUNK, CTX, PROBLEM> => {
-  return mapChompedString((a: CHUNK) => a)(parser);
+): Parser<SRC, GetChunk<SRC>, CTX, PROBLEM> => {
+  return mapChompedString((a: any) => a)(parser);
 };
 
 /**

@@ -1,6 +1,6 @@
 import * as immutable from "immutable";
 import * as Results from "./Result.js";
-import ISource from "./Source/ISource.js";
+import ISource, { GetChunk } from "./Source/ISource.js";
 
 // Unit
 
@@ -747,14 +747,16 @@ export interface Parser<SRC extends ISource<any, any>, A, CTX, PROBLEM> {
    *
    * @category Chompers
    */
-  getChompedString(): Parser<SRC, string, CTX, PROBLEM>;
+  getChompedString(): Parser<SRC, GetChunk<SRC>, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
    *
    * @category Chompers
    */
-  mapChompedString<B>(fn: (s: string, v: A) => B): Parser<SRC, B, CTX, PROBLEM>;
+  mapChompedString<B>(
+    fn: (s: GetChunk<SRC>, v: A) => B
+  ): Parser<SRC, B, CTX, PROBLEM>;
 
   /**
    * Just like {@link Simple!getIndent | Simple.getIndent}

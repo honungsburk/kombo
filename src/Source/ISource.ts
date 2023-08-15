@@ -101,3 +101,23 @@ export default interface ISource<TOKEN, CHUNK> {
 
   slice(startOffset: number, endOffset: number): Promise<CHUNK> | CHUNK;
 }
+
+/**
+ * A helper type that extracts the CHUNK type from a source.
+ */
+export type GetChunk<SRC extends ISource<any, any>> = SRC extends ISource<
+  any,
+  infer CHUNK
+>
+  ? CHUNK
+  : never;
+
+/**
+ * A helper type that extracts the TOKEN type from a source.
+ */
+export type GetToken<SRC extends ISource<any, any>> = SRC extends ISource<
+  infer TOKEN,
+  any
+>
+  ? TOKEN
+  : never;
