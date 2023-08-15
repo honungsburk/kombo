@@ -33,11 +33,23 @@ export default class StringSource implements IStringSource {
     offset: number,
     row: number,
     col: number
-  ): [number, number, number] {
-    return StringHelpers.findSubString(subChunk, offset, row, col, this.src);
+  ): [boolean, number, number, number] {
+    const [newOffset, newRow, newCol] = StringHelpers.findSubString(
+      subChunk,
+      offset,
+      row,
+      col,
+      this.src
+    );
+    const didMatch = newOffset !== -1;
+    return [didMatch, didMatch ? newOffset : this.src.length, newRow, newCol];
   }
 
   isEnd(offset: number): boolean {
     return offset >= this.src.length;
+  }
+
+  isEmpty(): boolean {
+    return this.src.length === 0;
   }
 }

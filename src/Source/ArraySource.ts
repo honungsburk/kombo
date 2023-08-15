@@ -39,7 +39,7 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     offset: number,
     row: number,
     col: number
-  ): [number, number, number] {
+  ): [boolean, number, number, number] {
     // We need to check each possible starting point
     // But when the subchunk is longer than what is left of the source, we can
     // stop early
@@ -53,10 +53,13 @@ export default class ArraySource<A> implements ISource<A, A[]> {
         col + i
       );
       if (newOffset !== -1) {
-        return [i, 1, col + i];
+        return [true, i, 1, col + i];
       }
     }
 
-    return [-1, 1, this.src.length + 1];
+    // if the string is empty we want to return [false, 0, 1, 1] instead of [false, -1, 1, 1]
+    // TODO: is this correct???
+    const resOffset = Math.max(this.src.length - 1, 0);
+    return [false, resOffset, 1, this.src.length];
   }
 }

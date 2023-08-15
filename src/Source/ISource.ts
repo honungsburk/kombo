@@ -78,14 +78,16 @@ export default interface ISource<TOKEN, CHUNK> {
    * @param offset - the offset to start searching from
    * @param row - the current row
    * @param col - the current column
-   * @returns the new offset if the predicate returns true, otherwise -1, row, col
+   * @returns if it found the chunk, offset, row, col. If it didn't find it offset, row, and col will be at the end of the source.
    */
   findSubChunk(
     subChunk: CHUNK,
     offset: number,
     row: number,
     col: number
-  ): Promise<[number, number, number]> | [number, number, number];
+  ):
+    | Promise<[boolean, number, number, number]>
+    | [boolean, number, number, number];
 
   /**
    * Checks if the source is at the end.

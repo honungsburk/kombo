@@ -1270,13 +1270,13 @@ export const chompUntil = <SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
   token: Token<CHUNK, PROBLEM>
 ): Parser<SRC, Unit, never, PROBLEM> => {
   return new ParserImpl(async (s) => {
-    const [newOffset, newRow, newCol] = await s.src.findSubChunk(
+    const [didMatch, newOffset, newRow, newCol] = await s.src.findSubChunk(
       token.value,
       s.offset,
       s.row,
       s.col
     );
-    if (newOffset === -1) {
+    if (!didMatch) {
       return Bad(false, fromInfo(newRow, newCol, token.problem, s.context));
     } else {
       const [finalOffset, finalRow, finalCol] = await s.src.isSubChunk(
@@ -1306,7 +1306,7 @@ export const chompUntilEndOr = <SRC extends ISource<any, CHUNK>, CHUNK>(
   chunk: CHUNK
 ): Parser<SRC, Unit, never, never> => {
   return new ParserImpl(async (s) => {
-    const [newOffset, newRow, newCol] = await s.src.findSubChunk(
+    const [didMatch, newOffset, newRow, newCol] = await s.src.findSubChunk(
       chunk,
       s.offset,
       s.row,
@@ -1318,7 +1318,7 @@ export const chompUntilEndOr = <SRC extends ISource<any, CHUNK>, CHUNK>(
       newRow,
       newCol
     );
-    const adjustedOffset = finalOffset < 0 ? s.src.length : finalOffset;
+    const adjustedOffset = finalOffset < 0 ? newOffset : finalOffset;
     return Good(s.offset < adjustedOffset, Unit, {
       src: s.src,
       offset: adjustedOffset,

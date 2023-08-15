@@ -70,21 +70,21 @@ group("isSubToken", () => {
 group("findSubChunk", () => {
   test("substring was found", ({ expect }) => {
     const src = new StringSource("Is 42 the answer?");
-    expect(src.findSubChunk("42", 0, 1, 1)).toStrictEqual([3, 1, 4]);
+    expect(src.findSubChunk("42", 0, 1, 1)).toStrictEqual([true, 3, 1, 4]);
   });
 
   test("substring was not found", ({ expect }) => {
     const src = new StringSource("Is 42 the answer?");
-    expect(src.findSubChunk("42", 7, 1, 8)).toStrictEqual([-1, 1, 18]);
+    expect(src.findSubChunk("42", 7, 1, 8)).toStrictEqual([false, 17, 1, 18]);
   });
 
   test("offset in '🙈🙉🙊'", ({ expect }) => {
     const src = new StringSource("🙈🙉🙊");
-    expect(src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([2, 1, 2]);
+    expect(src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([true, 2, 1, 2]);
   });
 
   test("offset with newlines", ({ expect }) => {
     const src = new StringSource("🙈\n\n\n1🙊🙉🙊");
-    expect(src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([8, 4, 3]);
+    expect(src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([true, 8, 4, 3]);
   });
 });

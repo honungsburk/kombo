@@ -66,7 +66,7 @@ export default class NodeStreamSource implements ISource<string, string> {
     offset: number,
     row: number,
     col: number
-  ): Promise<[number, number, number]> {
+  ): Promise<[boolean, number, number, number]> {
     let currentOffset = offset;
     let currentRow = row;
     let currentCol = col;
@@ -82,7 +82,7 @@ export default class NodeStreamSource implements ISource<string, string> {
 
     if (loadedChunk === undefined) {
       // We are at the end of the file
-      return [-1, currentRow, currentCol];
+      return [false, currentOffset, currentRow, currentCol];
     }
 
     let chunk = loadedChunk[0];
@@ -111,7 +111,7 @@ export default class NodeStreamSource implements ISource<string, string> {
               2
             );
             if (loadedChunk === undefined) {
-              return [-1, currentRow, currentCol];
+              return [false, currentOffset, currentRow, currentCol];
             } else {
               chunk = loadedChunk[0];
               chunkOffset = loadedChunk[1];
@@ -122,7 +122,7 @@ export default class NodeStreamSource implements ISource<string, string> {
                 currentRow,
                 currentCol
               );
-              return [-1, newRow, newCol];
+              return [false, currentOffset, newRow, newCol];
             }
           }
 
@@ -141,7 +141,7 @@ export default class NodeStreamSource implements ISource<string, string> {
           subChunkIndex++;
           if (subChunkIndex === subChunk.length) {
             // We found the subChunk
-            return [currentOffset, currentRow, currentCol];
+            return [true, currentOffset, currentRow, currentCol];
           }
         } else {
           subChunkIndex = 0;
