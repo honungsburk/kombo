@@ -62,4 +62,8 @@ export default class ArraySource<A> implements ISource<A, A[]> {
     const resOffset = Math.max(this.src.length - 1, 0);
     return [false, resOffset, 1, this.src.length];
   }
+
+  slice(startOffset: number, endOffset: number): A[] {
+    return this.src.slice(startOffset, endOffset);
+  }
 }

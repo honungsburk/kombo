@@ -98,4 +98,6 @@ export default interface ISource<TOKEN, CHUNK> {
    * @category Uses offset
    */
   isEnd(offset: number): Promise<boolean> | boolean;
+
+  slice(startOffset: number, endOffset: number): Promise<CHUNK> | CHUNK;
 }

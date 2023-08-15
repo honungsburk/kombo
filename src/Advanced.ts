@@ -946,14 +946,14 @@ function bumpOffset<SRC extends IStringSource, CTX>(
   };
 }
 
-function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
+async function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
   invalid: PROBLEM,
   expecting: PROBLEM,
   intSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatPair: [number, number],
   s: State<SRC, unknown>
-): PStep<SRC, A, never, PROBLEM> {
+): Promise<PStep<SRC, A, never, PROBLEM>> {
   const intOffset = floatPair[0];
   const floatOffset = consumeDotAndExp(intOffset, s.src);
 
@@ -971,7 +971,7 @@ function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
       return Bad(true, fromState(s, floatSettings.value));
     } else {
       try {
-        const n = parseFloat(s.src.slice(s.offset, floatOffset));
+        const n = parseFloat(await s.src.slice(s.offset, floatOffset));
         return Good(true, floatSettings.value(n), bumpOffset(floatOffset, s));
       } catch (e) {
         return Bad(true, fromState(s, invalid));
@@ -1057,14 +1057,15 @@ export const end = <SRC extends ISource<any, any>, PROBLEM>(
  * @category Chompers
  */
 export const getChompedString = <
-  SRC extends ISource<any, any>,
+  SRC extends ISource<any, CHUNK>,
+  CHUNK,
   A,
   CTX,
   PROBLEM
 >(
   parser: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, string, CTX, PROBLEM> => {
-  return mapChompedString((a) => a)(parser);
+): Parser<SRC, CHUNK, CTX, PROBLEM> => {
+  return mapChompedString((a: CHUNK) => a)(parser);
 };
 
 /**
@@ -1076,8 +1077,8 @@ export const getChompedString = <
  * @category Chompers
  */
 export const mapChompedString =
-  <A, B>(fn: (s: string, v: A) => B) =>
-  <SRC extends ISource<any, any>, CTX, PROBLEM>(
+  <CHOMPED, A, B>(fn: (s: CHOMPED, v: A) => B) =>
+  <SRC extends ISource<any, CHOMPED>, CTX, PROBLEM>(
     parser: Parser<SRC, A, CTX, PROBLEM>
   ): Parser<SRC, B, CTX, PROBLEM> => {
     return new ParserImpl(async (s) => {
@@ -1087,7 +1088,7 @@ export const mapChompedString =
       } else {
         return Good(
           res.haveConsumed,
-          fn(s.src.slice(s.offset, res.state.offset), res.value),
+          fn(await s.src.slice(s.offset, res.state.offset), res.value),
           res.state
         );
       }

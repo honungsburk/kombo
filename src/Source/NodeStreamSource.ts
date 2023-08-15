@@ -160,6 +160,21 @@ export default class NodeStreamSource implements ISource<string, string> {
           (code & 0xf800) === 0xd800 && currentOffset++ - chunkOffset);
     }
   }
+
+  async slice(startOffset: number, endOffset: number): Promise<string> {
+    const chunk = await this.lazyChunks.getChunk(
+      startOffset,
+      endOffset - startOffset
+    );
+
+    if (chunk === undefined) {
+      // TODO: Investigate a design that avoid throwing errors
+      throw new Error("Slice out of bounds");
+    }
+
+    const [chunkStr, chunkOffset] = chunk;
+    return chunkStr.slice(startOffset - chunkOffset, endOffset - chunkOffset);
+  }
 }
 
 function finalRowCol(

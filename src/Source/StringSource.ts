@@ -49,7 +49,7 @@ export default class StringSource implements IStringSource {
     return offset >= this.src.length;
   }
 
-  isEmpty(): boolean {
-    return this.src.length === 0;
+  slice(startOffset: number, endOffset: number): string | Promise<string> {
+    return this.src.slice(startOffset, endOffset);
   }
 }
