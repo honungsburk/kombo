@@ -725,7 +725,6 @@ export function Token<CHUNK, PROBLEM>(
 export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
   token: Token<CHUNK, PROBLEM>
 ): Parser<SRC, Unit, never, PROBLEM> {
-  const progress = token.value.length !== 0;
   return new ParserImpl(async (s) => {
     const [newOffset, newRow, newCol] = await s.src.isSubChunk(
       token.value,
@@ -737,7 +736,7 @@ export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
     if (newOffset === -1) {
       return Bad(false, fromState(s, token.problem));
     } else {
-      return Good(progress, Unit, {
+      return Good(s.offset !== newOffset, Unit, {
         src: s.src,
         offset: newOffset,
         indent: s.indent,
