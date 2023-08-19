@@ -21,9 +21,89 @@ import {
   Append,
   Located,
 } from "./Parser.js";
-import ISource, { GetChunk } from "./Source/ISource.js";
-import IStringSource from "./Source/IStringSource.js";
-import StringSource from "./Source/StringSource.js";
+import * as SRCTypes from "./Source/Types.js";
+
+export const create = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+) => {
+  return {
+    // EXEC
+    run: run,
+    // PRIMITIVES
+    succeed: succeed(core),
+    problem: problem(core),
+    // END
+    end: end(core),
+    // MAPPING
+    map: map(core),
+    map2: map2(core),
+    apply: apply(core),
+    skip1st: skip1st(core),
+    skip2nd: skip2nd(core),
+    // AND THEN
+    andThen: andThen(core),
+    // LAZY
+    lazy: lazy(core),
+    // ONE OF
+    oneOf: oneOf(core),
+    oneOfMany: oneOfMany(core),
+    // MANY
+    many: many(core),
+    many1: many1(core),
+    // LOOP
+    loop: loop(core),
+    Loop: Loop,
+    Done: Done,
+    // TOKENS
+    symbol: symbol(core),
+    token: token(core),
+    Token: Token,
+    // VARIABLE
+    variable: variable(core),
+    // CHOMP
+    chompIf: chompIf(core),
+    chompWhile: chompWhile(core),
+    chompWhile1: chompWhile1(core),
+    chompUntil: chompUntil(core),
+    chompUntilEndOr: chompUntilEndOr(core),
+    getChompedChunk: getChompedChunk(core),
+    mapChompedChunk: mapChompedChunk(core),
+    // BRANCHES
+    optional: optional(core),
+    backtrackable: backtrackable(core),
+    // SEQUENCE
+    sequence: sequence(core),
+    Trailing: Trailing,
+    // CONTEXT
+    inContext: inContext(core),
+    // INDENT
+    getIndent: getIndent(core),
+    withIndent: withIndent(core),
+    // POSITION
+    getPosition: getPosition(core),
+    getRow: getRow(core),
+    getCol: getCol(core),
+    getOffset: getOffset(core),
+    // SOURCE
+    getSource: getSource(core),
+  } as const;
+};
+
+export function string<
+  CORE extends SRCTypes.HasCore<any, string, string> &
+    SRCTypes.HasStringCore<any>
+>(core: CORE) {
+  return {
+    keyword: keyword(core),
+    spaces: spaces(core),
+    int: int(core),
+    float: float(core),
+    number: number(core),
+    lineComment: lineComment(core),
+    multiComment: multiComment(core),
+    Nestable: Nestable,
+  } as const;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Internals
@@ -32,43 +112,48 @@ import StringSource from "./Source/StringSource.js";
 /**
  * @hidden
  */
-class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
-  implements Parser<SRC, A, CTX, PROBLEM>
+class ParserImpl<
+  CORE extends SRCTypes.HasCore<any, any, any>,
+  A,
+  CTX = never,
+  PROBLEM = never
+> implements Parser<CORE, A, CTX, PROBLEM>
 {
   constructor(
+    private core: CORE,
     public exec: (
-      s: State<SRC, unknown>
-    ) => Promise<PStep<SRC, A, CTX, PROBLEM>>
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ) => Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, A, CTX, PROBLEM>>
   ) {}
 
-  map<B>(fn: (v: A) => B): Parser<SRC, B, CTX, PROBLEM> {
-    return map(fn)(this);
+  map<B>(fn: (v: A) => B): Parser<CORE, B, CTX, PROBLEM> {
+    return map(this.core)(fn)(this as Parser<CORE, A, CTX, PROBLEM>);
   }
 
   andThen<B, CTX2, PROBLEM2>(
-    fn: (v: A) => Parser<SRC, B, CTX2, PROBLEM2>
-  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> {
-    return andThen(fn)(this);
+    fn: (v: A) => Parser<CORE, B, CTX2, PROBLEM2>
+  ): Parser<CORE, B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    return andThen(this.core)(fn)(this as Parser<CORE, A, CTX, PROBLEM>);
   }
 
   skip<CTX2, PROBLEM2>(
-    other: Parser<SRC, unknown, CTX2, PROBLEM2>
-  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> {
-    return skip2nd(this)(other);
+    other: Parser<CORE, unknown, CTX2, PROBLEM2>
+  ): Parser<CORE, A, CTX | CTX2, PROBLEM | PROBLEM2> {
+    return skip2nd(this.core)(this)(other);
   }
 
   keep<B, CTX2, PROBLEM2>(
-    other: Parser<SRC, B, CTX2, PROBLEM2>
-  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    other: Parser<CORE, B, CTX2, PROBLEM2>
+  ): Parser<CORE, B, CTX | CTX2, PROBLEM | PROBLEM2> {
     return this.andThen(() => other);
   }
 
   apply<CTX2, PROBLEM2>(
-    parser: Parser<SRC, GetArgumentType<A>, CTX2, PROBLEM2>
-  ): Parser<SRC, GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2> {
-    return apply(
+    parser: Parser<CORE, GetArgumentType<A>, CTX2, PROBLEM2>
+  ): Parser<CORE, GetReturnType<A>, CTX | CTX2, PROBLEM | PROBLEM2> {
+    return apply(this.core)(
       this as Parser<
-        SRC,
+        CORE,
         (a: GetArgumentType<A>) => GetReturnType<A>,
         CTX | CTX2,
         PROBLEM
@@ -76,56 +161,65 @@ class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
     )(parser);
   }
 
-  run(src: SRC): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> {
-    return run(this)(src);
+  run(
+    src: SRCTypes.GetHasCoreSRC<CORE>
+  ): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> {
+    return run(this as Parser<CORE, A, CTX, PROBLEM>)(src);
   }
 
   or<B, CTX2, PROBLEM2>(
-    other: Parser<SRC, B, CTX2, PROBLEM2>
-  ): Parser<SRC, A | B, CTX | CTX2, PROBLEM | PROBLEM2> {
-    return oneOf(this, other);
+    other: Parser<CORE, B, CTX2, PROBLEM2>
+  ): Parser<CORE, A | B, CTX | CTX2, PROBLEM | PROBLEM2> {
+    return oneOf(this.core)(this as Parser<CORE, A, CTX, PROBLEM>, other);
   }
 
-  optional(): Parser<SRC, A | undefined, CTX, PROBLEM> {
-    return optional(this);
+  optional(): Parser<CORE, A | undefined, CTX, PROBLEM> {
+    return optional(this.core)(this as Parser<CORE, A, CTX, PROBLEM>);
   }
 
-  backtrackable(): Parser<SRC, A, CTX, PROBLEM> {
-    return backtrackable(this);
+  backtrackable(): Parser<CORE, A, CTX, PROBLEM> {
+    return backtrackable(this.core)(this as Parser<CORE, A, CTX, PROBLEM>);
   }
 
-  getChompedString(): Parser<SRC, GetChunk<SRC>, CTX, PROBLEM> {
-    return getChompedString(this);
+  getChompedChunk(): Parser<
+    CORE,
+    SRCTypes.GetHasCoreCHUNK<CORE>,
+    CTX,
+    PROBLEM
+  > {
+    return getChompedChunk(this.core)(this as Parser<CORE, A, CTX, PROBLEM>);
   }
 
-  mapChompedString<B>(
-    fn: (s: GetChunk<SRC>, v: A) => B
-  ): Parser<SRC, B, CTX, PROBLEM> {
-    return mapChompedString(fn)(this);
+  mapChompedChunk<B>(
+    fn: (s: SRCTypes.GetHasCoreCHUNK<CORE>, v: A) => B
+  ): Parser<CORE, B, CTX, PROBLEM> {
+    return mapChompedChunk(this.core)(fn)(
+      this as Parser<CORE, A, CTX, PROBLEM>
+    );
   }
 
-  getIndent(): Parser<SRC, number, CTX, PROBLEM> {
-    return this.keep(getIndent());
+  getIndent(): Parser<CORE, number, CTX, PROBLEM> {
+    return this.keep(getIndent(this.core));
   }
 
-  withIndent(newIndent: number): Parser<SRC, A, CTX, PROBLEM> {
-    return withIndent(newIndent)(this);
+  withIndent(newIndent: number): Parser<CORE, A, CTX, PROBLEM> {
+    return withIndent(this.core)(newIndent)(this);
   }
 
-  getPosition(): Parser<SRC, [number, number], CTX, PROBLEM> {
-    return this.keep(getPosition);
+  getPosition(): Parser<CORE, [number, number], CTX, PROBLEM> {
+    return this.keep(getPosition(this.core));
   }
-  getRow(): Parser<SRC, number, CTX, PROBLEM> {
-    return this.keep(getRow);
+  getRow(): Parser<CORE, number, CTX, PROBLEM> {
+    return this.keep(getRow(this.core));
   }
-  getCol(): Parser<SRC, number, CTX, PROBLEM> {
-    return this.keep(getCol);
+  getCol(): Parser<CORE, number, CTX, PROBLEM> {
+    return this.keep(getCol(this.core));
   }
-  getOffset(): Parser<SRC, number, CTX, PROBLEM> {
-    return this.keep(getOffset);
+  getOffset(): Parser<CORE, number, CTX, PROBLEM> {
+    return this.keep(getOffset(this.core));
   }
-  getSource(): Parser<SRC, SRC, CTX, PROBLEM> {
-    return this.keep(getSource());
+  getSource(): Parser<CORE, SRCTypes.GetHasCoreSRC<CORE>, CTX, PROBLEM> {
+    return this.keep(getSource(this.core));
   }
 }
 
@@ -142,10 +236,12 @@ class ParserImpl<SRC extends ISource<any, any>, A, CTX = never, PROBLEM = never>
  * @category Parsers
  */
 export const run =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    parser: Parser<SRC, A, CTX, PROBLEM>
+  <CORE extends SRCTypes.HasCore<any, any, any>, A, CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
   ) =>
-  async (src: SRC): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> => {
+  async (
+    src: SRCTypes.GetHasCoreSRC<CORE>
+  ): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> => {
     const res = await parser.exec({
       src: src,
       offset: 0,
@@ -170,9 +266,11 @@ export const run =
  *
  * @category Primitives
  */
-export function succeed<A>(a: A): Parser<any, A, never, never> {
-  return new ParserImpl(async (s) => Good(false, a, s));
-}
+export const succeed =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A>(a: A): Parser<CORE, A, never, never> => {
+    return new ParserImpl(core, async (s) => Good(false, a, s));
+  };
 
 /**
  *
@@ -181,11 +279,11 @@ export function succeed<A>(a: A): Parser<any, A, never, never> {
  *
  * @category Primitives
  */
-export function problem<PROBLEM>(
-  p: PROBLEM
-): Parser<any, never, never, PROBLEM> {
-  return new ParserImpl(async (s) => Bad(false, fromState(s, p)));
-}
+export const problem =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <PROBLEM>(p: PROBLEM): Parser<CORE, never, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => Bad(false, fromState(s, p)));
+  };
 
 // MAPPING
 
@@ -198,11 +296,12 @@ export function problem<PROBLEM>(
  * @category Mapping
  */
 export const map =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <A, B>(fn: (a: A) => B) =>
-  <SRC extends ISource<any, any>, CTX, PROBLEM>(
-    parser: Parser<SRC, A, CTX, PROBLEM>
-  ): Parser<SRC, B, CTX, PROBLEM> => {
-    return new ParserImpl(async (s) => {
+  <CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, B, CTX, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
       const res = await parser.exec(s);
       if (isGood(res)) {
         return Good(res.haveConsumed, fn(res.value), res.state);
@@ -218,15 +317,19 @@ export const map =
  * @category Mapping
  */
 export const map2 =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <A, B, C>(fn: (a: A, b: B) => C) =>
-  <SRC extends ISource<any, any>, CTX, PROBLEM>(
-    parserA: Parser<SRC, A, CTX, PROBLEM>
-  ) =>
+  <CTX, PROBLEM>(parserA: Parser<CORE, A, CTX, PROBLEM>) =>
   <CTX2, PROBLEM2>(
-    parserB: Parser<SRC, B, CTX2, PROBLEM2>
-  ): Parser<SRC, C, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    parserB: Parser<CORE, B, CTX2, PROBLEM2>
+  ): Parser<CORE, C, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return new ParserImpl(
-      async (s0): Promise<PStep<SRC, C, CTX | CTX2, PROBLEM | PROBLEM2>> => {
+      core,
+      async (
+        s0
+      ): Promise<
+        PStep<SRCTypes.GetHasCoreSRC<CORE>, C, CTX | CTX2, PROBLEM | PROBLEM2>
+      > => {
         const res0 = await parserA.exec(s0);
         if (isBad(res0)) {
           return res0;
@@ -255,13 +358,14 @@ export const map2 =
  * @category Mapping
  */
 export const apply =
-  <SRC extends ISource<any, any>, A, B, CTX, PROBLEM>(
-    parseFunc: Parser<SRC, (a: A) => B, CTX, PROBLEM>
-  ) =>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, B, CTX, PROBLEM>(parseFunc: Parser<CORE, (a: A) => B, CTX, PROBLEM>) =>
   <CTX2, PROBLEM2>(
-    parseArg: Parser<SRC, A, CTX2, PROBLEM2>
-  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
-    return map2((fn: (a: A) => B, arg: A) => fn(arg))(parseFunc)(parseArg);
+    parseArg: Parser<CORE, A, CTX2, PROBLEM2>
+  ): Parser<CORE, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return map2<CORE>(core)((fn: (a: A) => B, arg: A) => fn(arg))(parseFunc)(
+      parseArg
+    );
   };
 
 /**
@@ -274,13 +378,12 @@ export const apply =
  * @category Mapping
  */
 export const skip1st =
-  <SRC extends ISource<any, any>, CTX, PROBLEM>(
-    first: Parser<SRC, unknown, CTX, PROBLEM>
-  ) =>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <CTX, PROBLEM>(first: Parser<CORE, unknown, CTX, PROBLEM>) =>
   <A, CTX2, PROBLEM2>(
-    second: Parser<SRC, A, CTX2, PROBLEM2>
-  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
-    return map2((a, b: A) => b)(first)(second);
+    second: Parser<CORE, A, CTX2, PROBLEM2>
+  ): Parser<CORE, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return map2(core)((a, b: A) => b)(first)(second);
   };
 
 /**
@@ -293,13 +396,12 @@ export const skip1st =
  * @category Mapping
  */
 export const skip2nd =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    keepParser: Parser<SRC, A, CTX, PROBLEM>
-  ) =>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(keepParser: Parser<CORE, A, CTX, PROBLEM>) =>
   <CTX2, PROBLEM2>(
-    ignoreParser: Parser<SRC, unknown, CTX2, PROBLEM2>
-  ): Parser<SRC, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
-    return map2((a: A, b) => a)(keepParser)(ignoreParser);
+    ignoreParser: Parser<CORE, unknown, CTX2, PROBLEM2>
+  ): Parser<CORE, A, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    return map2(core)((a: A, b) => a)(keepParser)(ignoreParser);
   };
 
 // AND THEN
@@ -313,14 +415,18 @@ export const skip2nd =
  * @category Mapping
  */
 export const andThen =
-  <SRC extends ISource<any, any>, A, B, CTX, PROBLEM>(
-    fn: (a: A) => Parser<SRC, B, CTX, PROBLEM>
-  ) =>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, B, CTX, PROBLEM>(fn: (a: A) => Parser<CORE, B, CTX, PROBLEM>) =>
   <CTX2, PROBLEM2>(
-    p: Parser<SRC, A, CTX2, PROBLEM2>
-  ): Parser<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
+    p: Parser<CORE, A, CTX2, PROBLEM2>
+  ): Parser<CORE, B, CTX | CTX2, PROBLEM | PROBLEM2> => {
     return new ParserImpl(
-      async (state): Promise<PStep<SRC, B, CTX | CTX2, PROBLEM | PROBLEM2>> => {
+      core,
+      async (
+        state
+      ): Promise<
+        PStep<SRCTypes.GetHasCoreSRC<CORE>, B, CTX | CTX2, PROBLEM | PROBLEM2>
+      > => {
         const res1 = await p.exec(state);
 
         if (isBad(res1)) {
@@ -348,15 +454,84 @@ export const andThen =
  *
  * @category Helpers
  */
-export const lazy = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  thunk: () => Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, A, CTX, PROBLEM> => {
-  return new ParserImpl((ctx) => {
-    return thunk().exec(ctx);
-  });
-};
+export const lazy =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    thunk: () => Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return new ParserImpl(core, (ctx) => {
+      return thunk().exec(ctx);
+    });
+  };
 
 // ONE OF
+
+interface OneOf<CORE extends SRCTypes.HasCore<any, any, any>> {
+  // ONE
+  <A, CTX, PROBLEM>(one: Parser<CORE, A, CTX, PROBLEM>): Parser<
+    CORE,
+    A,
+    CTX,
+    PROBLEM
+  >;
+  // TWO
+  <A, B, CTX1, CTX2, PROBLEM1, PROBLEM2>(
+    one: Parser<CORE, A, CTX1, PROBLEM1>,
+    two: Parser<CORE, B, CTX2, PROBLEM2>
+  ): Parser<CORE, A | B, CTX1 | CTX2, PROBLEM1 | PROBLEM2>;
+  // THREE
+  <A, B, C, CTX1, CTX2, CTX3, PROBLEM1, PROBLEM2, PROBLEM3>(
+    one: Parser<CORE, A, CTX1, PROBLEM1>,
+    two: Parser<CORE, B, CTX2, PROBLEM2>,
+    three: Parser<CORE, C, CTX3, PROBLEM3>
+  ): Parser<
+    CORE,
+    A | B | C,
+    CTX1 | CTX2 | CTX3,
+    PROBLEM1 | PROBLEM2 | PROBLEM3
+  >;
+  // FOUR
+  <A, B, C, D, CTX1, CTX2, CTX3, CTX4, PROBLEM1, PROBLEM2, PROBLEM3, PROBLEM4>(
+    one: Parser<CORE, A, CTX1, PROBLEM1>,
+    two: Parser<CORE, B, CTX2, PROBLEM2>,
+    three: Parser<CORE, C, CTX3, PROBLEM3>,
+    four: Parser<CORE, D, CTX4, PROBLEM4>
+  ): Parser<
+    CORE,
+    A | B | C | D,
+    CTX1 | CTX2 | CTX3 | CTX4,
+    PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4
+  >;
+  // FIVE
+  <
+    A,
+    B,
+    C,
+    D,
+    E,
+    CTX1,
+    CTX2,
+    CTX3,
+    CTX4,
+    CTX5,
+    PROBLEM1,
+    PROBLEM2,
+    PROBLEM3,
+    PROBLEM4,
+    PROBLEM5
+  >(
+    one: Parser<CORE, A, CTX1, PROBLEM1>,
+    two: Parser<CORE, B, CTX2, PROBLEM2>,
+    three: Parser<CORE, C, CTX3, PROBLEM3>,
+    four: Parser<CORE, D, CTX4, PROBLEM4>,
+    five: Parser<CORE, E, CTX5, PROBLEM5>
+  ): Parser<
+    CORE,
+    A | B | C | D | E,
+    CTX1 | CTX2 | CTX3 | CTX4 | CTX5,
+    PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
+  >;
+}
 
 /**
  * Just like {@link Simple!oneOf | Simple.oneOf}
@@ -367,101 +542,13 @@ export const lazy = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOf<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  one: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, A, CTX, PROBLEM>;
-
-export function oneOf<
-  SRC extends ISource<any, any>,
-  A,
-  B,
-  CTX1,
-  CTX2,
-  PROBLEM1,
-  PROBLEM2
->(
-  one: Parser<SRC, A, CTX1, PROBLEM1>,
-  two: Parser<SRC, B, CTX2, PROBLEM2>
-): Parser<SRC, A | B, CTX1 | CTX2, PROBLEM1 | PROBLEM2>;
-
-export function oneOf<
-  SRC extends ISource<any, any>,
-  A,
-  B,
-  C,
-  CTX1,
-  CTX2,
-  CTX3,
-  PROBLEM1,
-  PROBLEM2,
-  PROBLEM3
->(
-  one: Parser<SRC, A, CTX1, PROBLEM1>,
-  two: Parser<SRC, B, CTX2, PROBLEM2>,
-  three: Parser<SRC, C, CTX3, PROBLEM3>
-): Parser<SRC, A | B | C, CTX1 | CTX2 | CTX3, PROBLEM1 | PROBLEM2 | PROBLEM3>;
-
-export function oneOf<
-  SRC extends ISource<any, any>,
-  A,
-  B,
-  C,
-  D,
-  CTX1,
-  CTX2,
-  CTX3,
-  CTX4,
-  PROBLEM1,
-  PROBLEM2,
-  PROBLEM3,
-  PROBLEM4
->(
-  one: Parser<SRC, A, CTX1, PROBLEM1>,
-  two: Parser<SRC, B, CTX2, PROBLEM2>,
-  three: Parser<SRC, C, CTX3, PROBLEM3>,
-  four: Parser<SRC, D, CTX4, PROBLEM4>
-): Parser<
-  SRC,
-  A | B | C | D,
-  CTX1 | CTX2 | CTX3 | CTX4,
-  PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4
->;
-
-export function oneOf<
-  SRC extends ISource<any, any>,
-  A,
-  B,
-  C,
-  D,
-  E,
-  CTX1,
-  CTX2,
-  CTX3,
-  CTX4,
-  CTX5,
-  PROBLEM1,
-  PROBLEM2,
-  PROBLEM3,
-  PROBLEM4,
-  PROBLEM5
->(
-  one: Parser<SRC, A, CTX1, PROBLEM1>,
-  two: Parser<SRC, B, CTX2, PROBLEM2>,
-  three: Parser<SRC, C, CTX3, PROBLEM3>,
-  four: Parser<SRC, D, CTX4, PROBLEM4>,
-  five: Parser<SRC, E, CTX5, PROBLEM5>
-): Parser<
-  SRC,
-  A | B | C | D | E,
-  CTX1 | CTX2 | CTX3 | CTX4 | CTX5,
-  PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
->;
-
-export function oneOf<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  ...parsers: Parser<SRC, A, CTX, PROBLEM>[]
-): Parser<SRC, A, CTX, PROBLEM> {
-  return oneOfMany(...parsers);
-}
+export const oneOf =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE): OneOf<CORE> =>
+  <A, CTX, PROBLEM>(
+    ...parsers: Parser<CORE, A, CTX, PROBLEM>[]
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return oneOfMany(core)(...parsers);
+  };
 
 /**
  * Just like {@link Simple!oneOfMany | Simple.oneOfMany}
@@ -471,17 +558,24 @@ export function oneOf<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export function oneOfMany<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  ...parsers: Parser<SRC, A, CTX, PROBLEM>[]
-): Parser<SRC, A, CTX, PROBLEM> {
-  return new ParserImpl((ctx) => oneOfHelp(ctx, Empty, parsers));
-}
+export const oneOfMany =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    ...parsers: Parser<CORE, A, CTX, PROBLEM>[]
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return new ParserImpl(core, (ctx) => oneOfHelp(ctx, Empty, parsers));
+  };
 
-async function oneOfHelp<SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  ctx0: State<SRC, unknown>,
+async function oneOfHelp<
+  CORE extends SRCTypes.HasCore<any, any, any>,
+  A,
+  CTX,
+  PROBLEM
+>(
+  ctx0: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>,
   bag: Bag<CTX, PROBLEM>,
-  parsers: Parser<SRC, A, CTX, PROBLEM>[]
-): Promise<PStep<SRC, A, CTX, PROBLEM>> {
+  parsers: Parser<CORE, A, CTX, PROBLEM>[]
+): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, A, CTX, PROBLEM>> {
   let localBag = bag;
 
   for (const parser of parsers) {
@@ -593,18 +687,25 @@ export function isDone<A>(x: Step<unknown, A>): x is Done<A> {
  * @category Loop (All)
  */
 export const loop =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <STATE>(state: STATE) =>
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    fn: (state: STATE) => Parser<SRC, Step<STATE, A>, CTX, PROBLEM>
-  ): Parser<SRC, A, CTX, PROBLEM> => {
-    return new ParserImpl((s) => loopHelp(state, fn, s));
+  <A, CTX, PROBLEM>(
+    fn: (state: STATE) => Parser<CORE, Step<STATE, A>, CTX, PROBLEM>
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return new ParserImpl(core, (s) => loopHelp(state, fn, s));
   };
 
-const loopHelp = async <SRC extends ISource<any, any>, STATE, A, CTX, PROBLEM>(
+const loopHelp = async <
+  CORE extends SRCTypes.HasCore<any, any, any>,
+  STATE,
+  A,
+  CTX,
+  PROBLEM
+>(
   state: STATE,
-  fn: (state: STATE) => Parser<SRC, Step<STATE, A>, CTX, PROBLEM>,
-  s: State<SRC, CTX>
-): Promise<PStep<SRC, A, CTX, PROBLEM>> => {
+  fn: (state: STATE) => Parser<CORE, Step<STATE, A>, CTX, PROBLEM>,
+  s: State<SRCTypes.GetHasCoreSRC<CORE>, CTX>
+): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, A, CTX, PROBLEM>> => {
   let tmpState = state;
   let tmpS = s;
   let p = false;
@@ -635,27 +736,31 @@ const loopHelp = async <SRC extends ISource<any, any>, STATE, A, CTX, PROBLEM>(
  *
  * @category Branches
  */
-export const backtrackable = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  parser: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, A, CTX, PROBLEM> => {
-  return new ParserImpl(async (ctx) => {
-    const res = await parser.exec(ctx);
-    if (isBad(res)) {
-      return Bad(false, res.bag);
-    } else {
-      return Good(false, res.value, res.state);
-    }
-  });
-};
+export const backtrackable =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return new ParserImpl(core, async (ctx) => {
+      const res = await parser.exec(ctx);
+      if (isBad(res)) {
+        return Bad(false, res.bag);
+      } else {
+        return Good(false, res.value, res.state);
+      }
+    });
+  };
 
 /**
  * Just like {@link Simple!commit | Simple.commit}
  *
  * @category Branches
  */
-export const commit = <A>(a: A): Parser<never, A, never, never> => {
-  return new ParserImpl(async (s) => Good(true, a, s));
-};
+export const commit =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A>(a: A): Parser<CORE, A, never, never> => {
+    return new ParserImpl(core, async (s) => Good(true, a, s));
+  };
 
 // Token TODO: Rename to CHUNK
 
@@ -722,36 +827,38 @@ export function Token<CHUNK, PROBLEM>(
  * @category Branches
  * @category Token (All)
  */
-export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
-  token: Token<CHUNK, PROBLEM>
-): Parser<SRC, Unit, never, PROBLEM> {
-  return new ParserImpl(async (s) => {
-    const [newOffset, newRow, newCol] = await s.src.isSubChunk(
-      token.value,
-      s.offset,
-      s.row,
-      s.col
-    );
+export const token =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <PROBLEM>(
+    token: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>
+  ): Parser<CORE, Unit, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
+      const [newOffset, newRow, newCol] = await s.src.isSubChunk(
+        token.value,
+        s.offset,
+        s.row,
+        s.col
+      );
 
-    if (newOffset === -1) {
-      return Bad(false, fromState(s, token.problem));
-    } else {
-      // NOTE: I changed "token.value.length !== 0" to "s.offset !== newOffset"
-      // because I think it should be impossible for the offset to not change
-      // when the token is non-empty. But I'm not 100% sure.
-      //
-      // TODO: Add a test for this.
-      return Good(s.offset !== newOffset, Unit, {
-        src: s.src,
-        offset: newOffset,
-        indent: s.indent,
-        context: s.context,
-        row: newRow,
-        col: newCol,
-      });
-    }
-  });
-}
+      if (newOffset === -1) {
+        return Bad(false, fromState(s, token.problem));
+      } else {
+        // NOTE: I changed "token.value.length !== 0" to "s.offset !== newOffset"
+        // because I think it should be impossible for the offset to not change
+        // when the token is non-empty. But I'm not 100% sure.
+        //
+        // TODO: Add a test for this.
+        return Good(s.offset !== newOffset, Unit, {
+          src: s.src,
+          offset: newOffset,
+          indent: s.indent,
+          context: s.context,
+          row: newRow,
+          col: newCol,
+        });
+      }
+    });
+  };
 
 // Number
 
@@ -780,11 +887,12 @@ export function token<SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
  * @category Building Blocks
  */
 export const int =
+  <CORE extends SRCTypes.HasCore<any, any, any> & SRCTypes.HasStringCore<any>>(
+    core: CORE
+  ) =>
   <PROBLEM>(expecting: PROBLEM) =>
-  <SRC extends IStringSource>(
-    invalid: PROBLEM
-  ): Parser<SRC, number, never, PROBLEM> => {
-    return number({
+  (invalid: PROBLEM): Parser<CORE, number, never, PROBLEM> => {
+    return number(core)({
       hex: Results.Err(invalid),
       int: Results.Ok((id: number) => id),
       octal: Results.Err(invalid),
@@ -818,11 +926,12 @@ export const int =
  * @category Building Blocks
  */
 export const float =
+  <CORE extends SRCTypes.HasCore<any, any, any> & SRCTypes.HasStringCore<any>>(
+    core: CORE
+  ) =>
   <PROBLEM>(expecting: PROBLEM) =>
-  <SRC extends IStringSource>(
-    invalid: PROBLEM
-  ): Parser<SRC, number, never, PROBLEM> => {
-    return number({
+  (invalid: PROBLEM): Parser<CORE, number, never, PROBLEM> => {
+    return number(core)({
       int: Results.Ok((id: number) => id),
       hex: Results.Err(invalid),
       octal: Results.Err(invalid),
@@ -844,77 +953,87 @@ export const float =
  *
  * @category Building Blocks
  */
-export function number<SRC extends IStringSource, A, PROBLEM>(args: {
-  int: Results.Result<(n: number) => A, PROBLEM>;
-  hex: Results.Result<(n: number) => A, PROBLEM>;
-  octal: Results.Result<(n: number) => A, PROBLEM>;
-  binary: Results.Result<(n: number) => A, PROBLEM>;
-  float: Results.Result<(n: number) => A, PROBLEM>;
-  invalid: PROBLEM;
-  expecting: PROBLEM;
-}): Parser<SRC, A, never, PROBLEM> {
-  return new ParserImpl(async (s) => {
-    // 0x30 => 0
-    if (s.src.isCharCode(0x30, s.offset)) {
-      const zeroOffset = s.offset + 1;
-      const baseOffset = zeroOffset + 1;
+export const number =
+  <CORE extends SRCTypes.HasCore<any, any, any> & SRCTypes.HasStringCore<any>>(
+    core: CORE
+  ) =>
+  <A, PROBLEM>(args: {
+    int: Results.Result<(n: number) => A, PROBLEM>;
+    hex: Results.Result<(n: number) => A, PROBLEM>;
+    octal: Results.Result<(n: number) => A, PROBLEM>;
+    binary: Results.Result<(n: number) => A, PROBLEM>;
+    float: Results.Result<(n: number) => A, PROBLEM>;
+    invalid: PROBLEM;
+    expecting: PROBLEM;
+  }): Parser<CORE, A, never, PROBLEM> => {
+    // GetHasCoreSRC<CORE> is always the same as GetHasStringCoreSRC<CORE> but
+    // typescript doesn't know that. So we have to cast it.
+    //
+    // @ts-ignore
+    return new ParserImpl(core, async (s) => {
+      // 0x30 => 0
+      if (core.isCharCode(0x30, s.offset, s.src)) {
+        const zeroOffset = s.offset + 1;
+        const baseOffset = zeroOffset + 1;
 
-      // 0x78 => x
-      if (s.src.isCharCode(0x78, zeroOffset)) {
-        // HEX
-        return finalizeInt(
-          args.invalid,
-          args.hex,
-          baseOffset,
-          await s.src.consumeBase16(baseOffset),
-          s
-        );
+        // 0x78 => x
+        if (core.isCharCode(0x78, zeroOffset, s.src)) {
+          // HEX
+          return finalizeInt(
+            args.invalid,
+            args.hex,
+            baseOffset,
+            await core.consumeBase16(baseOffset, s.src),
+            s
+          );
 
-        // 0x6f => o
-      } else if (s.src.isCharCode(0x6f, zeroOffset)) {
-        // OCTAL
-        return finalizeInt(
-          args.invalid,
-          args.octal,
-          baseOffset,
-          await s.src.consumeBase(8, baseOffset),
-          s
-        );
-        // 0x62 => b
-      } else if (s.src.isCharCode(0x62, zeroOffset)) {
-        // BINARY
-        return finalizeInt(
-          args.invalid,
-          args.binary,
-          baseOffset,
-          await s.src.consumeBase(2, baseOffset),
-          s
-        );
-      } else {
-        // Float
-        return finalizeFloat(
-          args.invalid,
-          args.expecting,
-          args.int,
-          args.float,
-          [zeroOffset, 0],
-          s
-        );
+          // 0x6f => o
+        } else if (core.isCharCode(0x6f, zeroOffset, s.src)) {
+          // OCTAL
+          return finalizeInt(
+            args.invalid,
+            args.octal,
+            baseOffset,
+            await core.consumeBase(8, baseOffset, s.src),
+            s
+          );
+          // 0x62 => b
+        } else if (core.isCharCode(0x62, zeroOffset, s.src)) {
+          // BINARY
+          return finalizeInt(
+            args.invalid,
+            args.binary,
+            baseOffset,
+            await core.consumeBase(2, baseOffset, s.src),
+            s
+          );
+        } else {
+          // Float
+          return finalizeFloat(
+            core,
+            args.invalid,
+            args.expecting,
+            args.int,
+            args.float,
+            [zeroOffset, 0],
+            s as any
+          );
+        }
       }
-    }
-    // Float
-    return finalizeFloat(
-      args.invalid,
-      args.expecting,
-      args.int,
-      args.float,
-      await s.src.consumeBase(10, s.offset),
-      s
-    );
-  });
-}
+      // Float
+      return finalizeFloat(
+        core,
+        args.invalid,
+        args.expecting,
+        args.int,
+        args.float,
+        await core.consumeBase(10, s.offset, s.src),
+        s as any
+      );
+    });
+  };
 
-function finalizeInt<SRC extends IStringSource, A, PROBLEM>(
+function finalizeInt<SRC, A, PROBLEM>(
   invalid: PROBLEM,
   handler: Results.Result<(n: number) => A, PROBLEM>,
   startOffset: number,
@@ -932,7 +1051,7 @@ function finalizeInt<SRC extends IStringSource, A, PROBLEM>(
   }
 }
 
-function bumpOffset<SRC extends IStringSource, CTX>(
+function bumpOffset<SRC, CTX>(
   newOffset: number,
   s: State<SRC, CTX>
 ): State<SRC, CTX> {
@@ -945,17 +1064,21 @@ function bumpOffset<SRC extends IStringSource, CTX>(
     col: s.col + (newOffset - s.offset),
   };
 }
-
-async function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
+async function finalizeFloat<
+  CORE extends SRCTypes.HasStringCore<any>,
+  A,
+  PROBLEM
+>(
+  core: CORE,
   invalid: PROBLEM,
   expecting: PROBLEM,
   intSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatSettings: Results.Result<(n: number) => A, PROBLEM>,
   floatPair: [number, number],
-  s: State<SRC, unknown>
-): Promise<PStep<SRC, A, never, PROBLEM>> {
+  s: State<SRCTypes.GetHasStringCoreSRC<CORE>, unknown>
+): Promise<PStep<SRCTypes.GetHasStringCoreSRC<CORE>, A, never, PROBLEM>> {
   const intOffset = floatPair[0];
-  const floatOffset = consumeDotAndExp(intOffset, s.src);
+  const floatOffset = consumeDotAndExp(core, intOffset, s.src);
 
   if (floatOffset < 0) {
     return Bad(
@@ -984,15 +1107,16 @@ async function finalizeFloat<SRC extends IStringSource, A, PROBLEM>(
  * On a failure, returns negative index of problem.
  *
  */
-function consumeDotAndExp<SRC extends IStringSource>(
+function consumeDotAndExp<CORE extends SRCTypes.HasStringCore<any>>(
+  core: CORE,
   offset: number,
-  src: SRC
+  src: SRCTypes.GetHasStringCoreSRC<CORE>
 ): number {
   // 0x2e => '.'
-  if (src.isCharCode(0x2e, offset)) {
-    return consumeExp(src.chompBase10(offset + 1), src);
+  if (core.isCharCode(0x2e, offset, src)) {
+    return consumeExp(core, core.chompBase10(offset + 1, src), src);
   } else {
-    return consumeExp(offset, src);
+    return consumeExp(core, offset, src);
   }
 }
 
@@ -1000,22 +1124,26 @@ function consumeDotAndExp<SRC extends IStringSource>(
  * On a failure, returns a negative index of the problem.
  *
  */
-function consumeExp<SRC extends IStringSource>(
+function consumeExp<CORE extends SRCTypes.HasStringCore<any>>(
+  core: CORE,
   offset: number,
-  src: SRC
+  src: SRCTypes.GetHasStringCoreSRC<CORE>
 ): number {
   // 0x65 => 'e'
   // 0x45 => 'E'
-  if (src.isCharCode(0x65, offset) || src.isCharCode(0x45, offset)) {
+  if (
+    core.isCharCode(0x65, offset, src) ||
+    core.isCharCode(0x45, offset, src)
+  ) {
     const eOffset = offset + 1;
     // 0x2b => '+'
     // 0x2d => '-'
     const expOffset =
-      src.isCharCode(0x2b, offset) || src.isCharCode(0x2d, offset)
+      core.isCharCode(0x2b, offset, src) || core.isCharCode(0x2d, offset, src)
         ? eOffset + 1
         : eOffset;
 
-    const newOffset = src.chompBase10(expOffset);
+    const newOffset = core.chompBase10(expOffset, src);
     if (expOffset === newOffset) {
       return -newOffset;
     } else {
@@ -1034,17 +1162,17 @@ function consumeExp<SRC extends IStringSource>(
  *
  * @category Building Blocks
  */
-export const end = <SRC extends ISource<any, any>, PROBLEM>(
-  problem: PROBLEM
-): Parser<SRC, Unit, never, PROBLEM> => {
-  return new ParserImpl(async (s) => {
-    if (s.src.isEnd(s.offset)) {
-      return Good(false, Unit, s);
-    } else {
-      return Bad(false, fromState(s, problem));
-    }
-  });
-};
+export const end =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <PROBLEM>(problem: PROBLEM): Parser<CORE, Unit, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
+      if (s.src.isEnd(s.offset)) {
+        return Good(false, Unit, s);
+      } else {
+        return Bad(false, fromState(s, problem));
+      }
+    });
+  };
 
 // CHOMPED STRINGS
 
@@ -1052,35 +1180,33 @@ export const end = <SRC extends ISource<any, any>, PROBLEM>(
  * Just like {@link Simple!getChompedString | Simple.getChompedString}
  *
  * @see
- * - {@link mapChompedString}
+ * - {@link mapChompedChunk}
  *
  * @category Chompers
  */
-export const getChompedString = <
-  SRC extends ISource<any, any>,
-  A,
-  CTX,
-  PROBLEM
->(
-  parser: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, GetChunk<SRC>, CTX, PROBLEM> => {
-  return mapChompedString((a: any) => a)(parser);
-};
+export const getChompedChunk =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, SRCTypes.GetHasCoreCHUNK<CORE>, CTX, PROBLEM> => {
+    return mapChompedChunk(core)((a: any) => a)(parser);
+  };
 
 /**
  * Just like {@link Simple!mapChompedString | Simple.mapChompedString}
  *
  * @see
- * - {@link getChompedString}
+ * - {@link getChompedChunk}
  *
  * @category Chompers
  */
-export const mapChompedString =
+export const mapChompedChunk =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <CHOMPED, A, B>(fn: (s: CHOMPED, v: A) => B) =>
-  <SRC extends ISource<any, CHOMPED>, CTX, PROBLEM>(
-    parser: Parser<SRC, A, CTX, PROBLEM>
-  ): Parser<SRC, B, CTX, PROBLEM> => {
-    return new ParserImpl(async (s) => {
+  <CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, B, CTX, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
       const res = await parser.exec(s);
       if (isBad(res)) {
         return res;
@@ -1103,11 +1229,10 @@ export const mapChompedString =
  * @category Chompers
  */
 export const chompIf =
-  <TOKEN>(isGood: (token: TOKEN) => boolean) =>
-  <SRC extends ISource<TOKEN, any>, PROBLEM>(
-    expecting: PROBLEM
-  ): Parser<SRC, Unit, never, PROBLEM> => {
-    return new ParserImpl(async (s) => {
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  (isGood: (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean) =>
+  <PROBLEM>(expecting: PROBLEM): Parser<CORE, Unit, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
       const newOffset = await s.src.isSubToken(isGood, s.offset);
       if (newOffset === -1) {
         return Bad(false, fromState(s, expecting));
@@ -1135,14 +1260,14 @@ export const chompIf =
 
 // CHOMP WHILE
 
-type ChompWhile = {
-  <SRC extends ISource<TOKEN, any>, TOKEN, A>(
-    isGood: (token: TOKEN, state: A) => [boolean, A],
-    init: A
-  ): Parser<SRC, Unit, never, never>;
-  <SRC extends ISource<TOKEN, any>, TOKEN>(
-    isGood: (token: TOKEN) => boolean
-  ): Parser<SRC, Unit, never, never>;
+type ChompWhile<CORE extends SRCTypes.HasCore<any, any, any>, TOKEN> = {
+  <A>(isGood: (token: TOKEN, state: A) => [boolean, A], init: A): Parser<
+    CORE,
+    Unit,
+    never,
+    never
+  >;
+  (isGood: (token: TOKEN) => boolean): Parser<CORE, Unit, never, never>;
 };
 
 /**
@@ -1150,25 +1275,28 @@ type ChompWhile = {
  *
  * @category Chompers
  */
-export const chompWhile: ChompWhile = <SRC extends ISource<TOKEN, any>, TOKEN>(
-  isGood: any,
-  init?: any
-): Parser<SRC, Unit, never, never> => {
-  return new ParserImpl((s) =>
-    chompWhileHelp(isGood, init, s.offset, s.row, s.col, s)
-  );
-};
+export const chompWhile =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(
+    core: CORE
+  ): ChompWhile<CORE, SRCTypes.GetHasCoreTOKEN<CORE>> =>
+  (isGood: any, init?: any): Parser<CORE, Unit, never, never> => {
+    return new ParserImpl(core, (s) =>
+      chompWhileHelp(core, isGood, init, s.offset, s.row, s.col, s)
+    );
+  };
 
-type ChompWhile1 = {
-  <SRC extends ISource<TOKEN, any>, TOKEN, PROBLEM, A>(
+type ChompWhile1<CORE extends SRCTypes.HasCore<any, any, any>, TOKEN> = {
+  <PROBLEM, A>(
     problem: PROBLEM,
     isGood: (char: string, state: A) => [boolean, A],
     init: A
-  ): Parser<SRC, Unit, never, PROBLEM>;
-  <SRC extends ISource<TOKEN, any>, TOKEN, PROBLEM>(
-    problem: PROBLEM,
-    isGood: (char: string) => boolean
-  ): Parser<SRC, Unit, never, PROBLEM>;
+  ): Parser<CORE, Unit, never, PROBLEM>;
+  <PROBLEM>(problem: PROBLEM, isGood: (char: string) => boolean): Parser<
+    CORE,
+    Unit,
+    never,
+    PROBLEM
+  >;
 };
 
 /**
@@ -1176,40 +1304,40 @@ type ChompWhile1 = {
  *
  * @category Chompers
  */
-export const chompWhile1: ChompWhile1 = <
-  SRC extends ISource<TOKEN, any>,
-  TOKEN,
-  PROBLEM
->(
-  problem: PROBLEM,
-  isGood: any,
-  init?: any
-): Parser<SRC, Unit, never, PROBLEM> => {
-  return new ParserImpl((s) =>
-    chompWhileHelp(isGood, init, s.offset, s.row, s.col, s, {
-      chompMinOneProblem: problem,
-    })
-  );
-};
+export const chompWhile1 =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(
+    core: CORE
+  ): ChompWhile1<CORE, SRCTypes.GetHasCoreTOKEN<CORE>> =>
+  <PROBLEM>(
+    problem: PROBLEM,
+    isGood: any,
+    init?: any
+  ): Parser<CORE, Unit, never, PROBLEM> => {
+    return new ParserImpl(core, (s) =>
+      chompWhileHelp(core, isGood, init, s.offset, s.row, s.col, s, {
+        chompMinOneProblem: problem,
+      })
+    );
+  };
 
 async function chompWhileHelp<
-  SRC extends ISource<TOKEN, any>,
-  TOKEN,
+  CORE extends SRCTypes.HasCore<any, any, any>,
   A,
   PROBLEM
 >(
+  core: CORE,
   isGood:
-    | ((token: TOKEN) => boolean)
-    | ((token: TOKEN, state: A) => [boolean, A]),
+    | ((token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean)
+    | ((token: SRCTypes.GetHasCoreTOKEN<CORE>, state: A) => [boolean, A]),
   init: any,
   offset: number,
   row: number,
   col: number,
-  s0: State<SRC, unknown>,
+  s0: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>,
   config?: {
     chompMinOneProblem: PROBLEM;
   }
-): Promise<PStep<SRC, Unit, never, PROBLEM>> {
+): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, Unit, never, PROBLEM>> {
   let finalOffset = offset;
   let finalRow = row;
   let finalCol = col;
@@ -1218,8 +1346,8 @@ async function chompWhileHelp<
 
   const fn =
     isGood.length === 1
-      ? (isGood as (token: TOKEN) => boolean)
-      : (token: TOKEN) => {
+      ? (isGood as (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean)
+      : (token: SRCTypes.GetHasCoreTOKEN<CORE>) => {
           // @ts-ignore
           const [returnVal, newState] = isGood(char, state);
           state = newState;
@@ -1228,7 +1356,7 @@ async function chompWhileHelp<
 
   let iterations = 0;
 
-  let newOffset = await s0.src.isSubToken(fn, offset);
+  let newOffset = await core.isSubToken(fn, offset, s0.src);
   while (newOffset !== -1) {
     iterations++;
     if (newOffset === -2) {
@@ -1240,7 +1368,7 @@ async function chompWhileHelp<
       finalCol = finalCol + 1;
     }
 
-    newOffset = await s0.src.isSubToken(fn, finalOffset);
+    newOffset = await core.isSubToken(fn, offset, s0.src);
   }
 
   if (iterations < 1 && config) {
@@ -1266,69 +1394,75 @@ async function chompWhileHelp<
  *
  * @category Chompers
  */
-export const chompUntil = <SRC extends ISource<any, CHUNK>, CHUNK, PROBLEM>(
-  token: Token<CHUNK, PROBLEM>
-): Parser<SRC, Unit, never, PROBLEM> => {
-  return new ParserImpl(async (s) => {
-    const [didMatch, newOffset, newRow, newCol] = await s.src.findSubChunk(
-      token.value,
-      s.offset,
-      s.row,
-      s.col
-    );
-    if (!didMatch) {
-      return Bad(false, fromInfo(newRow, newCol, token.problem, s.context));
-    } else {
-      const [finalOffset, finalRow, finalCol] = await s.src.isSubChunk(
+export const chompUntil =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <PROBLEM>(
+    token: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>
+  ): Parser<CORE, Unit, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
+      const [didMatch, newOffset, newRow, newCol] = await core.findSubChunk(
         token.value,
-        newOffset,
-        newRow,
-        newCol
+        s.offset,
+        s.row,
+        s.col,
+        s.src
       );
-      return Good(s.offset < newOffset, Unit, {
-        src: s.src,
-        offset: finalOffset,
-        indent: s.indent,
-        context: s.context,
-        row: finalRow,
-        col: finalCol,
-      });
-    }
-  });
-};
+      if (!didMatch) {
+        return Bad(false, fromInfo(newRow, newCol, token.problem, s.context));
+      } else {
+        const [finalOffset, finalRow, finalCol] = await core.isSubChunk(
+          token.value,
+          newOffset,
+          newRow,
+          newCol,
+          s.src
+        );
+        return Good(s.offset < newOffset, Unit, {
+          src: s.src,
+          offset: finalOffset,
+          indent: s.indent,
+          context: s.context,
+          row: finalRow,
+          col: finalCol,
+        });
+      }
+    });
+  };
 
 /**
  * Just like {@link Simple!chompUntilEndOr | Simple.chompUntilEndOr}
  *
  * @category Chompers
  */
-export const chompUntilEndOr = <SRC extends ISource<any, CHUNK>, CHUNK>(
-  chunk: CHUNK
-): Parser<SRC, Unit, never, never> => {
-  return new ParserImpl(async (s) => {
-    const [didMatch, newOffset, newRow, newCol] = await s.src.findSubChunk(
-      chunk,
-      s.offset,
-      s.row,
-      s.col
-    );
-    const [finalOffset, finalRow, finalCol] = await s.src.isSubChunk(
-      chunk,
-      newOffset,
-      newRow,
-      newCol
-    );
-    const adjustedOffset = finalOffset < 0 ? newOffset : finalOffset;
-    return Good(s.offset < adjustedOffset, Unit, {
-      src: s.src,
-      offset: adjustedOffset,
-      indent: s.indent,
-      context: s.context,
-      row: finalRow,
-      col: finalCol,
+export const chompUntilEndOr =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  (chunk: SRCTypes.GetHasCoreCHUNK<CORE>): Parser<CORE, Unit, never, never> => {
+    return new ParserImpl(core, async (s) => {
+      const [didMatch, newOffset, newRow, newCol] = await core.findSubChunk(
+        chunk,
+        s.offset,
+        s.row,
+        s.col,
+        s.src
+      );
+      const [finalOffset, finalRow, finalCol] = await core.isSubChunk(
+        chunk,
+        newOffset,
+        newRow,
+        newCol,
+        s.src
+      );
+      const adjustedOffset = finalOffset < 0 ? newOffset : finalOffset;
+      return Good(s.offset < adjustedOffset, Unit, {
+        src: s.src,
+        offset: adjustedOffset,
+        indent: s.indent,
+        context: s.context,
+        row: finalRow,
+        col: finalCol,
+      });
     });
-  });
-};
+  };
 
 // CONTEXT
 
@@ -1380,11 +1514,12 @@ export const chompUntilEndOr = <SRC extends ISource<any, CHUNK>, CHUNK>(
  * @category Parsers
  */
 export const inContext =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <CTX>(ctx: CTX) =>
-  <SRC extends ISource<any, any>, A, PROBLEM>(
-    parser: Parser<SRC, A, CTX, PROBLEM>
-  ): Parser<SRC, A, CTX, PROBLEM> => {
-    return new ParserImpl(async (s0) => {
+  <A, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, A, CTX, PROBLEM> => {
+    return new ParserImpl(core, async (s0) => {
       // This must use a immutable list!!!
       const res = await parser.exec(
         changeContext(
@@ -1405,7 +1540,7 @@ export const inContext =
     });
   };
 
-function changeContext<SRC extends ISource<any, any>, CTX>(
+function changeContext<SRC, CTX>(
   newContext: immutable.Stack<Located<CTX>>,
   { context, ...rest }: State<SRC, unknown>
 ): State<SRC, CTX> {
@@ -1422,9 +1557,14 @@ function changeContext<SRC extends ISource<any, any>, CTX>(
  *
  * @category Indentation
  */
-export const getIndent = <SRC extends ISource<any, any>>() =>
-  new ParserImpl<SRC, number, never, never>(
-    async (s: State<SRC, never>): Promise<PStep<SRC, number, never, never>> =>
+export const getIndent = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+) =>
+  new ParserImpl<CORE, number, never, never>(
+    core,
+    async (
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, never>
+    ): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, number, never, never>> =>
       Good(false, s.indent, s)
   );
 
@@ -1433,29 +1573,31 @@ export const getIndent = <SRC extends ISource<any, any>>() =>
  *
  * @category Indentation
  */
-export const withIndent = (newIndent: number) => {
-  if (newIndent < 0) {
-    throw Error(`Indentation was smaller then 1, value: ${newIndent}`);
-  }
-  return <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    parse: Parser<SRC, A, CTX, PROBLEM>
-  ): Parser<SRC, A, CTX, PROBLEM> => {
-    return new ParserImpl(async (s) => {
-      const res = await parse.exec(changeIndent(newIndent + s.indent, s));
-      if (isGood(res)) {
-        return Good(
-          res.haveConsumed,
-          res.value,
-          changeIndent(s.indent, res.state)
-        );
-      } else {
-        return res;
-      }
-    });
+export const withIndent =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  (newIndent: number) => {
+    if (newIndent < 0) {
+      throw Error(`Indentation was smaller then 1, value: ${newIndent}`);
+    }
+    return <A, CTX, PROBLEM>(
+      parse: Parser<CORE, A, CTX, PROBLEM>
+    ): Parser<CORE, A, CTX, PROBLEM> => {
+      return new ParserImpl(core, async (s) => {
+        const res = await parse.exec(changeIndent(newIndent + s.indent, s));
+        if (isGood(res)) {
+          return Good(
+            res.haveConsumed,
+            res.value,
+            changeIndent(s.indent, res.state)
+          );
+        } else {
+          return res;
+        }
+      });
+    };
   };
-};
 
-function changeIndent<SRC extends ISource<any, any>, CTX>(
+function changeIndent<SRC, CTX>(
   newIndent: number,
   { indent, ...rest }: State<SRC, CTX>
 ): State<SRC, CTX> {
@@ -1472,11 +1614,13 @@ function changeIndent<SRC extends ISource<any, any>, CTX>(
  *
  * @category Branches
  */
-export const optional = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  parser: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, A | undefined, CTX, PROBLEM> => {
-  return parser.or(succeed(undefined));
-};
+export const optional =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    parser: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, A | undefined, CTX, PROBLEM> => {
+    return parser.or(succeed(core)(undefined));
+  };
 
 // SYMBOL
 
@@ -1511,42 +1655,46 @@ export const symbol = token;
  *
  * @category Building Blocks
  */
-export const keyword = <SRC extends ISource<any, string>, PROBLEM>(
-  token: Token<string, PROBLEM>
-): Parser<SRC, Unit, never, PROBLEM> => {
-  const kwd = token.value;
+export const keyword =
+  <CORE extends SRCTypes.HasCore<any, any, string>>(core: CORE) =>
+  <PROBLEM>(
+    token: Token<string, PROBLEM>
+  ): Parser<CORE, Unit, never, PROBLEM> => {
+    const kwd = token.value;
 
-  const progress = kwd.length > 0;
+    const progress = kwd.length > 0;
 
-  return new ParserImpl(async (s) => {
-    const [newOffset, newRow, newCol] = await s.src.isSubChunk(
-      kwd,
-      s.offset,
-      s.row,
-      s.col
-    );
+    return new ParserImpl(core, async (s) => {
+      const [newOffset, newRow, newCol] = await core.isSubChunk(
+        kwd,
+        s.offset,
+        s.row,
+        s.col,
+        s.src
+      );
 
-    if (
-      newOffset === -1 ||
-      0 <=
-        (await s.src.isSubToken(
-          (c) => Helpers.isAlphaNum(c) || c === "_",
-          newOffset
-        ))
-    ) {
-      return Bad(false, fromState(s, token.problem));
-    } else {
-      return Good(progress, Unit, {
-        src: s.src,
-        offset: newOffset,
-        indent: s.indent,
-        context: s.context,
-        row: newRow,
-        col: newCol,
-      });
-    }
-  });
-};
+      if (
+        newOffset === -1 ||
+        0 <=
+          (await core.isSubToken(
+            (c) => Helpers.isAlphaNum(c) || c === "_",
+            newOffset,
+            s.src
+          ))
+      ) {
+        return Bad(false, fromState(s, token.problem));
+      } else {
+        return Good(progress, Unit, {
+          src: s.src,
+          offset: newOffset,
+          indent: s.indent,
+          context: s.context,
+          row: newRow,
+          col: newCol,
+        });
+      }
+    });
+  };
 
 // POSITION
 // TODO: Remove the unnecessary promises. It causes unnecessary allocations.
@@ -1556,12 +1704,16 @@ export const keyword = <SRC extends ISource<any, string>, PROBLEM>(
  *
  * @category Positions
  */
-export const getPosition: Parser<any, [number, number], never, never> =
+export const getPosition = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+): Parser<CORE, [number, number], never, never> =>
   new ParserImpl(
+    core,
     async (
-      s: State<any, unknown>
-    ): Promise<PStep<any, [number, number], never, never>> =>
-      Good(false, [s.row, s.col], s)
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ): Promise<
+      PStep<SRCTypes.GetHasCoreSRC<CORE>, [number, number], never, never>
+    > => Good(false, [s.row, s.col], s)
   );
 
 /**
@@ -1569,30 +1721,48 @@ export const getPosition: Parser<any, [number, number], never, never> =
  *
  * @category Positions
  */
-export const getRow: Parser<any, number, never, never> = new ParserImpl(
-  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
-    Good(false, s.row, s)
-);
+export const getRow = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+): Parser<CORE, number, never, never> =>
+  new ParserImpl(
+    core,
+    async (
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, number, never, never>> =>
+      Good(false, s.row, s)
+  );
 
 /**
  * Just like {@link Simple!getCol | Simple.getCol}
  *
  * @category Positions
  */
-export const getCol: Parser<any, number, never, never> = new ParserImpl(
-  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
-    Good(false, s.col, s)
-);
+export const getCol = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+): Parser<CORE, number, never, never> =>
+  new ParserImpl(
+    core,
+    async (
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, number, never, never>> =>
+      Good(false, s.col, s)
+  );
 
 /**
  * Just like {@link Simple!getOffset | Simple.getOffset}
  *
  * @category Positions
  */
-export const getOffset: Parser<any, number, never, never> = new ParserImpl(
-  async (s: State<any, unknown>): Promise<PStep<any, number, never, never>> =>
-    Good(false, s.offset, s)
-);
+export const getOffset = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+): Parser<CORE, number, never, never> =>
+  new ParserImpl(
+    core,
+    async (
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ): Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, number, never, never>> =>
+      Good(false, s.offset, s)
+  );
 
 /**
  * TODO: This is not implemented yet.
@@ -1601,10 +1771,21 @@ export const getOffset: Parser<any, number, never, never> = new ParserImpl(
  *
  * @category Positions
  */
-export const getSource = <SRC extends ISource<any, CHUNK>, CHUNK>() =>
+export const getSource = <CORE extends SRCTypes.HasCore<any, any, any>>(
+  core: CORE
+): Parser<CORE, SRCTypes.GetHasCoreSRC<CORE>, never, never> =>
   new ParserImpl(
-    async (s: State<SRC, unknown>): Promise<PStep<SRC, SRC, never, never>> =>
-      Good(false, s.src, s)
+    core,
+    async (
+      s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
+    ): Promise<
+      PStep<
+        SRCTypes.GetHasCoreSRC<CORE>,
+        SRCTypes.GetHasCoreSRC<CORE>,
+        never,
+        never
+      >
+    > => Good(false, s.src, s)
   );
 
 // VARIABLES
@@ -1615,82 +1796,90 @@ export const getSource = <SRC extends ISource<any, CHUNK>, CHUNK>() =>
  *
  * @category Building Blocks
  */
-export const variable = <TOKEN, PROBLEM>(args: {
-  start: (char: TOKEN) => boolean;
-  inner: (char: TOKEN) => boolean;
-  reserved: Set<string>;
-  expecting: PROBLEM;
-}): Parser<ISource<TOKEN, any>, string, never, PROBLEM> => {
-  return new ParserImpl(async (s) => {
-    const firstOffset = await s.src.isSubToken(args.start, s.offset);
+export const variable =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <PROBLEM>(args: {
+    start: (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean;
+    inner: (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean;
+    reserved: Set<SRCTypes.GetHasCoreCHUNK<CORE>>;
+    expecting: PROBLEM;
+  }): Parser<CORE, SRCTypes.GetHasCoreCHUNK<CORE>, never, PROBLEM> => {
+    return new ParserImpl(core, async (s) => {
+      const firstOffset = await core.isSubToken(
+        args.start as any,
+        s.offset,
+        s.src
+      );
 
-    if (firstOffset === -1) {
-      return Bad(false, fromState(s, args.expecting));
+      if (firstOffset === -1) {
+        return Bad(false, fromState(s, args.expecting));
+      }
+
+      const s1 =
+        firstOffset === -2
+          ? await varHelp(core)(
+              args.inner,
+              s.offset + 1,
+              s.row + 1,
+              1,
+              s.src,
+              s.indent,
+              s.context
+            )
+          : await varHelp(core)(
+              args.inner,
+              firstOffset,
+              s.row,
+              s.col + 1,
+              s.src,
+              s.indent,
+              s.context
+            );
+      const name = await core.slice(s.offset, s1.offset, s.src);
+      if (args.reserved.has(name)) {
+        return Bad(false, fromState(s, args.expecting));
+      } else {
+        return Good(true, name, s1);
+      }
+    });
+  };
+
+const varHelp =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  async <CTX>(
+    isGood: (s: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean,
+    offset: number,
+    row: number,
+    col: number,
+    src: SRCTypes.GetHasCoreSRC<CORE>,
+    indent: number,
+    context: immutable.Stack<Located<CTX>>
+  ): Promise<State<SRCTypes.GetHasCoreSRC<CORE>, CTX>> => {
+    let currentOffset = offset;
+    let currentRow = row;
+    let currentCol = col;
+
+    while (true) {
+      const newOffset = await core.isSubToken(isGood, currentOffset, src);
+      if (newOffset === -1) {
+        return {
+          src: src,
+          offset: currentOffset,
+          indent: indent,
+          context: context,
+          row: currentRow,
+          col: currentCol,
+        };
+      } else if (newOffset === -2) {
+        currentOffset = currentOffset + 1;
+        currentRow = currentRow + 1;
+        currentCol = 1;
+      } else {
+        currentOffset = newOffset;
+        currentCol = currentCol + 1;
+      }
     }
-
-    const s1 =
-      firstOffset === -2
-        ? await varHelp(
-            args.inner,
-            s.offset + 1,
-            s.row + 1,
-            1,
-            s.src,
-            s.indent,
-            s.context
-          )
-        : await varHelp(
-            args.inner,
-            firstOffset,
-            s.row,
-            s.col + 1,
-            s.src,
-            s.indent,
-            s.context
-          );
-    const name = s.src.slice(s.offset, s1.offset);
-    if (args.reserved.has(name)) {
-      return Bad(false, fromState(s, args.expecting));
-    } else {
-      return Good(true, name, s1);
-    }
-  });
-};
-
-const varHelp = async <SRC extends ISource<TOKEN, any>, TOKEN, CTX>(
-  isGood: (s: TOKEN) => boolean,
-  offset: number,
-  row: number,
-  col: number,
-  src: SRC,
-  indent: number,
-  context: immutable.Stack<Located<CTX>>
-): Promise<State<SRC, CTX>> => {
-  let currentOffset = offset;
-  let currentRow = row;
-  let currentCol = col;
-
-  while (true) {
-    const newOffset = await src.isSubToken(isGood, currentOffset);
-    if (newOffset === -1) {
-      return {
-        src: src,
-        offset: currentOffset,
-        indent: indent,
-        context: context,
-        row: currentRow,
-        col: currentCol,
-      };
-    } else if (newOffset === -2) {
-      currentOffset = currentOffset + 1;
-      currentRow = currentRow + 1;
-      currentCol = 1;
-    } else {
-      currentOffset = newOffset;
-      currentCol = currentCol + 1;
-    }
-  }
-};
+  };
 
 // SEQUENCES
 
@@ -1702,48 +1891,38 @@ const varHelp = async <SRC extends ISource<TOKEN, any>, TOKEN, CTX>(
  * @category Loops
  * @category Sequence (All)
  */
-export const sequence = <
-  SRC extends ISource<any, CHUNK>,
-  CHUNK,
-  A,
-  CTX1,
-  CTX2,
-  PROBLEM1,
-  PROBLEM2,
-  PROBLEM3,
-  PROBLEM4,
-  PROBLEM5
->(args: {
-  start: Token<CHUNK, PROBLEM1>;
-  separator: Token<CHUNK, PROBLEM2>;
-  end: Token<CHUNK, PROBLEM3>;
-  spaces: Parser<SRC, Unit, CTX1, PROBLEM4>;
-  item: Parser<SRC, A, CTX2, PROBLEM5>;
-  trailing: Trailing;
-}): Parser<
-  SRC,
-  immutable.List<A>,
-  CTX1 | CTX2,
-  PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
-> => {
-  return succeed(Unit)
-    .skip(token(args.start))
-    .skip(args.spaces)
-    .keep(
-      sequenceEnd<
-        SRC,
-        A,
-        CTX1 | CTX2,
-        PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
-      >(
-        token(args.end),
-        args.spaces,
-        args.item,
-        token(args.separator),
-        args.trailing
-      )
-    );
-};
+export const sequence =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX1, CTX2, PROBLEM1, PROBLEM2, PROBLEM3, PROBLEM4, PROBLEM5>(args: {
+    start: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM1>;
+    separator: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM2>;
+    end: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM3>;
+    spaces: Parser<CORE, Unit, CTX1, PROBLEM4>;
+    item: Parser<CORE, A, CTX2, PROBLEM5>;
+    trailing: Trailing;
+  }): Parser<
+    CORE,
+    immutable.List<A>,
+    CTX1 | CTX2,
+    PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
+  > => {
+    return succeed(core)(Unit)
+      .skip(token(core)(args.start))
+      .skip(args.spaces)
+      .keep(
+        sequenceEnd(core)<
+          A,
+          CTX1 | CTX2,
+          PROBLEM1 | PROBLEM2 | PROBLEM3 | PROBLEM4 | PROBLEM5
+        >(
+          token(core)(args.end),
+          args.spaces,
+          args.item,
+          token(core)(args.separator),
+          args.trailing
+        )
+      );
+  };
 
 /**
  * What’s the deal with trailing commas? Are they `Forbidden`?
@@ -1763,101 +1942,114 @@ export const Trailing = {
  */
 export type Trailing = "Forbidden" | "Optional" | "Mandatory";
 
-const sequenceEnd = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  ender: Parser<SRC, Unit, CTX, PROBLEM>,
-  ws: Parser<SRC, Unit, CTX, PROBLEM>,
-  parseItem: Parser<SRC, A, CTX, PROBLEM>,
-  sep: Parser<SRC, Unit, CTX, PROBLEM>,
-  trailing: Trailing
-): Parser<SRC, immutable.List<A>, CTX, PROBLEM> => {
-  const chompRest = (item: A) => {
-    const init = immutable.List([item]);
-    if (trailing === Trailing.Forbidden) {
-      return loop(init)(sequenceEndForbidden(ender, ws, parseItem, sep));
-    } else if (trailing === Trailing.Optional) {
-      return loop(init)(sequenceEndOptional(ender, ws, parseItem, sep));
-    } else {
-      return succeed(Unit)
-        .skip(ws)
-        .skip(sep)
-        .skip(ws)
-        .keep(loop(init)(sequenceEndMandatory(ws, parseItem, sep)))
-        .skip(ender);
-    }
+const sequenceEnd =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    ender: Parser<CORE, Unit, CTX, PROBLEM>,
+    ws: Parser<CORE, Unit, CTX, PROBLEM>,
+    parseItem: Parser<CORE, A, CTX, PROBLEM>,
+    sep: Parser<CORE, Unit, CTX, PROBLEM>,
+    trailing: Trailing
+  ): Parser<CORE, immutable.List<A>, CTX, PROBLEM> => {
+    const chompRest = (item: A) => {
+      const init = immutable.List([item]);
+      if (trailing === Trailing.Forbidden) {
+        return loop(core)(init)(
+          sequenceEndForbidden(core)(ender, ws, parseItem, sep)
+        );
+      } else if (trailing === Trailing.Optional) {
+        return loop(core)(init)(
+          sequenceEndOptional(core)(ender, ws, parseItem, sep)
+        );
+      } else {
+        return succeed(core)(Unit)
+          .skip(ws)
+          .skip(sep)
+          .skip(ws)
+          .keep(
+            loop(core)(init)(sequenceEndMandatory(core)(ws, parseItem, sep))
+          )
+          .skip(ender);
+      }
+    };
+    return oneOf(core)(
+      parseItem.andThen(chompRest),
+      ender.map(() => immutable.List())
+    );
   };
-  return oneOf(
-    parseItem.andThen(chompRest),
-    ender.map(() => immutable.List())
-  );
-};
 
 const sequenceEndForbidden =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    ender: Parser<SRC, Unit, CTX, PROBLEM>,
-    ws: Parser<SRC, Unit, CTX, PROBLEM>,
-    parseItem: Parser<SRC, A, CTX, PROBLEM>,
-    sep: Parser<SRC, Unit, CTX, PROBLEM>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    ender: Parser<CORE, Unit, CTX, PROBLEM>,
+    ws: Parser<CORE, Unit, CTX, PROBLEM>,
+    parseItem: Parser<CORE, A, CTX, PROBLEM>,
+    sep: Parser<CORE, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return succeed(Unit)
+  ): Parser<CORE, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+    return succeed(core)(Unit)
       .skip(ws)
       .keep(
-        oneOf(
-          succeed((item: A) => Loop(state.push(item)))
+        oneOf(core)(
+          succeed(core)((item: A) => Loop(state.push(item)))
             .skip(sep)
             .skip(ws)
             .apply(parseItem),
-          succeed(Done(state)).skip(ender)
+          succeed(core)(Done(state)).skip(ender)
         )
       );
   };
 
 const sequenceEndOptional =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    ender: Parser<SRC, Unit, CTX, PROBLEM>,
-    ws: Parser<SRC, Unit, CTX, PROBLEM>,
-    parseItem: Parser<SRC, A, CTX, PROBLEM>,
-    sep: Parser<SRC, Unit, CTX, PROBLEM>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    ender: Parser<CORE, Unit, CTX, PROBLEM>,
+    ws: Parser<CORE, Unit, CTX, PROBLEM>,
+    parseItem: Parser<CORE, A, CTX, PROBLEM>,
+    sep: Parser<CORE, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return succeed(Unit)
+  ): Parser<CORE, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+    return succeed(core)(Unit)
       .skip(ws)
       .keep(
-        oneOf(
-          succeed(Unit)
+        oneOf(core)(
+          succeed(core)(Unit)
             .skip(sep)
             .skip(ws)
             .keep(
-              oneOf(
-                succeed((item: A) => Loop(state.push(item))).apply(parseItem),
-                succeed(Done(state)).skip(ender)
+              oneOf(core)(
+                succeed(core)((item: A) => Loop(state.push(item))).apply(
+                  parseItem
+                ),
+                succeed(core)(Done(state)).skip(ender)
               )
             ),
-          succeed(Done(state)).skip(ender)
+          succeed(core)(Done(state)).skip(ender)
         )
       );
   };
 
 const sequenceEndMandatory =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    ws: Parser<SRC, Unit, CTX, PROBLEM>,
-    parseItem: Parser<SRC, A, CTX, PROBLEM>,
-    sep: Parser<SRC, Unit, CTX, PROBLEM>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    ws: Parser<CORE, Unit, CTX, PROBLEM>,
+    parseItem: Parser<CORE, A, CTX, PROBLEM>,
+    sep: Parser<CORE, Unit, CTX, PROBLEM>
   ) =>
   (
     state: immutable.List<A>
-  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return oneOf(
-      succeed((item: A) => Loop(state.push(item)))
+  ): Parser<CORE, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+    return oneOf(core)(
+      succeed(core)((item: A) => Loop(state.push(item)))
         .apply(parseItem)
         .skip(ws)
         .skip(sep)
         .skip(ws),
-      succeed(Done(state))
+      succeed(core)(Done(state))
     );
   };
 
@@ -1868,24 +2060,25 @@ const sequenceEndMandatory =
  *
  * @category Loops
  */
-export const many = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  parseItem: Parser<SRC, A, CTX, PROBLEM>
-): Parser<SRC, A[], CTX, PROBLEM> => {
-  return loop<immutable.List<A>>(immutable.List())(manyHelp(parseItem)).map(
-    (xs) => xs.toArray()
-  );
-};
+export const many =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    parseItem: Parser<CORE, A, CTX, PROBLEM>
+  ): Parser<CORE, A[], CTX, PROBLEM> => {
+    return loop(core)<immutable.List<A>>(immutable.List())(
+      manyHelp(core)(parseItem)
+    ).map((xs) => xs.toArray());
+  };
 
 const manyHelp =
-  <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-    parseItem: Parser<SRC, A, CTX, PROBLEM>
-  ) =>
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(parseItem: Parser<CORE, A, CTX, PROBLEM>) =>
   (
     state: immutable.List<A>
-  ): Parser<SRC, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
-    return oneOf(
+  ): Parser<CORE, Step<immutable.List<A>, immutable.List<A>>, CTX, PROBLEM> => {
+    return oneOf(core)(
       parseItem.map((item) => Loop(state.push(item))),
-      succeed(Unit).map(() => Done(state))
+      succeed(core)(Unit).map(() => Done(state))
     );
   };
 
@@ -1897,14 +2090,16 @@ const manyHelp =
  *
  * @category Loops
  */
-export const many1 = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
-  parseItem: Parser<SRC, A, CTX, PROBLEM>,
-  p: PROBLEM
-): Parser<SRC, A[], CTX, PROBLEM> => {
-  return many(parseItem).andThen((items) =>
-    items.length === 0 ? problem(p) : succeed(items)
-  );
-};
+export const many1 =
+  <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
+  <A, CTX, PROBLEM>(
+    parseItem: Parser<CORE, A, CTX, PROBLEM>,
+    p: PROBLEM
+  ): Parser<CORE, A[], CTX, PROBLEM> => {
+    return many(core)(parseItem).andThen((items) =>
+      items.length === 0 ? problem(core)(p) : succeed(core)(items)
+    );
+  };
 
 // WHITESPACE
 
@@ -1913,17 +2108,14 @@ export const many1 = <SRC extends ISource<any, any>, A, CTX, PROBLEM>(
  *
  * @category Whitespace
  */
-export const spaces: Parser<
-  ISource<string, any>,
-  Unit,
-  never,
-  never
-> = new ParserImpl<ISource<string, any>, Unit, never, never>(
-  (s: State<ISource<string, any>, unknown>) =>
-    chompWhile<ISource<string, any>, string>(
-      (c) => c === " " || c === "\n" || c === "\r"
-    ).exec(s)
-);
+export const spaces = <CORE extends SRCTypes.HasCore<any, any, string>>(
+  core: CORE
+): Parser<CORE, Unit, never, never> =>
+  new ParserImpl<CORE, Unit, never, never>(
+    core,
+    (s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>) =>
+      chompWhile(core)((c) => c === " " || c === "\n" || c === "\r").exec(s)
+  );
 
 // LINE COMMENT
 
@@ -1933,12 +2125,14 @@ export const spaces: Parser<
  *
  * @category Whitespace
  */
-export const lineComment = <PROBLEM>(
-  start: Token<string, PROBLEM>
-): Parser<ISource<string, any>, Unit, never, PROBLEM> =>
-  skip2nd<ISource<string, any>, Unit, never, PROBLEM>(token(start))(
-    chompUntilEndOr("\n")
-  );
+export const lineComment =
+  <CORE extends SRCTypes.HasCore<any, string, any>>(core: CORE) =>
+  <PROBLEM>(
+    start: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>
+  ): Parser<CORE, Unit, never, PROBLEM> =>
+    skip2nd(core)<Unit, never, PROBLEM>(token(core)(start))(
+      chompUntilEndOr(core)("\n" as any)
+    );
 
 // Multiline Comment
 
@@ -1984,64 +2178,91 @@ export function isNotNestable(x: any): x is typeof Nestable.NotNestable {
  * @category Multiline Comment (All)
  */
 export const multiComment =
-  <PROBLEM>(open: Token<string, PROBLEM>) =>
-  (close: Token<string, PROBLEM>) =>
-  (nestable: Nestable): Parser<ISource<any, string>, Unit, never, PROBLEM> => {
+  <CORE extends SRCTypes.HasCore<any, string, any>>(core: CORE) =>
+  <PROBLEM>(open: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>) =>
+  (close: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>) =>
+  (nestable: Nestable): Parser<CORE, Unit, never, PROBLEM> => {
     if (isNotNestable(nestable)) {
-      return skip2nd(token(open))(chompUntil(close));
+      return skip2nd(core)(token(core)(open))(chompUntil(core)(close));
     } else {
-      return nestableComment<PROBLEM>(open, close);
+      return nestableComment<CORE, PROBLEM>(core, open, close);
     }
   };
 
-function nestableComment<PROBELM>(
-  open: Token<string, PROBELM>,
-  close: Token<string, PROBELM>
-): Parser<ISource<any, string>, Unit, never, PROBELM> {
+function nestableComment<
+  CORE extends SRCTypes.HasCore<any, string, any>,
+  PROBELM
+>(
+  core: CORE,
+  open: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBELM>,
+  close: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBELM>
+): Parser<CORE, Unit, never, PROBELM> {
   const openChar = open.value.at(0);
   const closeChar = close.value.at(0);
   if (openChar === undefined) {
-    return problem(open.problem);
+    return problem(core)(open.problem);
   }
   if (closeChar === undefined) {
-    return problem(close.problem);
+    return problem(core)(close.problem);
   }
 
-  const isNotRelevant = (char: string) => char != openChar && char != closeChar;
+  const isNotRelevant = (char: SRCTypes.GetHasCoreTOKEN<CORE>) =>
+    char != openChar && char != closeChar;
 
-  const chompOpen = token(open);
+  const chompOpen = token(core)(open);
 
-  return skip2nd(chompOpen)(
-    nestableHelp(isNotRelevant, token(open), token(close), close.problem, 1)
+  return skip2nd(core)(chompOpen)(
+    nestableHelp(
+      core,
+      isNotRelevant,
+      token(core)(open),
+      token(core)(close),
+      close.problem,
+      1
+    )
   );
 }
 
-function nestableHelp<CTX, PROBLEM>(
-  isNotRelevant: (c: string) => boolean,
-  open: Parser<ISource<any, string>, Unit, CTX, PROBLEM>,
-  close: Parser<ISource<any, string>, Unit, CTX, PROBLEM>,
+function nestableHelp<
+  CORE extends SRCTypes.HasCore<any, string, any>,
+  CTX,
+  PROBLEM
+>(
+  core: CORE,
+  isNotRelevant: (c: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean,
+  open: Parser<CORE, Unit, CTX, PROBLEM>,
+  close: Parser<CORE, Unit, CTX, PROBLEM>,
   expectingClose: PROBLEM,
   nestLevel: number
-): Parser<ISource<any, string>, Unit, CTX, PROBLEM> {
-  return skip1st(chompWhile(isNotRelevant))(
-    oneOf(
-      nestLevel === 1
-        ? close
-        : close.andThen(() =>
-            nestableHelp(
-              isNotRelevant,
-              open,
-              close,
-              expectingClose,
-              nestLevel - 1
-            )
-          ),
-      open.andThen(() =>
-        nestableHelp(isNotRelevant, open, close, expectingClose, nestLevel + 1)
-      ),
-      chompIf(() => true)(expectingClose).andThen(() =>
-        nestableHelp(isNotRelevant, open, close, expectingClose, nestLevel)
-      )
+): Parser<CORE, Unit, CTX, PROBLEM> {
+  const first =
+    nestLevel === 1
+      ? close
+      : close.andThen(() =>
+          nestableHelp(
+            core,
+            isNotRelevant,
+            open,
+            close,
+            expectingClose,
+            nestLevel - 1
+          )
+        );
+  const second = open.andThen(() =>
+    nestableHelp(
+      core,
+      isNotRelevant,
+      open,
+      close,
+      expectingClose,
+      nestLevel + 1
     )
+  );
+  const third = chompIf(core)(() => true)(expectingClose).andThen(() =>
+    nestableHelp(core, isNotRelevant, open, close, expectingClose, nestLevel)
+  );
+
+  return skip1st(core)(chompWhile(core)(isNotRelevant))(
+    oneOf(core)(first, second, third)
   );
 }

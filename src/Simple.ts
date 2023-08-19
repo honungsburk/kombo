@@ -1435,7 +1435,7 @@ export const end: Parser<P.Unit> = A.end(ExpectingEnd);
  * @category Chompers
  */
 export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
-  return A.getChompedString(parser);
+  return A.getChompedChunk(parser);
 };
 
 /**
@@ -1468,7 +1468,7 @@ export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
 export const mapChompedString =
   <A, B>(fn: (s: string, v: A) => B) =>
   (parser: Parser<A>): Parser<B> => {
-    return A.mapChompedString(fn)(parser);
+    return A.mapChompedChunk(fn)(parser);
   };
 // CHOMP IF
 

@@ -1,9 +1,10 @@
 import Stream from "stream";
-import ISource from "./ISource.js";
+import Types from "./Types.js";
 import * as StringHelpers from "../Helpers.js";
 import PullStream from "./PullStream.js";
 import LazyChunks from "./LazyChunks.js";
 import * as Assert from "./Assert.js";
+
 export default class NodeStreamSource implements ISource<string, string> {
   private lazyChunks: LazyChunks;
 

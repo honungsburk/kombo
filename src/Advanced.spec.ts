@@ -1,11 +1,13 @@
 import { Expect } from "@japa/expect";
 import { test, Group } from "@japa/runner";
 import * as Results from "./Result.js";
-import * as A from "./Advanced.js";
+import * as AA from "./Advanced.js";
 import * as P from "./Parser.js";
 import * as Helpers from "./Helpers.js";
 import Immutable from "immutable";
-import StringSource from "./Source/StringSource.js";
+import { StringCore, core } from "./Source/String.js";
+
+const A = { ...AA.create(core), ...AA.string(core) };
 
 // Helpers
 
@@ -30,19 +32,19 @@ function expectProblem<A, CTX>(
 }
 
 const testSuccessBuilder =
-  <A>(parser: P.Parser<StringSource, A, any, any>) =>
+  <A>(parser: P.Parser<StringCore, A, any, any>) =>
   (description: string, input: string, expected: A) => {
     return test(description, async ({ expect }) => {
-      const result = await parser.run(new StringSource(input));
+      const result = await parser.run(input);
       expect(result.value).toStrictEqual(expected);
     });
   };
 
 const testFailureBuilder =
-  <A>(parser: P.Parser<StringSource, any, any, A>) =>
+  <A>(parser: P.Parser<StringCore, any, any, A>) =>
   (description: string, input: string, toBe: A[]) => {
     return test(description, async ({ expect }) => {
-      const result = await parser.run(new StringSource(input));
+      const result = await parser.run(input);
       expectProblem(expect, result, toBe);
     });
   };
@@ -528,7 +530,7 @@ advancedGroup("end", () => {
 // CHOMPED STRINGS
 
 /**
- * We don't test `getChompedString` and `mapChompedString` explicitly since
+ * We don't test `getChompedChunk` and `mapChompedString` explicitly since
  * they are used extensivly inthe chomper tests
  */
 
@@ -536,7 +538,7 @@ advancedGroup("end", () => {
 
 const NotAB = "NotAB";
 
-const chompIfAB = A.getChompedString(
+const chompIfAB = A.getChompedChunk(
   A.chompIf((c) => c === "a" || c === "b")(NotAB)
 );
 
@@ -561,7 +563,7 @@ advancedGroup("chompIf", () => {
 
 // CHOMP WHILE
 
-const chompWhileAB = A.getChompedString(
+const chompWhileAB = A.getChompedChunk(
   A.chompWhile((c) => c === "a" || c === "b")
 );
 
@@ -570,7 +572,7 @@ const chompEscapedString = A.symbol(A.Token('"', "ExpectedQuote"))
     A.chompWhile(
       (c, isEscaped) => [c !== '"' || isEscaped, c === "\\"],
       false
-    ).getChompedString()
+    ).getChompedChunk()
   )
   .skip(A.symbol(A.Token('"', "ExpectedQuote")));
 
@@ -601,7 +603,7 @@ advancedGroup("chompWhile", () => {
 
 // CHOMP WHILE
 
-const chompWhileAB1 = A.getChompedString(
+const chompWhileAB1 = A.getChompedChunk(
   A.chompWhile1("fail", (c) => c === "a" || c === "b")
 );
 
@@ -611,7 +613,7 @@ const chompEscapedString1 = A.symbol(A.Token('"', "ExpectedQuote"))
       "fail",
       (c, isEscaped) => [c !== '"' || isEscaped, c === "\\"],
       false
-    ).getChompedString()
+    ).getChompedChunk()
   )
   .skip(A.symbol(A.Token('"', "ExpectedQuote")));
 
@@ -648,7 +650,7 @@ advancedGroup("chompWhile1", () => {
 
 const ExpectedColon = "ExpectedColon";
 
-const chompUntilColon = A.getChompedString(
+const chompUntilColon = A.getChompedChunk(
   A.chompUntil(A.Token(":", ExpectedColon))
 );
 
@@ -744,16 +746,16 @@ advancedGroup("inContext", () => {
 advancedGroup("indentation", () => {
   test("Get and set indentation", async ({ expect }) => {
     const parser = A.succeed((x: number) => (y: number) => [x, y])
-      .apply(A.withIndent(4)(A.getIndent()))
-      .apply(A.getIndent());
+      .apply(A.withIndent(4)(A.getIndent))
+      .apply(A.getIndent);
     const res = await parser.run("");
     expect(res.value).toStrictEqual([4, 0]);
   });
 
   test("Get and set nested indentation", async ({ expect }) => {
     const parser = A.succeed((x: number) => (y: number) => [x, y])
-      .apply(A.getIndent().withIndent(4).withIndent(8))
-      .apply(A.withIndent(8)(A.withIndent(4)(A.getIndent())));
+      .apply(A.getIndent.withIndent(4).withIndent(8))
+      .apply(A.withIndent(8)(A.withIndent(4)(A.getIndent)));
     const res = await parser.run("");
     expect(res.value).toStrictEqual([12, 12]);
   });
@@ -833,41 +835,41 @@ advancedGroup("getCol", () => {
     expect(res.value).toStrictEqual(1);
   });
   test("get correct column on a line", async ({ expect }) => {
-    const res = await parser.run("aaabbbå");
+    const res = await parser("aaabbbå");
     expect(res.value).toStrictEqual(7);
   });
   test("get correct column on multiple lines", async ({ expect }) => {
-    const res = await parser.run("aaa\n\nbbbå");
+    const res = await parser("aaa\n\nbbbå");
     expect(res.value).toStrictEqual(4);
   });
 });
 advancedGroup("getOffset", () => {
   const parser = A.run(alphaNumParser.andThen(() => A.getOffset));
   test("get correct offset on empty string", async ({ expect }) => {
-    const res = await parser.run("");
+    const res = await parser("");
     expect(res.value).toStrictEqual(0);
   });
   test("get correct offset on a line", async ({ expect }) => {
-    const res = await parser.run("aaabbbå");
+    const res = await parser("aaabbbå");
     expect(res.value).toStrictEqual(6);
   });
   test("get correct offset on multiple lines", async ({ expect }) => {
-    const res = await parser.run("aaa\n\nbbbå");
+    const res = await parser("aaa\n\nbbbå");
     expect(res.value).toStrictEqual(8);
   });
 });
 advancedGroup("getSource", () => {
   const parser = A.run(alphaNumParser.andThen(() => A.getSource));
   test("get correct source on empty string", async ({ expect }) => {
-    const res = await parser.run("");
+    const res = await parser("");
     expect(res.value).toStrictEqual("");
   });
   test("get correct source on a line", async ({ expect }) => {
-    const res = await parser.run("aaabbbå");
+    const res = await parser("aaabbbå");
     expect(res.value).toStrictEqual("aaabbbå");
   });
   test("get correct source on multiple lines", async ({ expect }) => {
-    const res = await parser.run("aaa\n\nbbbå");
+    const res = await parser("aaa\n\nbbbå");
     expect(res.value).toStrictEqual("aaa\n\nbbbå");
   });
 });
@@ -885,28 +887,28 @@ const typeVar = A.variable({
 });
 
 advancedGroup("variable", () => {
-  test("succeed on valid variable names", ({ expect }, val) => {
+  test("succeed on valid variable names", async ({ expect }, val) => {
     //@ts-ignore
-    const res = A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val);
     expect(res.value).toStrictEqual(val);
   }).with(["ok", "variable_names_are_great", "butThisWorks", "valid"]);
 
-  test("succeed on valid valid part", ({ expect }, val) => {
+  test("succeed on valid valid part", async ({ expect }, val) => {
     //@ts-ignore
-    const res = A.run(typeVar)(val.test);
+    const res = await A.run(typeVar)(val.test);
     //@ts-ignore
     expect(res.value).toStrictEqual(val.result);
   }).with([{ test: "valid-yes", result: "valid" }]);
 
-  test("fail on invalid variable names", ({ expect }, val) => {
+  test("fail on invalid variable names", async ({ expect }, val) => {
     //@ts-ignore
-    const res = A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val);
     expectProblem(expect, res, ["ExpectedTypeVar"]);
   }).with(["Ok", "&hello", "_what", "åäö"]);
 
-  test("fail on reserved names", ({ expect }, val) => {
+  test("fail on reserved names", async ({ expect }, val) => {
     //@ts-ignore
-    const res = A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val);
     expectProblem(expect, res, ["ExpectedTypeVar"]);
   }).with(["let", "in", "case", "of"]);
 });
@@ -922,7 +924,7 @@ enum BlockProblem {
   Int = "Int",
 }
 
-const intSet = (trailing: A.Trailing) =>
+const intSet = (trailing: AA.Trailing) =>
   A.sequence({
     start: A.Token("{", BlockProblem.LeftCurlyBrace),
     separator: A.Token(",", BlockProblem.Comma),
@@ -940,52 +942,53 @@ const intSetForbidden = A.run(intSet(A.Trailing.Forbidden));
 
 type NestingType = NestingType[];
 
-const nesting: P.Parser<NestingType, unknown, BlockProblem> = A.sequence({
-  start: A.Token("{", BlockProblem.LeftCurlyBrace),
-  separator: A.Token(",", BlockProblem.Comma),
-  end: A.Token("}", BlockProblem.RightCurlyBrace),
-  spaces: A.spaces,
-  item: A.lazy(() => nesting),
-  trailing: A.Trailing.Optional,
-}).map((x) => x.toArray());
+const nesting: P.Parser<StringCore, NestingType, unknown, BlockProblem> =
+  A.sequence({
+    start: A.Token("{", BlockProblem.LeftCurlyBrace),
+    separator: A.Token(",", BlockProblem.Comma),
+    end: A.Token("}", BlockProblem.RightCurlyBrace),
+    spaces: A.spaces,
+    item: A.lazy(() => nesting),
+    trailing: A.Trailing.Optional,
+  }).map((x) => x.toArray());
 
 const testSeqNestingSuccess = testSuccessBuilder(nesting);
 const testSeqNestingFailure = testFailureBuilder(nesting);
 
 advancedGroup("sequence", () => {
   test("can parse a singel item", async ({ expect }) => {
-    const res = intSetOptional("{ 1337 \n}");
+    const res = await intSetOptional("{ 1337 \n}");
     expect(res.value).toStrictEqual(Immutable.List([1337]));
   });
 
   test("can parse multiple items", async ({ expect }) => {
-    const res = intSetOptional("{ 1337 \n, 12, 98,\n888}");
+    const res = await intSetOptional("{ 1337 \n, 12, 98,\n888}");
     expect(res.value).toStrictEqual(Immutable.List([1337, 12, 98, 888]));
   });
 
   test("will not parse incorrect items", async ({ expect }) => {
-    const res = intSetOptional("{ 1337 \n, 12.9, 98,\n888}");
+    const res = await intSetOptional("{ 1337 \n, 12.9, 98,\n888}");
     expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("trailing seperator is optional", async ({ expect }) => {
-    const res1 = intSetOptional("{ 1337, \n}");
+    const res1 = await intSetOptional("{ 1337, \n}");
     expect(res1.value).toStrictEqual(Immutable.List([1337]));
-    const res2 = intSetOptional("{ 1337 \n}");
+    const res2 = await intSetOptional("{ 1337 \n}");
     expect(res2.value).toStrictEqual(Immutable.List([1337]));
   });
 
   test("trailing seperator is mandatory", async ({ expect }) => {
-    const res1 = intSetMandatory("{ 1337, \n}");
+    const res1 = await intSetMandatory("{ 1337, \n}");
     expect(res1.value).toStrictEqual(Immutable.List([1337]));
-    const res2 = intSetMandatory("{ 1337 \n}");
+    const res2 = await intSetMandatory("{ 1337 \n}");
     expect(Results.isErr(res2)).toBeTruthy();
   });
 
   test("trailing seperator is forbidden", async ({ expect }) => {
-    const res1 = intSetForbidden("{ 1337, \n}");
+    const res1 = await intSetForbidden("{ 1337, \n}");
     expect(Results.isErr(res1)).toBeTruthy();
-    const res2 = intSetForbidden("{ 1337 \n}");
+    const res2 = await intSetForbidden("{ 1337 \n}");
     expect(res2.value).toStrictEqual(Immutable.List([1337]));
   });
 
@@ -1019,32 +1022,32 @@ advancedGroup("sequence", () => {
 advancedGroup("spaces", () => {
   const parser = A.run(A.skip1st(A.spaces)(A.getOffset));
   test("Parse a space character", async ({ expect }) => {
-    const res = await parser.run(" ");
+    const res = await parser(" ");
     expect(res.value).toStrictEqual(1);
   });
 
   test("Parse a carriage return", async ({ expect }) => {
-    const res = await parser.run("\r");
+    const res = await parser("\r");
     expect(res.value).toStrictEqual(1);
   });
 
   test("Parse a new line", async ({ expect }) => {
-    const res = await parser.run("\n");
+    const res = await parser("\n");
     expect(res.value).toStrictEqual(1);
   });
 
   test("Parse multiple space characters", async ({ expect }) => {
-    const res = await parser.run("\n   \r\n  ");
+    const res = await parser("\n   \r\n  ");
     expect(res.value).toStrictEqual(8);
   });
 
   test("Stop parsing when non-space characters appear", async ({ expect }) => {
-    const res = await parser.run("\n   \r\n  asdasdasd");
+    const res = await parser("\n   \r\n  asdasdasd");
     expect(res.value).toStrictEqual(8);
   });
 
   test("Can parse empty string", async ({ expect }) => {
-    const res = await parser.run("");
+    const res = await parser("");
     expect(res.value).toStrictEqual(0);
   });
 });
@@ -1086,7 +1089,7 @@ enum MultiLineCommentProblem {
   NotCloseMultiLineComment = "NotCloseMultiLineComment",
 }
 
-const multiLineComment = (nestable: A.Nestable) =>
+const multiLineComment = (nestable: AA.Nestable) =>
   A.run(
     A.multiComment(
       A.Token("/*", MultiLineCommentProblem.NotOpenMultiLineComment)
