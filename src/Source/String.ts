@@ -1,10 +1,10 @@
 import * as StringHelpers from "../Helpers.js";
 import * as Types from "./Types.js";
 
-export type StringCore = Types.HasCore<string, string, string> &
+export type Core = Types.HasCore<string, string, string> &
   Types.HasStringCore<string>;
 
-export const core: StringCore = {
+export const core: Core = {
   chompBase10: StringHelpers.chompBase10,
   isCharCode: StringHelpers.isCharCode,
   consumeBase16: StringHelpers.consumeBase16,

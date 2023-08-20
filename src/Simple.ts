@@ -3,6 +3,7 @@ import Immutable from "immutable";
 import * as Results from "./Result.js";
 import * as A from "./Advanced.js";
 import * as P from "./Parser.js";
+import * as StringSource from "./Source/String.js";
 
 // Exports
 export {
@@ -32,7 +33,7 @@ export {
  *
  * @category Parsers
  */
-export type Parser<A> = P.Parser<A, never, Problem>;
+export type Parser<A> = P.Parser<StringSource.Core, A, never, Problem>;
 
 // RUN
 
@@ -55,8 +56,8 @@ export type Parser<A> = P.Parser<A, never, Problem>;
  */
 export const run =
   <A>(parser: Parser<A>) =>
-  (src: string): Results.Result<A, DeadEnd[]> => {
-    const res = A.run(parser)(src);
+  async (src: string): Promise<Results.Result<A, DeadEnd[]>> => {
+    const res = await A.run(parser)(src);
     if (Results.isErr(res)) {
       return Results.Err(
         res.value.map((p) => ({ row: p.row, col: p.col, problem: p.problem }))
@@ -696,7 +697,7 @@ export function isBadRepeat(x: any): x is BadRepeat {
  * @category Primitives
  */
 export function succeed<A>(v: A): Parser<A> {
-  return A.succeed(v);
+  return A.succeed(StringSource.core)(v);
 }
 
 /**
@@ -715,7 +716,7 @@ export function succeed<A>(v: A): Parser<A> {
  * @category Primitives
  */
 export function problem<A>(msg: string): Parser<A> {
-  return A.problem(Generic(msg));
+  return A.problem(StringSource.core)(Generic(msg));
 }
 
 // MAPPING
@@ -733,7 +734,7 @@ export function problem<A>(msg: string): Parser<A> {
 export const map =
   <A, B>(fn: (a: A) => B) =>
   (parser: Parser<A>): Parser<B> => {
-    return A.map(fn)(parser);
+    return A.map(StringSource.core)(fn)(parser);
   };
 
 /**
@@ -754,7 +755,7 @@ export const map2 =
   <A, B, C>(fn: (a: A, b: B) => C) =>
   (parserA: Parser<A>) =>
   (parserB: Parser<B>): Parser<C> => {
-    return A.map2(fn)(parserA)(parserB);
+    return A.map2(StringSource.core)(fn)(parserA)(parserB);
   };
 
 /**
@@ -771,7 +772,7 @@ export const map2 =
 export const apply =
   <A, B>(parseFunc: Parser<(a: A) => B>) =>
   (parseArg: Parser<A>): Parser<B> => {
-    return A.apply(parseFunc)(parseArg);
+    return A.apply(StringSource.core)(parseFunc)(parseArg);
   };
 
 /**
@@ -791,7 +792,7 @@ export const apply =
 export const skip1st =
   (first: Parser<unknown>) =>
   <KEEP>(second: Parser<KEEP>): Parser<KEEP> => {
-    return A.skip1st(first)(second);
+    return A.skip1st(StringSource.core)(first)(second);
   };
 
 /**
@@ -811,7 +812,7 @@ export const skip1st =
 export const skip2nd =
   <KEEP>(keepParser: Parser<KEEP>) =>
   (ignoreParser: Parser<unknown>): Parser<KEEP> => {
-    return A.skip2nd(keepParser)(ignoreParser);
+    return A.skip2nd(StringSource.core)(keepParser)(ignoreParser);
   };
 
 // AND THEN
@@ -838,7 +839,7 @@ export const skip2nd =
 export const andThen =
   <A, B>(fn: (a: A) => Parser<B>) =>
   (p: Parser<A>): Parser<B> => {
-    return A.andThen(fn)(p);
+    return A.andThen(StringSource.core)(fn)(p);
   };
 
 // LAZY
@@ -906,7 +907,7 @@ export const andThen =
  *  @category Helpers
  */
 export const lazy = <A>(thunk: () => Parser<A>): Parser<A> => {
-  return A.lazy(thunk);
+  return A.lazy(StringSource.core)(thunk);
 };
 
 // ONE OF
@@ -1012,7 +1013,7 @@ export function oneOf<A>(...parsers: Parser<A>[]): Parser<A> {
  * @category Branches
  */
 export const oneOfMany = <A>(...parsers: Parser<A>[]): Parser<A> => {
-  return A.oneOfMany(...parsers);
+  return A.oneOfMany(StringSource.core)(...parsers);
 };
 
 // LOOP
@@ -1065,7 +1066,7 @@ export type Step<STATE, A> = A.Step<STATE, A>;
 export const loop =
   <STATE>(state: STATE) =>
   <A>(fn: (s: STATE) => Parser<Step<STATE, A>>): Parser<A> => {
-    return A.loop(state)(fn);
+    return A.loop(StringSource.core)(state)(fn);
   };
 
 // BACKTRACKABLE
@@ -1081,7 +1082,7 @@ export const loop =
  * @category Branches
  */
 export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
-  return A.backtrackable(parser);
+  return A.backtrackable(StringSource.core)(parser);
 };
 /**
  * `commit` is almost always paired with `backtrackable` in some way, and it
@@ -1095,7 +1096,7 @@ export const backtrackable = <A>(parser: Parser<A>): Parser<A> => {
  * @category Branches
  */
 export const commit = <A>(value: A): Parser<A> => {
-  return A.commit(value);
+  return A.commit(StringSource.core)(value);
 };
 
 // OPTIONAL
@@ -1106,7 +1107,7 @@ export const commit = <A>(value: A): Parser<A> => {
  * @category Branches
  */
 export const optional = <A>(parser: Parser<A>): Parser<A | undefined> => {
-  return A.optional(parser);
+  return A.optional(StringSource.core)(parser);
 };
 
 // SYMBOL
@@ -1128,7 +1129,7 @@ export const optional = <A>(parser: Parser<A>): Parser<A | undefined> => {
  * @category Building Blocks
  */
 export const symbol = (str: string): Parser<P.Unit> => {
-  return A.symbol(A.Token(str, ExpectingSymbol(str)));
+  return A.symbol(StringSource.core)(A.Token(str, ExpectingSymbol(str)));
 };
 
 // TOKEN
@@ -1173,11 +1174,11 @@ export const symbol = (str: string): Parser<P.Unit> => {
  * @category Building Blocks
  */
 export const token = (token: string): Parser<P.Unit> => {
-  return A.token(toToken(token));
+  return A.token(StringSource.core)(toToken(token));
 };
 
 // HELPER
-function toToken(str: string): A.Token<Problem> {
+function toToken(str: string): A.Token<string, Problem> {
   return { value: str, problem: Expecting(str) };
 }
 
@@ -1213,7 +1214,7 @@ function toToken(str: string): A.Token<Problem> {
  * @category Building Blocks
  */
 export const keyword = (kwd: string): Parser<P.Unit> => {
-  return A.keyword(A.Token(kwd, ExpectingKeyword(kwd)));
+  return A.keyword(StringSource.core)(A.Token(kwd, ExpectingKeyword(kwd)));
 };
 
 // NUMBERS
@@ -1256,7 +1257,9 @@ export const keyword = (kwd: string): Parser<P.Unit> => {
  *
  * @category Building Blocks
  */
-export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
+export const int: Parser<number> = A.int(StringSource.core)(ExpectingInt)(
+  ExpectingInt
+);
 
 /**
  * Parse floats.
@@ -1293,7 +1296,9 @@ export const int: Parser<number> = A.int(ExpectingInt)(ExpectingInt);
  *
  * @category Building Blocks
  */
-export const float: Parser<number> = A.float(ExpectingFloat)(ExpectingFloat);
+export const float: Parser<number> = A.float(StringSource.core)(ExpectingFloat)(
+  ExpectingFloat
+);
 
 // Helper
 function toResult<V, W>(value: V | undefined, def: W): Results.Result<V, W> {
@@ -1357,7 +1362,7 @@ export const number = <A>(args: {
   octal?: (n: number) => A;
   float?: (n: number) => A;
 }): Parser<A> => {
-  return A.number<A, Problem>({
+  return A.number(StringSource.core)<A, Problem>({
     int: toResult(args.int, ExpectingInt),
     hex: toResult(args.int, ExpectingHex),
     octal: toResult(args.int, ExpectingOctal),
@@ -1393,7 +1398,7 @@ export const number = <A>(args: {
  *
  * @category Building Blocks
  */
-export const end: Parser<P.Unit> = A.end(ExpectingEnd);
+export const end: Parser<P.Unit> = A.end(StringSource.core)(ExpectingEnd);
 
 // CHOMPED STRINGS
 
@@ -1435,7 +1440,7 @@ export const end: Parser<P.Unit> = A.end(ExpectingEnd);
  * @category Chompers
  */
 export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
-  return A.getChompedChunk(parser);
+  return A.getChompedChunk(StringSource.core)(parser);
 };
 
 /**
@@ -1468,7 +1473,7 @@ export const getChompedString = (parser: Parser<unknown>): Parser<string> => {
 export const mapChompedString =
   <A, B>(fn: (s: string, v: A) => B) =>
   (parser: Parser<A>): Parser<B> => {
-    return A.mapChompedChunk(fn)(parser);
+    return A.mapChompedChunk(StringSource.core)(fn)(parser);
   };
 // CHOMP IF
 
@@ -1488,7 +1493,7 @@ export const mapChompedString =
  * @category Chompers
  */
 export const chompIf = (isGood: (char: string) => boolean): Parser<P.Unit> => {
-  return A.chompIf(isGood)(UnexpectedChar);
+  return A.chompIf(StringSource.core)(isGood)(UnexpectedChar);
 };
 
 // CHOMP WHILE
@@ -1548,7 +1553,7 @@ export const chompWhile: ChompWhile = (
   isGood: any,
   init?: any
 ): Parser<P.Unit> => {
-  return A.chompWhile(isGood, init);
+  return A.chompWhile(StringSource.core)(isGood, init);
 };
 
 type ChompWhile1 = {
@@ -1566,7 +1571,7 @@ export const chompWhile1: ChompWhile1 = (
   isGood: any,
   init?: any
 ): Parser<P.Unit> => {
-  return A.chompWhile1(ExpectingOneSuccess, isGood, init);
+  return A.chompWhile1(StringSource.core)(ExpectingOneSuccess, isGood, init);
 };
 
 // CHOMP UNTIL
@@ -1591,7 +1596,7 @@ export const chompWhile1: ChompWhile1 = (
  * @category Chompers
  */
 export const chompUntil = (str: string): Parser<P.Unit> => {
-  return A.chompUntil(toToken(str));
+  return A.chompUntil(StringSource.core)(toToken(str));
 };
 
 //CHOMP UNTIL END OR
@@ -1620,7 +1625,7 @@ export const chompUntil = (str: string): Parser<P.Unit> => {
  * @category Chompers
  */
 export const chompUntilEndOr = (str: string): Parser<P.Unit> => {
-  return A.chompUntilEndOr(str);
+  return A.chompUntilEndOr(StringSource.core)(str);
 };
 
 // INDENTATION
@@ -1643,7 +1648,7 @@ export const chompUntilEndOr = (str: string): Parser<P.Unit> => {
 export const withIndent =
   (n: number) =>
   <A>(parser: Parser<A>): Parser<A> => {
-    return A.withIndent(n)(parser);
+    return A.withIndent(StringSource.core)(n)(parser);
   };
 
 /**
@@ -1680,7 +1685,7 @@ export const withIndent =
  *
  * @category Indentation
  */
-export const getIndent: Parser<number> = A.getIndent;
+export const getIndent: Parser<number> = A.getIndent(StringSource.core);
 
 // POSITION
 
@@ -1755,7 +1760,9 @@ export const getIndent: Parser<number> = A.getIndent;
  *
  * @category Positions
  */
-export const getPosition: Parser<[number, number]> = A.getPosition;
+export const getPosition: Parser<[number, number]> = A.getPosition(
+  StringSource.core
+);
 
 /**
  * This is a more efficient version of `getPosition.map(t => t[0])`. Maybe
@@ -1765,7 +1772,7 @@ export const getPosition: Parser<[number, number]> = A.getPosition;
  *
  * @category Positions
  */
-export const getRow: Parser<number> = A.getRow;
+export const getRow: Parser<number> = A.getRow(StringSource.core);
 
 /**
  * This is a more efficient version of `getPosition.map(t => t[1])`. This can
@@ -1791,7 +1798,7 @@ export const getRow: Parser<number> = A.getRow;
  *
  * @category Positions
  */
-export const getCol: Parser<number> = A.getCol;
+export const getCol: Parser<number> = A.getCol(StringSource.core);
 
 /**
  * Editors think of code as a grid, but behind the scenes, it is just a flat
@@ -1805,7 +1812,7 @@ export const getCol: Parser<number> = A.getCol;
  *
  * @category Positions
  */
-export const getOffset: Parser<number> = A.getOffset;
+export const getOffset: Parser<number> = A.getOffset(StringSource.core);
 
 /**
  * Get the full string that is being parsed. You could use this to define
@@ -1825,7 +1832,7 @@ export const getOffset: Parser<number> = A.getOffset;
  *
  * @category Positions
  */
-export const getSource: Parser<string> = A.getSource;
+export const getSource: Parser<string> = A.getSource(StringSource.core);
 
 // VARIABLES
 
@@ -1853,7 +1860,7 @@ export const variable = (args: {
   inner: (char: string) => boolean;
   reserved: Set<string>;
 }): Parser<string> => {
-  return A.variable({
+  return A.variable(StringSource.core)({
     expecting: ExpectingVariable,
     ...args,
   });
@@ -1898,7 +1905,7 @@ export const sequence = <A>(args: {
   item: Parser<A>;
   trailing: A.Trailing; // TODO: define a new trailing type in this file?
 }): Parser<Immutable.List<A>> => {
-  return A.sequence({
+  return A.sequence(StringSource.core)({
     start: toToken(args.start),
     separator: toToken(args.separator),
     end: toToken(args.end),
@@ -1924,7 +1931,7 @@ export const sequence = <A>(args: {
  *
  * @category Whitespace
  */
-export const spaces: Parser<P.Unit> = A.spaces;
+export const spaces: Parser<P.Unit> = A.spaces(StringSource.core);
 
 // COMMENTS
 
@@ -1952,7 +1959,7 @@ export const spaces: Parser<P.Unit> = A.spaces;
  * @category Whitespace
  */
 export const lineComment = (str: string): Parser<P.Unit> => {
-  return A.lineComment(toToken(str));
+  return A.lineComment(StringSource.core)(toToken(str));
 };
 
 /**
@@ -2009,7 +2016,9 @@ export const multiComment =
   (open: string) =>
   (close: string) =>
   (nestable: A.Nestable): Parser<P.Unit> => {
-    return A.multiComment(toToken(open))(toToken(close))(nestable);
+    return A.multiComment(StringSource.core)(toToken(open))(toToken(close))(
+      nestable
+    );
   };
 
 // MANY
@@ -2035,7 +2044,7 @@ export const multiComment =
  * @category Loops
  */
 export const many = <A>(parseItem: Parser<A>): Parser<A[]> => {
-  return A.many(parseItem);
+  return A.many(StringSource.core)(parseItem);
 };
 
 // MANY1
@@ -2070,5 +2079,5 @@ export const many = <A>(parseItem: Parser<A>): Parser<A[]> => {
  * @category Loops
  */
 export const many1 = <A>(parseItem: Parser<A>): Parser<A[]> => {
-  return A.many1(parseItem, ExpectingOneSuccess);
+  return A.many1(StringSource.core)(parseItem, ExpectingOneSuccess);
 };

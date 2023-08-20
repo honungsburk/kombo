@@ -38,12 +38,13 @@ const point: S.Parser<Point> = S.succeed(createPoint)
   .skip(S.symbol(")"));
 
 parserGroup("Point", "@point-parser", () => {
-  test("Succeed on '( 3, 4 )'", ({ expect }) => {
-    expect(S.run(point)("( 3, 4 )").value).toStrictEqual({ x: 3, y: 4 });
+  test("Succeed on '( 3, 4 )'", async ({ expect }) => {
+    const res = await S.run(point)("( 3, 4 )");
+    expect(res.value).toStrictEqual({ x: 3, y: 4 });
   });
 
-  test("Fail on '( 3. 4 )'", ({ expect }) => {
-    const res = S.run(point)("( 3. 4 )");
+  test("Fail on '( 3. 4 )'", async ({ expect }) => {
+    const res = await S.run(point)("( 3. 4 )");
 
     expect(Results.isErr(res)).toBeTruthy();
 
@@ -123,8 +124,8 @@ const boolean: S.Parser<MyBoolean> = S.oneOf(
 );
 
 parserGroup("Boolean", "@boolean-parser", () => {
-  test("Succeed on true expressions", ({ expect }, value) => {
-    const res = S.run(boolean)(value.toString());
+  test("Succeed on true expressions", async ({ expect }, value) => {
+    const res = await S.run(boolean)(value.toString());
     expect(Results.isOk(res)).toBeTruthy();
     if (Results.isOk(res)) {
       //@ts-ignore
@@ -169,25 +170,25 @@ const json: S.Parser<Json> = S.oneOf(
 );
 
 parserGroup("json", "@json-parser", () => {
-  test("Succeed on 'number'", ({ expect }) => {
-    const res = S.run(json)("1123.123");
+  test("Succeed on 'number'", async ({ expect }) => {
+    const res = await S.run(json)("1123.123");
 
     expect(Results.isOk(res)).toBeTruthy();
   });
 
-  test("Succeed on 'true'", ({ expect }) => {
-    const res = S.run(json)("true");
+  test("Succeed on 'true'", async ({ expect }) => {
+    const res = await S.run(json)("true");
 
     expect(Results.isOk(res)).toBeTruthy();
   });
 
-  test("Succeed on 'false'", ({ expect }) => {
-    const res = S.run(json)("false");
+  test("Succeed on 'false'", async ({ expect }) => {
+    const res = await S.run(json)("false");
 
     expect(Results.isOk(res)).toBeTruthy();
   });
-  test("Succeed on 'null'", ({ expect }) => {
-    const res = S.run(json)("null");
+  test("Succeed on 'null'", async ({ expect }) => {
+    const res = await S.run(json)("null");
 
     expect(Results.isOk(res)).toBeTruthy();
   });
@@ -204,25 +205,27 @@ const checkZipCode = (code: string): S.Parser<string> => {
 };
 
 const zipCode: S.Parser<string> = S.chompWhile(Helpers.isDigit)
-  .getChompedString()
+  .getChompedChunk()
   .andThen(checkZipCode);
 
 parserGroup("zipCode", "@zipCode-parser", () => {
-  test("Succeed on '12345'", ({ expect }) => {
-    expect(S.run(zipCode)("12345").value).toStrictEqual("12345");
+  test("Succeed on '12345'", async ({ expect }) => {
+    const src = await zipCode.run("12345");
+    expect(src.value).toStrictEqual("12345");
   });
 
-  test("Succeed on '00045'", ({ expect }) => {
-    expect(S.run(zipCode)("00045").value).toStrictEqual("00045");
+  test("Succeed on '00045'", async ({ expect }) => {
+    const src = await zipCode.run("00045");
+    expect(src.value).toStrictEqual("00045");
   });
 
-  test("Fail on '123456'", ({ expect }) => {
-    const res = S.run(zipCode)("123456");
+  test("Fail on '123456'", async ({ expect }) => {
+    const res = await zipCode.run("123456");
 
     expect(Results.isErr(res)).toBeTruthy();
   });
-  test("Fail on '012345'", ({ expect }) => {
-    const res = S.run(zipCode)("012345");
+  test("Fail on '012345'", async ({ expect }) => {
+    const res = await zipCode.run("012345");
 
     expect(Results.isErr(res)).toBeTruthy();
   });
@@ -246,23 +249,23 @@ const elmNumber: S.Parser<Number> = S.number({
 });
 
 parserGroup("elmNumber", "@elmNumber-parser", () => {
-  test("Succeed on '123'", ({ expect }) => {
-    const res = S.run(elmNumber)("123");
+  test("Succeed on '123'", async ({ expect }) => {
+    const res = await elmNumber.run("123");
     expect(res.value).toStrictEqual(new IntE(123));
   });
 
-  test("Succeed on '0x123abc'", ({ expect }) => {
-    const res = S.run(elmNumber)("0x123abc");
+  test("Succeed on '0x123abc'", async ({ expect }) => {
+    const res = await elmNumber.run("0x123abc");
     expect(res.value).toStrictEqual(new IntE(0x123abc));
   });
 
-  test("Succeed on '123.123'", ({ expect }) => {
-    const res = S.run(elmNumber)("123.123");
+  test("Succeed on '123.123'", async ({ expect }) => {
+    const res = await elmNumber.run("123.123");
     expect(res.value).toStrictEqual(new FloatE(123.123));
   });
 
-  test("fail on '0o1234'", ({ expect }, value) => {
-    const res = S.run(elmNumber)("0o1234");
+  test("fail on '0o1234'", async ({ expect }, value) => {
+    const res = await elmNumber.run("0o1234");
     expect(Results.isErr(res)).toBeTruthy;
   });
 });
@@ -276,13 +279,13 @@ const justAnInt: S.Parser<number> = S.succeed((n: number) => n)
 parserGroup("justAnInt", "@justAnInt-parser", () => {
   test("Succeed on correct keyword", ({ expect }, value) => {
     //@ts-ignore
-    const res = S.run(justAnInt)(value);
+    const res = await S.run(justAnInt)(value);
     expect(Results.isOk(res)).toBeTruthy();
   }).with(["123"]);
 
   test("fail on incorrect int", ({ expect }, value) => {
     //@ts-ignore
-    const res = S.run(justAnInt)(value);
+    const res = await S.run(justAnInt)(value);
     expect(Results.isErr(res)).toBeTruthy();
   }).with(["1 + 2"]);
 });
@@ -297,21 +300,21 @@ const php: S.Parser<string> = S.getChompedString(
 );
 
 parserGroup("php", "@php-parser", () => {
-  test("Succeed on '$_'", ({ expect }) => {
-    const res = S.run(php)("$_");
+  test("Succeed on '$_'", async ({ expect }) => {
+    const res = await php.run("$_");
     expect(Results.isOk(res)).toBeTruthy();
   });
-  test("Succeed on '$_asd'", ({ expect }) => {
-    const res = S.run(php)("$_asd");
+  test("Succeed on '$_asd'", async ({ expect }) => {
+    const res = await php.run("$_asd");
     expect(Results.isOk(res)).toBeTruthy();
   });
 
-  test("Fail on '$'", ({ expect }) => {
-    const res = S.run(php)("$");
+  test("Fail on '$'", async ({ expect }) => {
+    const res = await php.run("$");
     expect(Results.isErr(res)).toBeTruthy();
   });
-  test("Fail on 'asd'", ({ expect }) => {
-    const res = S.run(php)("asd");
+  test("Fail on 'asd'", async ({ expect }) => {
+    const res = await php.run("asd");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
@@ -344,13 +347,13 @@ const mapChompedString =
 const chompUpper: S.Parser<P.Unit> = S.chompIf(Helpers.isUpper);
 
 parserGroup("chompUpper", "@chompUpper-parser", () => {
-  test("Succeed on 'ABC'", ({ expect }) => {
-    const res = S.run(chompUpper.getChompedString())("ABC");
+  test("Succeed on 'ABC'", async ({ expect }) => {
+    const res = await chompUpper.getChompedChunk().run("ABC");
     expect(res.value).toStrictEqual("A");
   });
 
-  test("Fail on 'abc'", ({ expect }) => {
-    const res = S.run(chompUpper)("abc");
+  test("Fail on 'abc'", async ({ expect }) => {
+    const res = await S.run(chompUpper)("abc");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
@@ -359,17 +362,17 @@ parserGroup("chompUpper", "@chompUpper-parser", () => {
 
 const whitespace: S.Parser<string> = S.chompWhile(
   (c: string) => c == " " || c == "\t" || c == "\n" || c == "\r"
-).getChompedString();
+).getChompedChunk();
 
 parserGroup("whitespace", "@whitespace-parser", () => {
-  test("Succeed on ' \\t\\n  a'", ({ expect }) => {
+  test("Succeed on ' \\t\\n  a'", async ({ expect }) => {
     const ws = " \t\n  ";
-    const res = S.run(whitespace)(ws + "a");
+    const res = await whitespace.run(ws + "a");
     expect(res.value).toStrictEqual(ws);
   });
 
-  test("Succeed on no whitespace", ({ expect }) => {
-    const res = S.run(whitespace)("abc");
+  test("Succeed on no whitespace", async ({ expect }) => {
+    const res = await whitespace.run("abc");
     expect(res.value).toStrictEqual("");
   });
 });
@@ -381,13 +384,13 @@ const elmVar: S.Parser<string> = S.getChompedString(
 );
 
 parserGroup("elmVar", "@elmVar-parser", () => {
-  test("Succeed on 'avar'", ({ expect }) => {
-    const res = S.run(elmVar)("avar");
+  test("Succeed on 'avar'", async ({ expect }) => {
+    const res = await elmVar.run("avar");
     expect(res.value).toStrictEqual("avar");
   });
 
-  test("Fail on 'Avar", ({ expect }) => {
-    const res = S.run(elmVar)("Avar");
+  test("Fail on 'Avar", async ({ expect }) => {
+    const res = await elmVar.run("Avar");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
@@ -396,16 +399,16 @@ parserGroup("elmVar", "@elmVar-parser", () => {
 
 const comment: S.Parser<string> = S.symbol("{-")
   .skip(S.chompUntil("-}"))
-  .getChompedString();
+  .getChompedChunk();
 
 parserGroup("comment", "@comment-parser", () => {
-  test("Succeed on '{- COMMENT -}'", ({ expect }) => {
-    const res = S.run(comment)("{- COMMENT -}");
+  test("Succeed on '{- COMMENT -}'", async ({ expect }) => {
+    const res = await comment.run("{- COMMENT -}");
     expect(res.value).toStrictEqual("{- COMMENT -}");
   });
 
-  test("Fail on '{- COMMENT", ({ expect }) => {
-    const res = S.run(comment)("{- COMMENT");
+  test("Fail on '{- COMMENT", async ({ expect }) => {
+    const res = await comment.run("{- COMMENT");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
@@ -414,26 +417,26 @@ parserGroup("comment", "@comment-parser", () => {
 
 const singleLineComment: S.Parser<string> = S.symbol("--")
   .skip(S.chompUntilEndOr("\n"))
-  .getChompedString();
+  .getChompedChunk();
 
 parserGroup("singleLineComment", "@singleLineComment-parser", () => {
-  test("Succeed on '-- COMMENT'", ({ expect }) => {
-    const res = S.run(singleLineComment)("-- COMMENT");
+  test("Succeed on '-- COMMENT'", async ({ expect }) => {
+    const res = await singleLineComment.run("-- COMMENT");
     expect(res.value).toStrictEqual("-- COMMENT");
   });
 
-  test("Succeed on '-- COMMENT\\n asdad'", ({ expect }) => {
-    const res = S.run(singleLineComment)("-- COMMENT\n asdad");
+  test("Succeed on '-- COMMENT\\n asdad'", async ({ expect }) => {
+    const res = await singleLineComment.run("-- COMMENT\n asdad");
     expect(res.value).toStrictEqual("-- COMMENT\n");
   });
 
-  test("Succeed on '-- \\n asdad'", ({ expect }) => {
-    const res = S.run(singleLineComment)("-- \n asdad");
+  test("Succeed on '-- \\n asdad'", async ({ expect }) => {
+    const res = await singleLineComment.run("-- \n asdad");
     expect(res.value).toStrictEqual("-- \n");
   });
 
-  test("Fail on '{- COMMENT", ({ expect }) => {
-    const res = S.run(singleLineComment)("{- COMMENT");
+  test("Fail on '{- COMMENT", async ({ expect }) => {
+    const res = await singleLineComment.run("{- COMMENT");
     expect(Results.isErr(res)).toBeTruthy();
   });
 });
@@ -493,8 +496,8 @@ function makeUnderline(row: string, minCol: number, maxCol: number): string {
 
 parserGroup("located", "@located-parser", () => {
   const parse = S.run(located(php));
-  test("Succeed on '$_var'", ({ expect }) => {
-    const res = parse("$_var");
+  test("Succeed on '$_var'", async ({ expect }) => {
+    const res = await parse("$_var");
     expect(res.value).toStrictEqual(Located([1, 1])("$_var")([1, 6]));
   });
 });
@@ -515,12 +518,14 @@ const checkIndent: S.Parser<P.Unit> = S.succeed(
   });
 
 parserGroup("checkIndent", "@checkIndent-parser", () => {
-  test("Succeed when indendation is smaller or equal to col", ({ expect }) => {
-    const res = S.run(checkIndent)("");
+  test("Succeed when indendation is smaller or equal to col", async ({
+    expect,
+  }) => {
+    const res = await S.run(checkIndent)("");
     expect(Results.isOk(res)).toBeTruthy();
   });
-  test("Fail when indentation is larger then col", ({ expect }) => {
-    const res = S.run(
+  test("Fail when indentation is larger then col", async ({ expect }) => {
+    const res = await S.run(
       S.succeed(P.Unit)
         .andThen(() => checkIndent)
         .withIndent(3)
@@ -553,27 +558,27 @@ const elm: S.Parser<P.Unit> = S.loop(0)(
 );
 
 parserGroup("elm-whitespace", "@elm-whitespace-parser", () => {
-  const parse = S.run(elm.getChompedString());
-  test("Succeed on empty string", ({ expect }) => {
-    const res = parse("");
+  const parse = S.run(elm.getChompedChunk());
+  test("Succeed on empty string", async ({ expect }) => {
+    const res = await parse("");
     expect(res.value).toStrictEqual("");
   });
 
-  test("Succeed on with only white space string", ({ expect }) => {
+  test("Succeed on with only white space string", async ({ expect }) => {
     const arg = "\n\n    ";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 
-  test("Succeed on line comment", ({ expect }) => {
+  test("Succeed on line comment", async ({ expect }) => {
     const arg = "\n\n  -- asjkdnasdn  \n";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 
-  test("Succeed on multiline comment", ({ expect }) => {
+  test("Succeed on multiline comment", async ({ expect }) => {
     const arg = "\n\n  {- asjkdnasdn  /n -}";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 });
@@ -589,27 +594,27 @@ const js: S.Parser<P.Unit> = S.loop(0)(
 );
 
 parserGroup("js-whitespace", "@js-whitespace-parser", () => {
-  const parse = S.run(js.getChompedString());
-  test("Succeed on empty string", ({ expect }) => {
-    const res = parse("");
+  const parse = S.run(js.getChompedChunk());
+  test("Succeed on empty string", async ({ expect }) => {
+    const res = await parse("");
     expect(res.value).toStrictEqual("");
   });
 
-  test("Succeed on with only white space string", ({ expect }) => {
+  test("Succeed on with only white space string", async ({ expect }) => {
     const arg = "\t\n\n    ";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 
-  test("Succeed on line comment", ({ expect }) => {
+  test("Succeed on line comment", async ({ expect }) => {
     const arg = "\t\n\n  // asjkdnasdn  \n";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 
-  test("Succeed on multiline comment", ({ expect }) => {
+  test("Succeed on multiline comment", async ({ expect }) => {
     const arg = "\t\n\n  /* asjkdnasdn  /n */";
-    const res = parse(arg);
+    const res = await parse(arg);
     expect(res.value).toStrictEqual(arg);
   });
 });

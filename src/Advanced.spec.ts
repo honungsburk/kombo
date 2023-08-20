@@ -5,9 +5,9 @@ import * as AA from "./Advanced.js";
 import * as P from "./Parser.js";
 import * as Helpers from "./Helpers.js";
 import Immutable from "immutable";
-import { StringCore, core } from "./Source/String.js";
+import * as StringSource from "./Source/String.js";
 
-const A = { ...AA.create(core), ...AA.string(core) };
+const A = { ...AA.create(StringSource.core), ...AA.string(StringSource.core) };
 
 // Helpers
 
@@ -32,7 +32,7 @@ function expectProblem<A, CTX>(
 }
 
 const testSuccessBuilder =
-  <A>(parser: P.Parser<StringCore, A, any, any>) =>
+  <A>(parser: P.Parser<StringSource.Core, A, any, any>) =>
   (description: string, input: string, expected: A) => {
     return test(description, async ({ expect }) => {
       const result = await parser.run(input);
@@ -41,7 +41,7 @@ const testSuccessBuilder =
   };
 
 const testFailureBuilder =
-  <A>(parser: P.Parser<StringCore, any, any, A>) =>
+  <A>(parser: P.Parser<StringSource.Core, any, any, A>) =>
   (description: string, input: string, toBe: A[]) => {
     return test(description, async ({ expect }) => {
       const result = await parser.run(input);
@@ -942,7 +942,7 @@ const intSetForbidden = A.run(intSet(A.Trailing.Forbidden));
 
 type NestingType = NestingType[];
 
-const nesting: P.Parser<StringCore, NestingType, unknown, BlockProblem> =
+const nesting: P.Parser<StringSource.Core, NestingType, unknown, BlockProblem> =
   A.sequence({
     start: A.Token("{", BlockProblem.LeftCurlyBrace),
     separator: A.Token(",", BlockProblem.Comma),
