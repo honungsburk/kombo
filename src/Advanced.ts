@@ -1350,7 +1350,7 @@ async function chompWhileHelp<
       ? (isGood as (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean)
       : (token: SRCTypes.GetHasCoreTOKEN<CORE>) => {
           // @ts-ignore
-          const [returnVal, newState] = isGood(char, state);
+          const [returnVal, newState] = isGood(token, state);
           state = newState;
           return returnVal;
         };
