@@ -1,6 +1,9 @@
 import { test, Group } from "@japa/runner";
-import NodeStreamSource from "./NodeStreamSource.js";
+import LazyChunks from "./LazyChunks.js";
+import * as NodeStream from "./NodeStream.js";
+import * as Assert from "./Assert.js";
 import Stream from "stream";
+import PullStream from "./PullStream.js";
 
 function group(fnName: string, callback: (group: Group) => void) {
   test.group(`NodeStreamSource.${fnName}`, (group) => {
@@ -11,18 +14,19 @@ function group(fnName: string, callback: (group: Group) => void) {
   });
 }
 
-function fromString(str: string): NodeStreamSource {
+function fromString(str: string): LazyChunks {
   // const w = new Stream.Writable();
   // w.write("hello");
   // TODO: We need to simulate more complex stream behavior
-  const r = new Stream.Readable({
+  const r = new Stream.PassThrough({
     highWaterMark: undefined,
     encoding: "utf8",
     objectMode: false,
   });
   r.push(str);
   r.push(null);
-  return new NodeStreamSource(r);
+  const pullStream = new PullStream(r, Assert.isBuffer);
+  return new LazyChunks(pullStream);
 }
 
 // isSubChunk
@@ -30,22 +34,30 @@ function fromString(str: string): NodeStreamSource {
 group("isSubChunk", () => {
   test("empty string in empty string", async ({ expect }) => {
     const src = fromString(" ");
-    expect(await src.isSubChunk("", 0, 1, 1)).toStrictEqual([0, 1, 1]);
+    expect(await NodeStream.isSubChunk("", 0, 1, 1, src)).toStrictEqual([
+      0, 1, 1,
+    ]);
   });
 
   test("correct in a simple array", async ({ expect }) => {
     const src = fromString("let x = 4 in x");
-    expect(await src.isSubChunk("let", 0, 1, 1)).toStrictEqual([3, 1, 4]);
+    expect(await NodeStream.isSubChunk("let", 0, 1, 1, src)).toStrictEqual([
+      3, 1, 4,
+    ]);
   });
 
   test("incorrect in a simple array", async ({ expect }) => {
     const src = fromString("let x = 4 in x");
-    expect(await src.isSubChunk("let", 1, 1, 2)).toStrictEqual([-1, 1, 2]);
+    expect(await NodeStream.isSubChunk("let", 1, 1, 2, src)).toStrictEqual([
+      -1, 1, 2,
+    ]);
   });
 
   test("malformed input", async ({ expect }) => {
     const src = fromString("lee x = 4 in x");
-    expect(await src.isSubChunk("let", 0, 1, 1)).toStrictEqual([-1, 1, 3]);
+    expect(await NodeStream.isSubChunk("let", 0, 1, 1, src)).toStrictEqual([
+      -1, 1, 3,
+    ]);
   });
 });
 
@@ -57,23 +69,31 @@ group("isSubToken", () => {
   test("check that a char is an 'a' and increment the offset", async ({
     expect,
   }) => {
-    expect(await fromString("a").isSubToken(isA, 0)).toStrictEqual(1);
-    expect(await fromString("bbbbabbbb").isSubToken(isA, 4)).toStrictEqual(5);
+    const src1 = fromString("a");
+    expect(await NodeStream.isSubToken(isA, 0, src1)).toStrictEqual(1);
+    const src2 = fromString("bbbbabbbb");
+    expect(await NodeStream.isSubToken(isA, 4, src2)).toStrictEqual(5);
   });
 
   test("return -1 when not an 'a'", async ({ expect }) => {
-    expect(await fromString("ä").isSubToken(isA, 0)).toStrictEqual(-1);
-    expect(await fromString("bbbbäbbbb").isSubToken(isA, 4)).toStrictEqual(-1);
+    const src1 = fromString("ä");
+    expect(await NodeStream.isSubToken(isA, 0, src1)).toStrictEqual(-1);
+    const src2 = fromString("bbbbäbbbb");
+    expect(await NodeStream.isSubToken(isA, 4, src2)).toStrictEqual(-1);
   });
 
   test("return -2 when newline", async ({ expect }) => {
-    expect(await fromString("\n").isSubToken(isA, 0)).toStrictEqual(-2);
-    expect(await fromString("bbbb\nbbbb").isSubToken(isA, 4)).toStrictEqual(-2);
+    const src1 = fromString("\n");
+    expect(await NodeStream.isSubToken(isA, 0, src1)).toStrictEqual(-2);
+    const src2 = fromString("bbbb\nbbbb");
+    expect(await NodeStream.isSubToken(isA, 4, src2)).toStrictEqual(-2);
   });
 
   test("return +2 on '🙊'", async ({ expect }) => {
-    expect(await fromString("🙊").isSubToken(isA, 0)).toStrictEqual(2);
-    expect(await fromString("bbbb🙊bbbb").isSubToken(isA, 4)).toStrictEqual(6);
+    const src1 = fromString("🙊");
+    expect(await NodeStream.isSubToken(isA, 0, src1)).toStrictEqual(2);
+    const src2 = fromString("bbbb🙊bbbb");
+    expect(await NodeStream.isSubToken(isA, 4, src2)).toStrictEqual(6);
   });
 });
 
@@ -82,7 +102,7 @@ group("isSubToken", () => {
 group("findSubChunk", () => {
   test("substring was found", async ({ expect }) => {
     const src = fromString("Is 42 the answer?");
-    expect(await src.findSubChunk("42", 0, 1, 1)).toStrictEqual([
+    expect(await NodeStream.findSubChunk("42", 0, 1, 1, src)).toStrictEqual([
       true,
       3,
       1,
@@ -92,7 +112,7 @@ group("findSubChunk", () => {
 
   test("substring was not found", async ({ expect }) => {
     const src = fromString("Is 42 the answer?");
-    expect(await src.findSubChunk("42", 7, 1, 8)).toStrictEqual([
+    expect(await NodeStream.findSubChunk("42", 7, 1, 8, src)).toStrictEqual([
       false,
       17,
       1,
@@ -102,7 +122,7 @@ group("findSubChunk", () => {
 
   test("offset in '🙈🙉🙊'", async ({ expect }) => {
     const src = fromString("🙈🙉🙊");
-    expect(await src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([
+    expect(await NodeStream.findSubChunk("🙉", 0, 1, 1, src)).toStrictEqual([
       true,
       2,
       1,
@@ -112,7 +132,7 @@ group("findSubChunk", () => {
 
   test("offset with newlines", async ({ expect }) => {
     const src = fromString("🙈\n\n\n1🙊🙉🙊");
-    expect(await src.findSubChunk("🙉", 0, 1, 1)).toStrictEqual([
+    expect(await NodeStream.findSubChunk("🙉", 0, 1, 1, src)).toStrictEqual([
       true,
       8,
       4,
