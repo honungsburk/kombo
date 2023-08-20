@@ -786,9 +786,8 @@ advancedGroup("keyword", () => {
     const res = await keywordLet("let");
     expect(Results.isOk(res)).toBeTruthy();
   });
-  test("Can not parse an invalid keyword", ({ expect }, value) => {
-    //@ts-ignore
-    const res = await keywordLet(value);
+  test("Can not parse an invalid keyword", async ({ expect }, value) => {
+    const res = await keywordLet(value as any as string);
     expect(Results.isErr(res)).toBeTruthy();
   }).with(["letter", "other"]);
 });
@@ -888,27 +887,22 @@ const typeVar = A.variable({
 
 advancedGroup("variable", () => {
   test("succeed on valid variable names", async ({ expect }, val) => {
-    //@ts-ignore
-    const res = await A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val as any as string);
     expect(res.value).toStrictEqual(val);
   }).with(["ok", "variable_names_are_great", "butThisWorks", "valid"]);
 
-  test("succeed on valid valid part", async ({ expect }, val) => {
-    //@ts-ignore
-    const res = await A.run(typeVar)(val.test);
-    //@ts-ignore
-    expect(res.value).toStrictEqual(val.result);
-  }).with([{ test: "valid-yes", result: "valid" }]);
+  test("succeed on valid valid part", async ({ expect }) => {
+    const res = await A.run(typeVar)("valid-yes");
+    expect(res.value).toStrictEqual("valid");
+  });
 
   test("fail on invalid variable names", async ({ expect }, val) => {
-    //@ts-ignore
-    const res = await A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val as any as string);
     expectProblem(expect, res, ["ExpectedTypeVar"]);
   }).with(["Ok", "&hello", "_what", "åäö"]);
 
   test("fail on reserved names", async ({ expect }, val) => {
-    //@ts-ignore
-    const res = await A.run(typeVar)(val);
+    const res = await A.run(typeVar)(val as any as string);
     expectProblem(expect, res, ["ExpectedTypeVar"]);
   }).with(["let", "in", "case", "of"]);
 });
@@ -1075,9 +1069,8 @@ advancedGroup("lineComment", () => {
     expect(res.value).toStrictEqual([2, 1]);
   });
 
-  test("can not parse an invalid line comment", ({ expect }, value) => {
-    //@ts-ignore
-    const res = await singleLineComment(value);
+  test("can not parse an invalid line comment", async ({ expect }, value) => {
+    const res = await singleLineComment(value as any as string);
     expect(Results.isErr(res)).toBeTruthy();
   }).with(["/ this is a comment", " // this is a comment"]);
 });

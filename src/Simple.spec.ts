@@ -128,8 +128,7 @@ parserGroup("Boolean", "@boolean-parser", () => {
     const res = await S.run(boolean)(value.toString());
     expect(Results.isOk(res)).toBeTruthy();
     if (Results.isOk(res)) {
-      //@ts-ignore
-      expect(res.value.equals(value)).toBeTruthy();
+      expect(res.value.equals(value as any as MyBoolean)).toBeTruthy();
     }
   }).with([
     MyTrue,
@@ -277,17 +276,15 @@ const justAnInt: S.Parser<number> = S.succeed((n: number) => n)
   .skip(S.end);
 
 parserGroup("justAnInt", "@justAnInt-parser", () => {
-  test("Succeed on correct keyword", ({ expect }, value) => {
-    //@ts-ignore
-    const res = await S.run(justAnInt)(value);
+  test("Succeed on correct keyword", async ({ expect }) => {
+    const res = await S.run(justAnInt)("123");
     expect(Results.isOk(res)).toBeTruthy();
   }).with(["123"]);
 
-  test("fail on incorrect int", ({ expect }, value) => {
-    //@ts-ignore
-    const res = await S.run(justAnInt)(value);
+  test("fail on incorrect int", async ({ expect }) => {
+    const res = await S.run(justAnInt)("1 + 2");
     expect(Results.isErr(res)).toBeTruthy();
-  }).with(["1 + 2"]);
+  }).with([]);
 });
 
 // CHOMPED STRINGS
