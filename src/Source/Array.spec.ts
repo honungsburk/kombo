@@ -107,10 +107,10 @@ group("findSubChunk", () => {
   test("subchunk not found", ({ expect }) => {
     const src = fromString("Is 42 the answer?");
     expect(stringSrc.findSubChunk("42".split(""), 7, 1, 8, src)).toStrictEqual([
-      true,
-      17,
+      false,
+      16,
       1,
-      18,
+      17,
     ]);
   });
 
