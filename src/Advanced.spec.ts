@@ -327,7 +327,7 @@ const backtrackExample = A.oneOf(
 
 advancedGroup("backtrackable", () => {
   test("succeed", async ({ expect }) => {
-    const res = await A.run(backtrackExample)("  , 4");
+    const res = await backtrackExample.run("  , 4");
     expect(Results.isOk(res));
     if (Results.isOk(res)) {
       expect(res.value).toStrictEqual(4);
@@ -335,12 +335,12 @@ advancedGroup("backtrackable", () => {
   });
 
   test("fail", async ({ expect }) => {
-    const res = await A.run(backtrackExample)("  ,");
+    const res = await backtrackExample.run("  ,");
     expect(Results.isErr(res)).toBeTruthy();
   });
 
   test("can not go back", async ({ expect }) => {
-    const res = await A.run(backtrackExample)("  , a");
+    const res = await backtrackExample.run("  , a");
     expect(Results.isErr(res)).toBeTruthy();
   });
 

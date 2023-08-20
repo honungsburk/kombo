@@ -833,11 +833,12 @@ export const token =
     token: Token<SRCTypes.GetHasCoreCHUNK<CORE>, PROBLEM>
   ): Parser<CORE, Unit, never, PROBLEM> => {
     return new ParserImpl(core, async (s) => {
-      const [newOffset, newRow, newCol] = await s.src.isSubChunk(
+      const [newOffset, newRow, newCol] = await core.isSubChunk(
         token.value,
         s.offset,
         s.row,
-        s.col
+        s.col,
+        s.src
       );
 
       if (newOffset === -1) {
@@ -1065,7 +1066,7 @@ function bumpOffset<SRC, CTX>(
   };
 }
 async function finalizeFloat<
-  CORE extends SRCTypes.HasStringCore<any>,
+  CORE extends SRCTypes.HasStringCore<any> & SRCTypes.HasCore<any, any, any>,
   A,
   PROBLEM
 >(
@@ -1094,7 +1095,7 @@ async function finalizeFloat<
       return Bad(true, fromState(s, floatSettings.value));
     } else {
       try {
-        const n = parseFloat(await s.src.slice(s.offset, floatOffset));
+        const n = parseFloat(await core.slice(s.offset, floatOffset, s.src));
         return Good(true, floatSettings.value(n), bumpOffset(floatOffset, s));
       } catch (e) {
         return Bad(true, fromState(s, invalid));
@@ -1166,7 +1167,7 @@ export const end =
   <CORE extends SRCTypes.HasCore<any, any, any>>(core: CORE) =>
   <PROBLEM>(problem: PROBLEM): Parser<CORE, Unit, never, PROBLEM> => {
     return new ParserImpl(core, async (s) => {
-      if (s.src.isEnd(s.offset)) {
+      if (core.isEnd(s.offset, s.src)) {
         return Good(false, Unit, s);
       } else {
         return Bad(false, fromState(s, problem));
@@ -1213,7 +1214,7 @@ export const mapChompedChunk =
       } else {
         return Good(
           res.haveConsumed,
-          fn(await s.src.slice(s.offset, res.state.offset), res.value),
+          fn(await core.slice(s.offset, res.state.offset, s.src), res.value),
           res.state
         );
       }
@@ -1233,7 +1234,7 @@ export const chompIf =
   (isGood: (token: SRCTypes.GetHasCoreTOKEN<CORE>) => boolean) =>
   <PROBLEM>(expecting: PROBLEM): Parser<CORE, Unit, never, PROBLEM> => {
     return new ParserImpl(core, async (s) => {
-      const newOffset = await s.src.isSubToken(isGood, s.offset);
+      const newOffset = await core.isSubToken(isGood, s.offset, s.src);
       if (newOffset === -1) {
         return Bad(false, fromState(s, expecting));
       } else if (newOffset === -2) {
@@ -1368,7 +1369,7 @@ async function chompWhileHelp<
       finalCol = finalCol + 1;
     }
 
-    newOffset = await core.isSubToken(fn, offset, s0.src);
+    newOffset = await core.isSubToken(fn, finalOffset, s0.src);
   }
 
   if (iterations < 1 && config) {
