@@ -20,7 +20,7 @@ import {
   Bag,
   Append,
   Located,
-} from "./Parser.js";
+} from "./Parser3.js";
 import * as SRCTypes from "./Source/Types.js";
 
 export const create = <CORE extends SRCTypes.HasCore<any, any, any>>(
@@ -123,7 +123,11 @@ class ParserImpl<
     private core: CORE,
     public exec: (
       s: State<SRCTypes.GetHasCoreSRC<CORE>, unknown>
-    ) => Promise<PStep<SRCTypes.GetHasCoreSRC<CORE>, A, CTX, PROBLEM>>
+    ) => AsyncGenerator<
+      never,
+      PStep<SRCTypes.GetHasCoreSRC<CORE>, A, CTX, PROBLEM>,
+      never
+    >
   ) {}
 
   map<B>(fn: (v: A) => B): Parser<CORE, B, CTX, PROBLEM> {
@@ -163,7 +167,7 @@ class ParserImpl<
 
   run(
     src: SRCTypes.GetHasCoreSRC<CORE>
-  ): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> {
+  ): AsyncGenerator<never, Results.Result<A, DeadEnd<CTX, PROBLEM>[]>, never> {
     return run(this as Parser<CORE, A, CTX, PROBLEM>)(src);
   }
 
@@ -235,14 +239,18 @@ class ParserImpl<
  *
  * @category Parsers
  */
-export const run =
-  <CORE extends SRCTypes.HasCore<any, any, any>, A, CTX, PROBLEM>(
-    parser: Parser<CORE, A, CTX, PROBLEM>
-  ) =>
-  async (
+export const run = <
+  CORE extends SRCTypes.HasCore<any, any, any>,
+  A,
+  CTX,
+  PROBLEM
+>(
+  parser: Parser<CORE, A, CTX, PROBLEM>
+) =>
+  async function* (
     src: SRCTypes.GetHasCoreSRC<CORE>
-  ): Promise<Results.Result<A, DeadEnd<CTX, PROBLEM>[]>> => {
-    const res = await parser.exec({
+  ): AsyncGenerator<never, Results.Result<A, DeadEnd<CTX, PROBLEM>[]>, never> {
+    const gen = parser.exec({
       src: src,
       offset: 0,
       indent: 0,
@@ -251,10 +259,11 @@ export const run =
       col: 1,
     });
 
-    if (isGood(res)) {
-      return Results.Ok(res.value);
+    const res = await gen.next();
+    if (isGood(res.value)) {
+      return Results.Ok(res.value.value);
     } else {
-      return Results.Err(bagToList(res.bag));
+      return Results.Err(bagToList(res.value.bag));
     }
   };
 
@@ -2275,7 +2284,7 @@ export const manyLazy =
   <A, CTX, PROBLEM>(
     parseItem: Parser<CORE, A, CTX, PROBLEM>
   ): Parser<CORE, AsyncGenerator<A>, CTX, PROBLEM> => {
-    return new ParserImpl(core, async (s) => {
+    return new ParserImpl(core, async function* (s) {
       return Good(
         false,
         async function* () {
