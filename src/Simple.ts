@@ -714,7 +714,7 @@ export function succeed<A>(v: A): Parser<A> {
  *
  * @category Primitives
  */
-export function problem<A>(msg: string): Parser<A> {
+export function problem(msg: string): Parser<never> {
   return A.problem(Generic(msg));
 }
 

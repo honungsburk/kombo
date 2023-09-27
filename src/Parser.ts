@@ -80,7 +80,7 @@ export function getContext<CTX>(located: Located<CTX>): CTX {
  */
 export type State<CTX> = {
   src: string;
-  offset: number; //in BYTES (some UTF-16 characters are TWO bytes)
+  offset: number; //in code points (some UTF-16 characters are TWO code points)
   indent: number; // starts from 0
   context: immutable.Stack<Located<CTX>>;
   row: number; //in newlines
